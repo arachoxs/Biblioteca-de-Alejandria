@@ -21,15 +21,14 @@
 
 ### Gestión de Libros
 
-- **RF-AL-01**: Ingresar un nuevo libro al sistema con los campos obligatorios: título, autor(es), año de publicación, género, número de páginas, editorial, ISBN, idioma, fecha de publicación, estado (nuevo/usado) y precio.
+- **RF-AL-01**: Ingresar un nuevo libro al sistema con los campos obligatorios: título, autor(es), año de publicación, género, número de páginas, editorial, ISBN, idioma, fecha de publicación, estado (nuevo/usado) y precio. 
 - **RF-AL-02**: Asignar un código único a cada ejemplar inventariado, permitiendo múltiples copias del mismo libro.
 - **RF-AL-03**: Editar la información de libros existentes en el sistema (se propaga hacia sus copias).
 - **RF-AL-04**: Eliminar ejemplares individuales del inventario.
-- **RF-AL-05**: Eliminar libros completos del sistema según las políticas de retención definidas.
-- **RF-AL-06**: Administrar existencias y cantidades disponibles de cada libro por tienda física.
-- **RF-AL-07**: Clasificar automáticamente los libros sin existencias en la categoría de "histórico agotado".
-- **RF-AL-08**: Publicar automáticamente los libros agregados al inventario en el submódulo de noticias (vitrina digital).
-- **RF-AL-09**: Restringir el acceso al módulo de administración de libros exclusivamente a usuarios con rol administrador.
+- **RF-AL-05**: Administrar existencias y cantidades disponibles de cada libro por tienda física.
+- **RF-AL-06**: Clasificar automáticamente los libros sin existencias en la categoría de "histórico agotado". *como deberia funcionar el historico agregado*
+- **RF-AL-07**: Publicar automáticamente los libros agregados al inventario en el submódulo de noticias (vitrina digital). **Si se hace cambio en el inventario el libro deberia subir en la vitrina?*
+- **RF-AL-08**: Restringir el acceso al módulo de administración de libros exclusivamente a usuarios con rol administrador. 
 
 ---
 
@@ -37,35 +36,35 @@
 
 ### Reserva de Libros
 
-- **RF-CR-01**: Permitir a usuarios registrados reservar libros por un período máximo de 24 horas.
+- **RF-CR-01**: Permitir a usuarios registrados reservar libros por un período máximo de 24 horas. 
 - **RF-CR-02**: Limitar las reservas activas a un máximo de 5 libros diferentes por usuario.
 - **RF-CR-03**: Limitar la reserva de un mismo libro a un máximo de 3 copias por usuario.
 - **RF-CR-04**: Liberar automáticamente las reservas que no hayan sido confirmadas después de 24 horas.
-- **RF-CR-05**: Permitir a los usuarios cancelar reservas en cualquier momento.
+- **RF-CR-05**: Permitir a los usuarios cancelar reservas en cualquier momento. *como funcionan las cancelaciones?*
 
 ### Compra de Libros
 
-- **RF-CR-06**: Proporcionar un carrito de compras integrado con el módulo de gestión financiera.
+- **RF-CR-06**: Proporcionar un carrito de compras integrado con el módulo de gestión financiera. 
 - **RF-CR-07**: Permitir a usuarios registrados realizar compras mediante tarjeta de crédito/débito o saldo interno.
-- **RF-CR-07.1**: Permitir a los usuarios dividir el valor a pagar entre las tarjetas 
+- **RF-CR-08**: Permitir a los usuarios dividir el valor a pagar entre las tarjetas 
 guardadas.
-- **RF-CR-08**: Permitir la cancelación de compras según las políticas comerciales definidas.
-- **RF-CR-09**: Registrar y mostrar el historial de compras y cancelaciones del usuario.
+- **RF-CR-09**: Permitir la cancelación de compras según las políticas comerciales definidas. *como funcionan las cancelaciones?*
+- **RF-CR-10**: Registrar y mostrar el historial de compras y cancelaciones del usuario.
 
 ### Devoluciones
 
-- **RF-CR-10**: Permitir devoluciones bajo las causales de producto en mal estado, no cumplir expectativas o retraso en la entrega.
-- **RF-CR-11**: Proporcionar un campo de texto para especificar el motivo de la devolución.
-- **RF-CR-12**: Limitar las devoluciones a un máximo de 8 días después de recibido el producto.
-- **RF-CR-13**: Generar y enviar un código QR al correo del cliente para iniciar el proceso de devolución.
+- **RF-CR-11**: Permitir devoluciones bajo las causales de producto en mal estado, no cumplir expectativas o retraso en la entrega. *como funcionan las devoluciones*
+- **RF-CR-12**: Proporcionar un campo de texto para especificar el motivo de la devolución. 
+- **RF-CR-13**: Limitar las devoluciones a un máximo de 8 días después de recibido el producto.
+- **RF-CR-14**: Generar y enviar un código QR al correo del cliente para iniciar el proceso de devolución. *como funciona el QR*
 
 ### Envío y Entrega
 
-- **RF-CR-14**: Solicitar la dirección de envío al confirmar la compra.
-- **RF-CR-15**: Administrar y mostrar el estado del envío: "En preparación", "Enviado" y "Entregado".
-- **RF-CR-16**: Permitir a clientes en Colombia la opción de recoger compras en tienda física.
-- **RF-CR-17**: Calcular y sugerir la tienda más cercana cuando un libro no esté disponible en la tienda seleccionada.
-- **RF-CR-18**: Mostrar en un mapa la localización de tiendas físicas para clientes en la ciudad de Pereira.
+- **RF-CR-15**: Solicitar la dirección de envío al confirmar la compra. *se usa la direccion que se uso en el perfil o permite agregar mas de una direccion?*
+- **RF-CR-16**: Administrar y mostrar el estado del envío: "En preparación", "Enviado" y "Entregado". *como cambian los estados de envio?*
+- **RF-CR-17**: Permitir a clientes en Colombia la opción de recoger compras en tienda física. *solo se permite si la direccion del cliente es en colombia?*
+- **RF-CR-18**: Calcular y sugerir la tienda más cercana cuando un libro no esté disponible en la tienda seleccionada. 
+- **RF-CR-19**: Mostrar en un mapa la localización de tiendas físicas para clientes en la ciudad de Pereira. *se muestran todas o en un radio de cercania? solo funciona en la ciudad de pereira o es un mapa segun la ciudad en la que este?*
 
 ---
 
@@ -74,23 +73,24 @@ guardadas.
 ### Usuario Root
 
 - **RF-US-01**: Crear un usuario root durante el despliegue inicial del sistema.
-- **RF-US-02**: Permitir al usuario root crear usuarios administradores.
-- **RF-US-03**: Permitir al usuario root modificar su contraseña.
+- **RF-US-02**: Permitir al usuario root crear usuarios administradores. *con que informacion inicial se crean los administradores*
+- **RF-US-03**: Permitir al usuario root modificar su contraseña. 
 - **RF-US-04**: Restringir al usuario root la capacidad de comprar o reservar libros.
 
 ### Usuario Administrador
 
-- **RF-US-05**: Permitir a los administradores completar su registro con datos personales y credenciales.
-- **RF-US-06**: Conceder acceso al módulo de administración de libros.
-- **RF-US-07**: Restringir a los administradores la capacidad de comprar o reservar libros.
+- **RF-US-05**: Permitir a los administradores completar su registro con datos personales y credenciales, con los datos: DNI, nombres, apellidos, fecha de nacimiento, lugar de nacimiento, dirección de correspondencia(envío), género, correo electrónico. *el registro de sus datos personales deben ser obligatorios?*
+- **RF-US-06**: Conceder acceso al módulo de administración de libros. *se debe guardar trasabilidad de cambios hechos por administradores para auditoria?*
+- **RF-US-07**: Restringir a los administradores la capacidad de comprar o reservar libros. 
 
 ### Usuario Cliente
 
-- **RF-US-08**: Registrar clientes con datos personales, credenciales y preferencias literarias.
-- **RF-US-09**: Permitir a los clientes editar su información de perfil.
-- **RF-US-10**: Permitir a los clientes suscribirse al sistema de noticias mediante la selección de gustos literarios.
-- **RF-US-11**: Permitir a los clientes seleccionar libros de preferencia por tema o autor.
-- **RF-US-12**: Proporcionar a cada cliente un módulo de gestión financiera personal.
+- **RF-US-08**: Registrar clientes con datos personales: DNI, nombres, apellidos, fecha de nacimiento, lugar
+de nacimiento, dirección de correspondencia(envío), género, correo electrónico, credenciales: usuario y contraseña y preferencias literarias: *como se clasifican las preferencias literarias*.
+- **RF-US-09**: Permitir a los clientes editar su información de perfil. *se puede editar toda la información?*
+- **RF-US-10**: Permitir a los clientes suscribirse al sistema de noticias mediante la selección de gustos literarios. *se envia notificacion solo cuando llega un libro nuevo o tambien cuando se agrega stock de un libro o un libro sin stock vuelve?*
+- **RF-US-11**: Permitir a los clientes seleccionar libros de preferencia por tema o autor. *se puede editar en cualquier momento?*
+- **RF-US-12**: Proporcionar a cada cliente un módulo de gestión financiera personal. 
 - **RF-US-13**: Enviar automáticamente una tarjeta de cumpleaños y un bono de descuento válido por un día en la fecha de cumpleaños del cliente.
 
 ### Usuario Visitante
@@ -104,15 +104,15 @@ guardadas.
 - **RF-NO-01**: Permitir a los usuarios registrados suscribirse al sistema de noticias mediante la selección de gustos literarios (temas y/o autores).
 - **RF-NO-02**: Enviar notificaciones automáticas a los usuarios suscritos cuando se agreguen nuevos libros o se reponga stock que coincida con sus gustos seleccionados.
 - **RF-NO-03**: Las notificaciones podrán enviarse por correo electrónico.
-- **RF-NO-04**: El submódulo de noticias funcionará como una vitrina digital, mostrando públicamente los nuevos libros agregados al inventario.
-- **RF-NO-05**: La publicación en la vitrina digital será automática al agregar libros al inventario.
-- **RF-NO-06**: Los usuarios podrán modificar o cancelar su suscripción al sistema de noticias en cualquier momento.
+- **RF-NO-04**: El submódulo de noticias funcionará como una vitrina digital, mostrando públicamente los nuevos libros agregados al inventario. *cuando se agregue un stock de un libro ese libro sube en la lista?*
+- **RF-NO-05**: La publicación en la vitrina digital será automática al agregar libros al inventario. *solo cuando se agregan nuevos libros o tambien cuando se agrega inventario?*
+- **RF-NO-06**: Los usuarios podrán modificar o cancelar su suscripción al sistema de noticias en cualquier momento. *si se puede?* 
 
 ---
 
 ## Módulo de Búsqueda
 
-- **RF-BU-01**: Permitir búsquedas de libros por título, autor, año de publicación, género, número de páginas, editorial, ISBN, idioma, fecha de publicación, estado y precio.
+- **RF-BU-01**: Permitir búsquedas de libros por título, autor, año de publicación, género, número de páginas, editorial, ISBN, idioma, fecha de publicación, estado y precio. *tambien se debe permitir filtrar segun la tienda fisica?*
 
 ---
 
@@ -133,9 +133,9 @@ guardadas.
 
 ## Módulo de Recomendación
 
-- **RF-RE-01**: Implementar un asistente que recomiende libros basándose en el historial de compras y búsquedas del usuario.
+- **RF-RE-01**: Implementar un asistente que recomiende libros basándose en el historial de compras y búsquedas del usuario. *como funciona el asistente y que informacion deberia recopilar del usuario para ajustarce?*
 - **RF-RE-02**: Consumir servicios de mapas para mostrar tiendas físicas en Pereira, siempre que el servicio sea gratuito.
-- **RF-RE-03**: Implementar un módulo opcional de realidad aumentada para visualizar libros o tiendas.
+- **RF-RE-03**: Implementar un módulo de realidad aumentada para visualizar libros o tiendas.
 
 ---
 
@@ -143,8 +143,8 @@ guardadas.
 
 - **RF-IT-01**: Mantener inventario independiente para cada tienda física.
 - **RF-IT-02**: Sincronizar el inventario entre tiendas y el sistema central al procesar ventas o recogidas en tienda.
-- **RF-IT-03**: Permite agregar tiendas dentro del sistema con los siguiente parametros:
-- **RF-IT-04**: Permite la edicion y eliminacion de las tiendas existentes.
+- **RF-IT-03**: Permite agregar tiendas dentro del sistema con los siguiente parametros: ID, nombre, dirección, horario, stock *stock?*
+- **RF-IT-04**: Permite la edicion y eliminacion de las tiendas existentes. *se pueden eliminar tiendas?*
 
 
 # Preguntas de Validación de Requisitos (No Técnicas)
