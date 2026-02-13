@@ -21,7 +21,7 @@
 
 ### Gestión de Libros
 
-- **RF-AL-01**: Ingresar un nuevo libro al sistema con los campos obligatorios: título, autor(es), año de publicación, género, número de páginas, editorial, ISBN, idioma, fecha de publicación, estado (nuevo/usado) y precio. 
+- **RF-AL-01**: Ingresar un nuevo libro al sistema con los campos obligatorios: título, autor(es), año de publicación, género, número de páginas, editorial, ISBN, idioma, fecha de publicación, estado (nuevo/usado) y precio. *un libro solo tiene un genero o son varios?*
 - **RF-AL-02**: Asignar un código único a cada ejemplar inventariado, permitiendo múltiples copias del mismo libro.
 - **RF-AL-03**: Editar la información de libros existentes en el sistema (se propaga hacia sus copias).
 - **RF-AL-04**: Eliminar ejemplares individuales del inventario.
