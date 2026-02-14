@@ -179,7 +179,7 @@ de nacimiento, dirección de correspondencia(envío), género, correo electróni
 **RF-RA-05**: Visualizar un modelo 3D simplificado de la fachada de la tienda física seleccionada sobre el mapa para facilitar su reconocimiento visual.
 ---
 
-## Gestion de Tiendas Físicas
+## Gestión de Tiendas Físicas
 **RF-IT-01**: Registrar nuevas tiendas físicas en el sistema definiendo: ID único, nombre comercial, dirección exacta y horarios de atención.
 **RF-IT-02**: Editar la información de contacto, nombre o ubicación de las tiendas existentes.
 **RF-IT-03**: Inhabilitar o eliminar una tienda física del sistema.
