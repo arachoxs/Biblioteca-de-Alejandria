@@ -39,7 +39,7 @@
 **RF-AL-22**: Visualizar el listado completo de autores y los libros vinculados a cada uno.
 ---
 
-## Módulo gestion inventario centralizado
+## Módulo de gestión de inventario centralizado
 **RF-IN-01**: Registrar el ingreso de ejemplares al "Inventario General" (Bodega Central) sin asignación inmediata a una tienda física.
 **RF-IN-02**: Generar y asignar un código único (SKU/Barcode) a cada ejemplar físico ingresado al sistema.
 **RF-IN-03**: Realizar la asignación de ejemplares desde el Inventario General hacia una tienda física específica, descontando del global y sumando al local.
