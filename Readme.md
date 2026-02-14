@@ -157,33 +157,33 @@ de nacimiento, dirección de correspondencia(envío), género, correo electróni
 ---
 
 ## Módulo de Mensajería
-**RF-ME-01**: Permitir al cliente iniciar hilos de conversación privados dirigidos al equipo de administración.
-**RF-ME-02**: Permitir a los usuarios administradores visualizar y responder a los hilos de conversación iniciados por los clientes.
-**RF-ME-03**: Restringir el acceso a cada hilo de conversación exclusivamente al cliente autor y a los usuarios con rol Administrador.
-**RF-ME-04**: Proporcionar una bandeja de entrada centralizada para los administradores.
-**RF-ME-05**: Permitir al administrador marcar una conversación como "Finalizada" o "Resuelta" para archivar el hilo.
+- **RF-ME-01**: Permitir al cliente iniciar hilos de conversación privados dirigidos al equipo de administración.
+- **RF-ME-02**: Permitir a los usuarios administradores visualizar y responder a los hilos de conversación iniciados por los clientes.
+- **RF-ME-03**: Restringir el acceso a cada hilo de conversación exclusivamente al cliente autor y a los usuarios con rol Administrador.
+- **RF-ME-04**: Proporcionar una bandeja de entrada centralizada para los administradores.
+- **RF-ME-05**: Permitir al administrador marcar una conversación como "Finalizada" o "Resuelta" para archivar el hilo.
 ---
 
 ## Módulo de Recomendación
-**RF-RE-01**: Recopilar y procesar el historial de compras, reservas y términos de búsqueda de cada usuario para alimentar el modelo de recomendaciones.
-**RF-RE-02**: Generar sugerencias personalizadas de libros basadas en las categorías y autores con mayor interacción en el historial del usuario.
-**RF-RE-03**: Implementar una interfaz de chat basada en lenguaje natural que permita al usuario solicitar recomendaciones mediante texto.
-**RF-RE-04**: Integrar servicios de mapas gratuitos (OpenStreetMap o similar) para visualizar la ubicación de las tiendas físicas en la ciudad de Pereira.
+- **RF-RE-01**: Recopilar y procesar el historial de compras, reservas y términos de búsqueda de cada usuario para alimentar el modelo de recomendaciones.
+- **RF-RE-02**: Generar sugerencias personalizadas de libros basadas en las categorías y autores con mayor interacción en el historial del usuario.
+- **RF-RE-03**: Implementar una interfaz de chat basada en lenguaje natural que permita al usuario solicitar recomendaciones mediante texto.
+- **RF-RE-04**: Integrar servicios de mapas gratuitos (OpenStreetMap o similar) para visualizar la ubicación de las tiendas físicas en la ciudad de Pereira.
 ---
 
 ## Módulo de Realidad Aumentada *no definitivo*
-**RF-RA-01**: Generar automáticamente archivos de modelos 3D en formato estándar (.glb / .usdz) utilizando las imágenes de portada, lomo y contraportada del libro.
-**RF-RA-02**: Escalar automáticamente el prisma 3D basándose en las dimensiones físicas (alto, ancho, profundidad) registradas en la ficha técnica del libro.
-**RF-RA-03**: Proporcionar un visor 3D interactivo en la web para que el usuario pueda rotar y previsualizar el libro en 360 grados.
-**RF-RA-04**: Ejecutar la proyección de Realidad Aumentada en el entorno físico del usuario utilizando Scene Viewer (Android) o Quick Look (iOS). 
-**RF-RA-05**: Visualizar un modelo 3D simplificado de la fachada de la tienda física seleccionada sobre el mapa para facilitar su reconocimiento visual.
+- **RF-RA-01**: Generar automáticamente archivos de modelos 3D en formato estándar (.glb / .usdz) utilizando las imágenes de portada, lomo y contraportada del libro.
+- **RF-RA-02**: Escalar automáticamente el prisma 3D basándose en las dimensiones físicas (alto, ancho, profundidad) registradas en la ficha técnica del libro.
+- **RF-RA-03**: Proporcionar un visor 3D interactivo en la web para que el usuario pueda rotar y previsualizar el libro en 360 grados.
+- **RF-RA-04**: Ejecutar la proyección de Realidad Aumentada en el entorno físico del usuario utilizando Scene Viewer (Android) o Quick Look (iOS). 
+- **RF-RA-05**: Visualizar un modelo 3D simplificado de la fachada de la tienda física seleccionada sobre el mapa para facilitar su reconocimiento visual.
 ---
 
 ## Gestión de Tiendas Físicas
-**RF-IT-01**: Registrar nuevas tiendas físicas en el sistema definiendo: ID único, nombre comercial, dirección exacta y horarios de atención.
-**RF-IT-02**: Editar la información de contacto, nombre o ubicación de las tiendas existentes.
-**RF-IT-03**: Inhabilitar o eliminar una tienda física del sistema.
-**RF-IT-04**: Reasignar automáticamente el inventario de una tienda eliminada hacia el "Inventario Global" o una "Bodega Central" para mantener la trazabilidad de los ejemplares.
+- **RF-IT-01**: Registrar nuevas tiendas físicas en el sistema definiendo: ID único, nombre comercial, dirección exacta y horarios de atención.
+- **RF-IT-02**: Editar la información de contacto, nombre o ubicación de las tiendas existentes.
+- **RF-IT-03**: Inhabilitar o eliminar una tienda física del sistema.
+- **RF-IT-04**: Reasignar automáticamente el inventario de una tienda eliminada hacia el "Inventario Global" o una "Bodega Central" para mantener la trazabilidad de los ejemplares.
 
 # Entrevista
 
