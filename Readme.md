@@ -39,7 +39,7 @@
 - **RF-AL-16**: Visualizar el listado completo de autores y los libros vinculados a cada uno.
 ---
 
-### Módulo de gestión de inventario centralizado
+### Módulo de Gestión de Inventario
 - **RF-IN-01**: Registrar el ingreso de ejemplares al "Inventario General" (Bodega Central) sin asignación inmediata a una tienda física.
 - **RF-IN-02**: Generar y asignar un código único (SKU/Barcode) a cada ejemplar físico ingresado al sistema.
 - **RF-IN-03**: Realizar la asignación de ejemplares desde el Inventario General hacia una tienda física específica, descontando del global y sumando al local.
@@ -149,10 +149,10 @@ de nacimiento, dirección de correspondencia(envío), género, correo electróni
 ---
 
 ### Módulo de Gestión Financiera
-- **RF-GF-01**: Permitir a los usuarios registrar tarjetas de crédito y débito mediante pasarela de pago.
-- **RF-GF-02**: Permitir editar información de tarjetas registradas.
-- **RF-GF-03**: Permitir eliminar tarjetas del sistema.
-- **RF-GF-04**: Mantener y mostrar el saldo disponible del usuario.
+- **RF-GF-01**: Permitir a los usuarios registrar tarjetas de crédito y débito.
+- **RF-GF-02**: Validar información de una tarjeta antes de registrarla.
+- **RF-GF-03**: Permitir eliminar tarjetas registradas en su cuenta.
+- **RF-GF-04**: Permitir a los usuarios agregar saldo a las tarjetas registradas.
 ---
 
 ### Módulo de Mensajería
