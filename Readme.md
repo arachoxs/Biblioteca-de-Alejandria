@@ -121,27 +121,29 @@ de nacimiento, dirección de correspondencia(envío), género, correo electróni
 - **RF-US-16**: Enviar notificaciones automáticas al correo del cliente únicamente si la suscripción está activa y el nuevo libro coincide con sus preferencias de autor o categoría.
 - **RF-US-17**: Detectar la fecha de cumpleaños del cliente para enviar de forma automática una tarjeta de felicitación digital al correo.
 - **RF-US-18**: Generar y enviar un bono de descuento único vinculado al cumpleaños del cliente, con una validez estricta de 24 horas y unicamente la primera compra del dia.
-
+- **RF-US-19**: El sistema debe permitir que el Administrador modifique el porcentaje de los bonos de descuento.
 
 #### Usuario Visitante
 
-- **RF-US-19**: Permitir a usuarios no autenticados (visitantes) realizar búsquedas y consultas en el catálogo de libros y categorías.
+- **RF-US-20**: Permitir a usuarios no autenticados (visitantes) realizar búsquedas y consultas en el catálogo de libros y categorías.
 ---
 
 ### Módulo de Noticias
 
 #### Sistema de Notificaciones Personalizadas
+
+
 - **RF-NO-01**: Validar la suscripción activa y las preferencias literarias del usuario antes de generar cualquier comunicación.
 - **RF-NO-02**: Detectar automáticamente la incorporación de nuevos títulos al catálogo que coincidan con los autores o categorías de interés del usuario.
-- **RF-NO-04**: Gestionar el envío de alertas informativas exclusivamente a través de correo electrónico para los eventos detectados de interés.
-- **RF-NO-05**: Suspender el envío de notificaciones de forma inmediata si el usuario elimina sus preferencias.
+- **RF-NO-03**: Gestionar el envío de alertas informativas exclusivamente a través de correo electrónico para los eventos detectados de interés.
+- **RF-NO-04**: Suspender el envío de notificaciones de forma inmediata si el usuario elimina sus preferencias.
 
 #### Vitrina Digital (Pública)
-- **RF-NO-06**: Desplegar una sección pública de "Novedades" que funcione como vitrina digital para todos los usuarios (visitantes y registrados).
-- **RF-NO-07**: Publicar automáticamente en la vitrina digital todo libro cuyo registro en el sistema tenga una antigüedad menor o igual a 10 días calendario.
-- **RF-NO-08**: Listar en la vitrina digital la información básica del libro: portada, título, autor, género y precio.
-- **RF-NO-09**: Retirar automáticamente de la vitrina digital cualquier libro cuyo stock global llegue a cero, independientemente de su fecha de registro.
-- **RF-NO-10**: Ejecutar un proceso de depuración diario para retirar de la vitrina los libros que superen los 10 días desde su fecha de registro inicial.
+- **RF-NO-05**: Desplegar una sección pública de "Novedades" que funcione como vitrina digital para todos los usuarios (visitantes y registrados).
+- **RF-NO-06**: Publicar automáticamente en la vitrina digital todo libro cuyo registro en el sistema tenga una antigüedad menor o igual a 10 días calendario.
+- **RF-NO-07**: Listar en la vitrina digital la información básica del libro: portada, título, autor, género y precio.
+- **RF-NO-08**: Retirar automáticamente de la vitrina digital cualquier libro cuyo stock global llegue a cero, independientemente de su fecha de registro.
+- **RF-NO-09**: Ejecutar un proceso de depuración diario para retirar de la vitrina los libros que superen los 10 días desde su fecha de registro inicial.
 ---
 
 ### Módulo de Búsqueda
@@ -159,8 +161,7 @@ de nacimiento, dirección de correspondencia(envío), género, correo electróni
 - **RF-ME-01**: Permitir al cliente iniciar hilos de conversación privados dirigidos al equipo de administración.
 - **RF-ME-02**: Permitir a los usuarios administradores visualizar y responder a los hilos de conversación iniciados por los clientes.
 - **RF-ME-03**: Restringir el acceso a cada hilo de conversación exclusivamente al cliente autor y a los usuarios con rol Administrador.
-- **RF-ME-04**: Proporcionar una bandeja de entrada centralizada para los administradores.
-- **RF-ME-05**: Permitir al administrador marcar una conversación como "Finalizada" o "Resuelta" para archivar el hilo.
+- **RF-ME-04**: El sistema debe proporcionar a los administradores una consola centralizada para la recepción, seguimiento y cierre de las comunicaciones iniciadas por los usuarios. Esta interfaz debe permitir la organización de las consultas según su estado (ej. 'Pendiente', 'Resuelta') para garantizar que todas las solicitudes reciban una respuesta y sean archivadas correctamente tras su finalización.
 ---
 
 ### Módulo de Recomendación
@@ -199,6 +200,13 @@ Segurencia de cambio para **RF-CR-20**: "El sistema debe recomendar al usuario l
 
 **RF-CR-23-24-25**: sugiero que cambiamos estos 3 requitos ya que son literalmente una descripcion de funciones mas no de un requisito, sugerencia de cambio: "El sistema debe proporcionar al usuario una estimación del tiempo de espera para cada modalidad de obtención del libro (entrega a domicilio, recogida inmediata o traslado entre sedes), calculada en función de la ubicación del cliente, la disponibilidad de stock y la logística de transporte aplicable." de esta forma reducimos redundancia.
 
+- Se debe preguntar al cliente que pasa cuando un usuario visitante intenta ingresar a zonas donde no se le es permitido estar y tambien con los administradores y root.
+
+- El sistema debe manejar una pagina individual por cada libro donde se detalle mas su información?
+
+SUGERENCIA: cambiar el RF-NO-01-02-03-04 ya que estan siendo demasidado explicito de como debe funcionar el proceso de envio de notificaciones sugiero cambiar por:
+
+**RF-NO-01-**:El sistema debe gestionar el envío automático de alertas informativas vía correo electrónico a los usuarios que mantengan activo su perfil de preferencias. Este proceso debe activarse ante la incorporación de nuevos títulos al catálogo que coincidan con los intereses literarios (autores o categorías) registrados por el usuario, respetando en todo momento el estado de suscripción del mismo.
 
 # Entrevista
 
