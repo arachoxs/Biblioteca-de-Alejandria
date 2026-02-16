@@ -71,7 +71,7 @@
 
 #### Gestión de Devoluciones (Integración con Terceros)
 - **RF-CR-11**: Habilitar el formulario de solicitud de devolución bajo las causales: mal estado, no cumple expectativas o retraso.
-- **RF-CR-12**: Obligar al ingreso de un motivo de devolución mediante un campo de texto detallado.
+- **RF-CR-12**: Habilitar al ingreso de un motivo de devolución diferente a los definidos mediante un campo de texto detallado.
 - **RF-CR-13**: Validar que la solicitud de devolución se realice dentro del límite de 8 días naturales tras la recepción.
 - **RF-CR-14**: Generar y enviar al correo del cliente un código QR que contenga la URL de gestión del proveedor logístico tercero.
 
@@ -183,6 +183,22 @@ de nacimiento, dirección de correspondencia(envío), género, correo electróni
 - **RF-IT-02**: Editar la información de contacto, nombre o ubicación de las tiendas existentes.
 - **RF-IT-03**: Inhabilitar o eliminar una tienda física del sistema.
 - **RF-IT-04**: Reasignar automáticamente el inventario de una tienda eliminada hacia el "Inventario Global" o una "Bodega Central" para mantener la trazabilidad de los ejemplares.
+
+
+### IDEAS DE NUEVOS REQUISITOS
+-Como vamos a manejar logistica externa de envio debemos dejar una puerta abierta para que nuestro proveedor de logistica pueda editar los estados de el envio? Tenemos dos formas de abarcar el problema , primero es brindandole a el proveedor de logistica una API que permita editar pedidos especificos dentro de nuestro sistema sin exponer nuestra informacion solo permitiendo cambiar los estados mediante un post controlado por el API. La segunda opcion seria nosotros hacer una revision periodica dentro del sistema de nuestro proveedor para verificar el estado en el que esta nuestro pedido en cierto tiempo.
+
+    sugerencia de inclucion de requisito sin necesidad de compromiso de estrategia: 
+
+    **RF-CR-17**: El sistema debe mantener actualizado el estado logístico de los pedidos mediante la sincronización de datos con el proveedor externo de transporte.
+
+- **RF-CR-18**: Calcular automáticamente la distancia entre la ubicación del cliente y las sedes físicas para identificar la más cercana.
+Sugiero eliminar el requisito que esta encima de este parrafo, siento que se enfonca mucho en una funcion que va a estar dentor del sistema , recordemos que el documento de requistos se enfoca en el que debe hacer el sistema a grandes rasgos mas no en el como debe hacerlo , el calcular automaticamente la distancia esta implicito dentro de el requisito: **RF-CR-20** la cual claramente indica que se debe sugerir la opcion de recogida mas cercana.
+
+Segurencia de cambio para **RF-CR-20**: "El sistema debe recomendar al usuario la sede física óptima para la recogida de su pedido, basándose en la proximidad geográfica de su ubicación registrada y la disponibilidad inmediata de stock del producto seleccionado."
+
+**RF-CR-23-24-25**: sugiero que cambiamos estos 3 requitos ya que son literalmente una descripcion de funciones mas no de un requisito, sugerencia de cambio: "El sistema debe proporcionar al usuario una estimación del tiempo de espera para cada modalidad de obtención del libro (entrega a domicilio, recogida inmediata o traslado entre sedes), calculada en función de la ubicación del cliente, la disponibilidad de stock y la logística de transporte aplicable." de esta forma reducimos redundancia.
+
 
 # Entrevista
 
