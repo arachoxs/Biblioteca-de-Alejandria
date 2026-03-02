@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro: #0a0908;
+      --borgona: #49111c;
+      --blanco: #f2f4f3;
+      --arena: #a9927d;
+      --oliva: #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body: 'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Textura de fondo sutil ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.8rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--arena);
+      text-decoration: none;
+      font-size: .8rem;
+      font-weight: 400;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover { color: var(--blanco); }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .register-wrapper {
+      width: 100%;
+      max-width: 780px;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── HEADER ── */
+    .register-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .register-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 5vw, 2.8rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.15;
+    }
+
+    .register-header .divider {
+      display: block;
+      width: 60px;
+      height: 3px;
+      background: var(--arena);
+      margin: .9rem auto 1rem;
+      border-radius: 2px;
+    }
+
+    .register-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      max-width: 420px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── CARD ── */
+    .register-card {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      padding: 2.5rem 2.8rem 2.2rem;
+      box-shadow:
+        0 1px 3px rgba(10, 9, 8, .04),
+        0 8px 30px rgba(10, 9, 8, .06);
+    }
+
+    .section-label {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--oliva);
+      margin-bottom: 1.2rem;
+      padding-bottom: .45rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+      letter-spacing: .02em;
+    }
+
+    /* ── GRID ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.1rem 1.6rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: .72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+    }
+
+    .form-group label .required {
+      color: var(--borgona);
+      margin-left: 2px;
+    }
+
+    .form-group input,
+    .form-group select {
+      height: 44px;
+      padding: 0 .9rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .88rem;
+      color: var(--negro);
+      background: var(--blanco);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .form-group select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .9rem center;
+      padding-right: 2.2rem;
+    }
+
+    .form-group input::placeholder { color: var(--arena); opacity: .6; }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .08);
+    }
+
+    .password-hint {
+      font-size: .7rem;
+      color: var(--arena);
+      margin-top: .3rem;
+      font-weight: 300;
+    }
+
+    /* ── TERMS ── */
+    .terms-row {
+      display: flex;
+      align-items: flex-start;
+      gap: .6rem;
+      margin-bottom: 1.8rem;
+    }
+
+    .terms-row input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      margin-top: 2px;
+      accent-color: var(--borgona);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .terms-row label {
+      font-size: .8rem;
+      color: var(--oliva);
+      line-height: 1.5;
+      font-weight: 300;
+    }
+
+    .terms-row label a {
+      color: var(--borgona);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* ── BOTONES ── */
+    .form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .btn-register {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      height: 48px;
+      padding: 0 2.4rem;
+      background: var(--borgona);
+      color: var(--blanco);
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+    }
+
+    .btn-register:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-register svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .login-link {
+      font-size: .82rem;
+      color: var(--oliva);
+      font-weight: 300;
+    }
+
+    .login-link a {
+      color: var(--borgona);
+      font-weight: 500;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color .2s;
+    }
+
+    .login-link a:hover { border-bottom-color: var(--borgona); }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { padding: .8rem 1.2rem; }
+      .nav-links { display: none; }
+
+      .register-card { padding: 1.6rem 1.3rem 1.4rem; }
+      .form-grid { grid-template-columns: 1fr; gap: .9rem; }
+      .form-group.full { grid-column: auto; }
+
+      .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+      }
+      .btn-register { width: 100%; justify-content: center; }
+    }
+
+    @media (min-width: 641px) and (max-width: 900px) {
+      .register-card { padding: 2rem 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+    <div class="register-wrapper">
+
+      <div class="register-header">
+        <h1>Crear una Cuenta</h1>
+        <span class="divider"></span>
+        <p>Regístrate para acceder al catálogo, reservar libros y disfrutar de todos los servicios de la biblioteca.</p>
+      </div>
+
+      <form class="register-card" autocomplete="off">
+
+        <!-- Datos personales -->
+        <h2 class="section-label">Datos Personales</h2>
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label>DNI <span class="required">*</span></label>
+            <input type="text" placeholder="Ej: 12345678" maxlength="15">
+          </div>
+
+          <div class="form-group">
+            <label>Género <span class="required">*</span></label>
+            <select>
+              <option value="" disabled selected>Seleccionar</option>
+              <option>Masculino</option>
+              <option>Femenino</option>
+              <option>Otro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Nombres <span class="required">*</span></label>
+            <input type="text" placeholder="Ingrese sus nombres">
+          </div>
+
+          <div class="form-group">
+            <label>Apellidos <span class="required">*</span></label>
+            <input type="text" placeholder="Ingrese sus apellidos">
+          </div>
+
+          <div class="form-group">
+            <label>Fecha de Nacimiento <span class="required">*</span></label>
+            <input type="date">
+          </div>
+
+          <div class="form-group">
+            <label>Lugar de Nacimiento <span class="required">*</span></label>
+            <input type="text" placeholder="Ciudad, País">
+          </div>
+
+          <div class="form-group full">
+            <label>Dirección de Correspondencia <span class="required">*</span></label>
+            <input type="text" placeholder="Calle, número, ciudad, código postal">
+          </div>
+
+        </div>
+
+        <!-- Datos de acceso -->
+        <h2 class="section-label">Datos de Acceso</h2>
+        <div class="form-grid">
+
+          <div class="form-group full">
+            <label>Correo Electrónico <span class="required">*</span></label>
+            <input type="email" placeholder="ejemplo@correo.com">
+          </div>
+
+          <div class="form-group">
+            <label>Usuario <span class="required">*</span></label>
+            <input type="text" placeholder="Nombre de usuario">
+          </div>
+
+          <div class="form-group">
+            <label>Contraseña <span class="required">*</span></label>
+            <input type="password" placeholder="••••••••">
+            <span class="password-hint">Mínimo 8 caracteres, incluir mayúsculas y números.</span>
+          </div>
+
+        </div>
+
+        <!-- Términos y botón -->
+        <div class="terms-row">
+          <input type="checkbox" id="terms">
+          <label for="terms">Acepto los <a href="#">Términos y Condiciones</a> y la <a href="#">Política de Privacidad</a> de la Biblioteca de Alejandría.</label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-register">
+            Registrarme
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+          <span class="login-link">¿Ya tienes cuenta? <a href="#">Inicia sesión</a></span>
+        </div>
+
+      </form>
+    </div>
+  </main>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+</body>
+</html>

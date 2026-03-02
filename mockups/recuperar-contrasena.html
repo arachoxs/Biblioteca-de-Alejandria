@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recuperar Contraseña — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro: #0a0908;
+      --borgona: #49111c;
+      --blanco: #f2f4f3;
+      --arena: #a9927d;
+      --oliva: #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body: 'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg, transparent, transparent 60px,
+          rgba(94, 80, 63, .03) 60px, rgba(94, 80, 63, .03) 61px
+        ),
+        repeating-linear-gradient(
+          90deg, transparent, transparent 60px,
+          rgba(94, 80, 63, .03) 60px, rgba(94, 80, 63, .03) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.8rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--arena);
+      text-decoration: none;
+      font-size: .8rem;
+      font-weight: 400;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover { color: var(--blanco); }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .recovery-wrapper {
+      width: 100%;
+      max-width: 440px;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── HEADER ── */
+    .recovery-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .recovery-header .icon-mail {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 1.2rem;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+    }
+
+    .recovery-header .icon-mail svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .recovery-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 5vw, 2.8rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.15;
+    }
+
+    .recovery-header .divider {
+      display: block;
+      width: 60px;
+      height: 3px;
+      background: var(--arena);
+      margin: .9rem auto 1rem;
+      border-radius: 2px;
+    }
+
+    .recovery-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      max-width: 360px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── CARD ── */
+    .recovery-card {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      padding: 2.5rem 2.8rem 2.2rem;
+      box-shadow:
+        0 1px 3px rgba(10, 9, 8, .04),
+        0 8px 30px rgba(10, 9, 8, .06);
+    }
+
+    /* ── STEPPER ── */
+    .stepper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 2rem;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .4rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-size: .95rem;
+      font-weight: 700;
+      border: 2px solid rgba(169, 146, 125, .3);
+      color: var(--arena);
+      background: var(--blanco);
+      transition: all .2s;
+    }
+
+    .step.active .step-number {
+      background: var(--borgona);
+      border-color: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .step.done .step-number {
+      background: var(--oliva);
+      border-color: var(--oliva);
+      color: var(--blanco);
+    }
+
+    .step-label {
+      font-size: .65rem;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--arena);
+      white-space: nowrap;
+    }
+
+    .step.active .step-label { color: var(--borgona); font-weight: 500; }
+    .step.done .step-label { color: var(--oliva); }
+
+    .step-line {
+      width: 50px;
+      height: 2px;
+      background: rgba(169, 146, 125, .25);
+      margin: 0 .5rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .step-line.done { background: var(--oliva); }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--oliva);
+      margin-bottom: 1.2rem;
+      padding-bottom: .45rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+      letter-spacing: .02em;
+    }
+
+    /* ── INFO BOX ── */
+    .info-box {
+      display: flex;
+      align-items: flex-start;
+      gap: .6rem;
+      margin-bottom: 1.5rem;
+      padding: .85rem 1rem;
+      background: rgba(169, 146, 125, .08);
+      border-radius: 4px;
+      border-left: 3px solid var(--arena);
+    }
+
+    .info-box svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--oliva);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .info-box p {
+      font-size: .78rem;
+      color: var(--oliva);
+      line-height: 1.55;
+      font-weight: 300;
+    }
+
+    /* ── CODE INPUT ── */
+    .code-inputs {
+      display: flex;
+      gap: .6rem;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .code-inputs input {
+      width: 48px;
+      height: 56px;
+      text-align: center;
+      font-family: var(--ff-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--negro);
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      background: var(--blanco);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .code-inputs input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .08);
+    }
+
+    .resend-row {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: .78rem;
+      color: var(--oliva);
+      font-weight: 300;
+    }
+
+    .resend-row a {
+      color: var(--borgona);
+      font-weight: 500;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color .2s;
+    }
+
+    .resend-row a:hover { border-bottom-color: var(--borgona); }
+
+    /* ── PASSWORD HINT ── */
+    .password-hint {
+      font-size: .7rem;
+      color: var(--arena);
+      margin-top: .3rem;
+      font-weight: 300;
+    }
+
+    /* ── FORM GRID ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.1rem 1.4rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── FORM ── */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      font-size: .72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+    }
+
+    .form-group label .required {
+      color: var(--borgona);
+      margin-left: 2px;
+    }
+
+    .form-group input {
+      height: 44px;
+      padding: 0 .9rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .88rem;
+      color: var(--negro);
+      background: var(--blanco);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .form-group input::placeholder { color: var(--arena); opacity: .6; }
+
+    .form-group input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .08);
+    }
+
+    /* ── BOTÓN ── */
+    .btn-send {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      width: 100%;
+      height: 48px;
+      background: var(--borgona);
+      color: var(--blanco);
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+      margin-bottom: 1.4rem;
+    }
+
+    .btn-send:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-send svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── BACK LINK ── */
+    .back-link {
+      text-align: center;
+      font-size: .82rem;
+      color: var(--oliva);
+      font-weight: 300;
+    }
+
+    .back-link a {
+      color: var(--borgona);
+      font-weight: 500;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color .2s;
+    }
+
+    .back-link a:hover { border-bottom-color: var(--borgona); }
+
+    /* ── SEPARADOR ENTRE CARDS ── */
+    .card-separator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 1.5rem 0;
+    }
+
+    .card-separator svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: .5;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { padding: .8rem 1.2rem; }
+      .nav-links { display: none; }
+      .recovery-card { padding: 1.6rem 1.3rem 1.4rem; }
+      .code-inputs input { width: 42px; height: 48px; font-size: 1.2rem; }
+      .code-inputs { gap: .4rem; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#">Inicio</a></li>
+      <li><a href="#">Catálogo</a></li>
+      <li><a href="#">Iniciar Sesión</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+    <div class="recovery-wrapper">
+
+      <div class="recovery-header">
+        <div class="icon-mail">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h1>Recuperar Contraseña</h1>
+        <span class="divider"></span>
+        <p>Sigue los pasos para restablecer tu contraseña mediante un código enviado a tu correo.</p>
+      </div>
+
+      <!-- ══ PASO 1: Ingresar correo ══ -->
+      <form class="recovery-card" autocomplete="off">
+
+        <div class="stepper">
+          <div class="step active">
+            <div class="step-number">1</div>
+            <span class="step-label">Correo</span>
+          </div>
+          <div class="step-line"></div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <span class="step-label">Código</span>
+          </div>
+          <div class="step-line"></div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <span class="step-label">Contraseña</span>
+          </div>
+        </div>
+
+        <h2 class="section-title">Ingresa tu correo electrónico</h2>
+
+        <div class="info-box">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <p>Te enviaremos un código de 6 dígitos a tu correo registrado para verificar tu identidad.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Correo Electrónico <span class="required">*</span></label>
+          <input type="email" placeholder="ejemplo@correo.com">
+        </div>
+
+        <button type="submit" class="btn-send">
+          Enviar código
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+
+        <p class="back-link">
+          <a href="#">← Volver a Iniciar Sesión</a>
+        </p>
+
+      </form>
+
+      <div class="card-separator">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+
+      <!-- ══ PASO 2: Ingresar código ══ -->
+      <form class="recovery-card" autocomplete="off">
+
+        <div class="stepper">
+          <div class="step done">
+            <div class="step-number">✓</div>
+            <span class="step-label">Correo</span>
+          </div>
+          <div class="step-line done"></div>
+          <div class="step active">
+            <div class="step-number">2</div>
+            <span class="step-label">Código</span>
+          </div>
+          <div class="step-line"></div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <span class="step-label">Contraseña</span>
+          </div>
+        </div>
+
+        <h2 class="section-title">Ingresa el código de verificación</h2>
+
+        <div class="info-box">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <p>Hemos enviado un código a <strong>u***o@correo.com</strong>. Ingresa los 6 dígitos a continuación.</p>
+        </div>
+
+        <div class="code-inputs">
+          <input type="text" maxlength="1" placeholder="·">
+          <input type="text" maxlength="1" placeholder="·">
+          <input type="text" maxlength="1" placeholder="·">
+          <input type="text" maxlength="1" placeholder="·">
+          <input type="text" maxlength="1" placeholder="·">
+          <input type="text" maxlength="1" placeholder="·">
+        </div>
+
+        <p class="resend-row">¿No recibiste el código? <a href="#">Reenviar código</a></p>
+
+        <button type="submit" class="btn-send">
+          Verificar código
+          <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </button>
+
+        <p class="back-link">
+          <a href="#">← Volver a Iniciar Sesión</a>
+        </p>
+
+      </form>
+
+      <div class="card-separator">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+
+      <!-- ══ PASO 3: Nueva contraseña ══ -->
+      <form class="recovery-card" autocomplete="off">
+
+        <div class="stepper">
+          <div class="step done">
+            <div class="step-number">✓</div>
+            <span class="step-label">Correo</span>
+          </div>
+          <div class="step-line done"></div>
+          <div class="step done">
+            <div class="step-number">✓</div>
+            <span class="step-label">Código</span>
+          </div>
+          <div class="step-line done"></div>
+          <div class="step active">
+            <div class="step-number">3</div>
+            <span class="step-label">Contraseña</span>
+          </div>
+        </div>
+
+        <h2 class="section-title">Crea tu nueva contraseña</h2>
+
+        <div class="form-grid" style="display: flex; flex-direction: column; gap:5px;">
+          <div class="form-group">
+            <label>Nueva Contraseña <span class="required">*</span></label>
+            <input type="password" placeholder="••••••••">
+            <span class="password-hint">Mínimo 8 caracteres, incluir mayúsculas y números.</span>
+          </div>
+
+          <div class="form-group">
+            <label>Confirmar Contraseña <span class="required">*</span></label>
+            <input type="password" placeholder="••••••••">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-send">
+          Restablecer contraseña
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </button>
+
+        <p class="back-link">
+          <a href="#">← Volver a Iniciar Sesión</a>
+        </p>
+
+      </form>
+
+    </div>
+  </main>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+</body>
+</html>
