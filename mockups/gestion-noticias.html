@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Noticias — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro:   #0a0908;
+      --borgona: #49111c;
+      --blanco:  #f2f4f3;
+      --arena:   #a9927d;
+      --oliva:   #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body:    'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px),
+        repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169,146,125,.15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--borgona);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      margin-bottom: 2rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.5rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+      margin-bottom: .6rem;
+    }
+
+    .page-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 700px;
+    }
+
+    /* ── STATS ── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+      animation: fadeUp .6s .1s ease-out both;
+    }
+
+    .stat-box {
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 6px;
+      padding: 1.1rem 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: .9rem;
+      box-shadow: 0 1px 3px rgba(10,9,8,.04);
+    }
+
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(169,146,125,.1);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .stat-text .number {
+      font-family: var(--ff-display);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--borgona);
+      line-height: 1;
+    }
+
+    .stat-text .label {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-top: .15rem;
+    }
+
+    /* ── AVISO MÓDULO ── */
+    .module-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: .9rem;
+      padding: .95rem 1.3rem;
+      background: rgba(169,146,125,.08);
+      border: 1px solid rgba(169,146,125,.25);
+      border-left: 4px solid var(--arena);
+      border-radius: 4px;
+      margin-bottom: 2rem;
+      animation: fadeUp .6s .15s ease-out both;
+    }
+
+    .module-notice svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .module-notice p {
+      font-size: .82rem;
+      color: var(--oliva);
+      line-height: 1.55;
+    }
+
+    .module-notice strong { color: var(--negro); font-weight: 500; }
+
+    .module-notice a {
+      color: var(--borgona);
+      text-decoration: none;
+      font-weight: 500;
+      border-bottom: 1px solid rgba(73,17,28,.3);
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.6rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s .2s ease-out both;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      height: 42px;
+      padding: 0 1rem;
+      border: 1px solid rgba(169,146,125,.35);
+      border-radius: 4px;
+      background: #fff;
+      min-width: 260px;
+    }
+
+    .search-box svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+
+    .search-box input {
+      border: none;
+      outline: none;
+      flex: 1;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      color: var(--negro);
+      background: transparent;
+    }
+
+    .search-box input::placeholder { color: var(--arena); opacity: .6; }
+
+    .filter-select {
+      height: 42px;
+      padding: 0 2rem 0 .9rem;
+      border: 1px solid rgba(169,146,125,.35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .82rem;
+      color: var(--oliva);
+      background: #fff;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .75rem center;
+    }
+
+    /* ── BOTONES ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      height: 42px;
+      padding: 0 1.6rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .8rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169,146,125,.35);
+    }
+
+    .btn-cancel:hover { background: rgba(94,80,63,.05); }
+
+    .btn-danger-solid {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-danger-solid:hover {
+      background: #2d070f;
+      transform: translateY(-1px);
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+    }
+
+    .selection-info {
+      font-size: .8rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    /* ── TABLA ── */
+    .table-wrapper {
+      animation: fadeUp .6s .25s ease-out both;
+    }
+
+    .table-container {
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.25);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(10,9,8,.04), 0 8px 30px rgba(10,9,8,.06);
+    }
+
+    .table-scroll { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: var(--negro);
+      color: var(--blanco);
+    }
+
+    thead th {
+      padding: .9rem 1.1rem;
+      text-align: left;
+      font-size: .7rem;
+      font-weight: 500;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--borgona);
+      white-space: nowrap;
+    }
+
+    thead th:first-child { padding-left: 1.4rem; width: 40px; }
+    thead th:last-child  { text-align: center; }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(169,146,125,.12);
+      transition: background .2s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+
+    tbody tr:hover { background: rgba(169,146,125,.04); }
+
+    tbody td {
+      padding: 1rem 1.1rem;
+      font-size: .84rem;
+      color: var(--negro);
+      vertical-align: middle;
+    }
+
+    tbody td:first-child { padding-left: 1.4rem; }
+    tbody td:last-child  { text-align: center; }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--borgona);
+      cursor: pointer;
+    }
+
+    /* ── NOTICIA TITLE CELL ── */
+    .news-title-cell { max-width: 300px; }
+
+    .news-title {
+      font-weight: 500;
+      color: var(--negro);
+      margin-bottom: .2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .news-excerpt {
+      font-size: .76rem;
+      color: var(--arena);
+      font-weight: 300;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── BOOK LINK CELL ── */
+    .book-link {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .8rem;
+      color: var(--oliva);
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .book-link svg {
+      width: 13px;
+      height: 13px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .no-link {
+      font-size: .78rem;
+      color: rgba(169,146,125,.6);
+      font-style: italic;
+    }
+
+    /* ── STATUS BADGES ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .28rem .7rem;
+      border-radius: 16px;
+      font-size: .7rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .badge-publicada  { background: rgba(94,80,63,.1);   color: var(--oliva); }
+    .badge-publicada::before  { background: var(--oliva); }
+
+    .badge-destacada  { background: rgba(73,17,28,.1);   color: var(--borgona); }
+    .badge-destacada::before  { background: var(--borgona); }
+
+    .badge-borrador   { background: rgba(169,146,125,.15); color: var(--arena); }
+    .badge-borrador::before   { background: var(--arena); }
+
+    .badge-archivada  { background: rgba(10,9,8,.06);    color: rgba(10,9,8,.45); }
+    .badge-archivada::before  { background: rgba(10,9,8,.3); }
+
+    /* ── STAR DESTACADO ── */
+    .star-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .star-icon svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--borgona);
+      fill: var(--borgona);
+      stroke-width: 1.5;
+    }
+
+    .star-icon.empty svg {
+      fill: none;
+      stroke: rgba(169,146,125,.4);
+    }
+
+    /* ── ACTION BUTTONS ── */
+    .action-btns {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .3rem;
+    }
+
+    .btn-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: all .2s;
+      background: transparent;
+    }
+
+    .btn-icon svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-view   { color: var(--arena); }
+    .btn-view:hover   { background: rgba(169,146,125,.12); color: var(--oliva); }
+
+    .btn-edit   { color: var(--oliva); }
+    .btn-edit:hover   { background: rgba(94,80,63,.1); color: var(--negro); }
+
+    .btn-delete { color: rgba(169,146,125,.7); }
+    .btn-delete:hover { background: rgba(73,17,28,.1); color: var(--borgona); }
+
+    /* ── TABLE FOOTER ── */
+    .table-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 1.4rem;
+      border-top: 1px solid rgba(169,146,125,.12);
+      background: rgba(169,146,125,.03);
+    }
+
+    .table-footer-info {
+      font-size: .76rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+    }
+
+    .page-btn {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 4px;
+      border: 1px solid rgba(169,146,125,.25);
+      background: #fff;
+      font-family: var(--ff-body);
+      font-size: .78rem;
+      color: var(--oliva);
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .page-btn:hover   { border-color: var(--borgona); color: var(--borgona); }
+    .page-btn.active  { background: var(--borgona); color: var(--blanco); border-color: var(--borgona); }
+    .page-btn svg     { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── MODAL BASE ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,9,8,.65);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      animation: fadeIn .25s ease-out;
+    }
+
+    .modal-overlay:target { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes modalUp {
+      from { opacity: 0; transform: translateY(20px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 620px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(10,9,8,.2), 0 4px 12px rgba(10,9,8,.15);
+      animation: modalUp .3s ease-out;
+    }
+
+    .modal.modal-lg { max-width: 820px; }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169,146,125,.2);
+    }
+
+    .modal-header h2 {
+      font-family: var(--ff-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      margin-bottom: .35rem;
+    }
+
+    .modal-header p {
+      font-size: .82rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.5;
+    }
+
+    .modal-body { padding: 1.8rem 2rem; }
+
+    .modal-footer {
+      padding: 1.3rem 2rem 1.7rem;
+      border-top: 1px solid rgba(169,146,125,.2);
+      display: flex;
+      justify-content: flex-end;
+      gap: .8rem;
+    }
+
+    /* ── DETAIL VIEW ── */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .9rem 1.8rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .detail-field { display: flex; flex-direction: column; gap: .25rem; }
+    .detail-field.full { grid-column: 1 / -1; }
+
+    .detail-label {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+    }
+
+    .detail-value {
+      font-size: .88rem;
+      color: var(--negro);
+      line-height: 1.55;
+    }
+
+    .detail-value.excerpt {
+      font-size: .85rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.65;
+    }
+
+    .book-association-box {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.2rem;
+      background: rgba(169,146,125,.07);
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 4px;
+      margin-bottom: 1.4rem;
+    }
+
+    .book-association-thumb {
+      width: 44px;
+      height: 60px;
+      border-radius: 3px;
+      background: linear-gradient(145deg, #49111c, #6b1a2a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .book-association-thumb span {
+      font-family: var(--ff-display);
+      font-size: 1.2rem;
+      color: rgba(255,255,255,.4);
+    }
+
+    .book-association-info { min-width: 0; }
+
+    .book-association-info .book-title {
+      font-family: var(--ff-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--borgona);
+      margin-bottom: .15rem;
+    }
+
+    .book-association-info .book-meta {
+      font-size: .78rem;
+      color: var(--oliva);
+    }
+
+    /* ── MODAL AVISO IMPACTO ── */
+    .impact-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: .8rem;
+      padding: 1rem 1.2rem;
+      background: rgba(73,17,28,.05);
+      border: 1px solid rgba(73,17,28,.15);
+      border-radius: 4px;
+      margin-bottom: 1.3rem;
+    }
+
+    .impact-warning svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .impact-warning p {
+      font-size: .82rem;
+      color: var(--borgona);
+      line-height: 1.55;
+    }
+
+    .impact-warning strong { font-weight: 600; }
+
+    .delete-summary {
+      padding: 1rem 1.2rem;
+      background: var(--blanco);
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 4px;
+    }
+
+    .delete-summary p {
+      font-size: .84rem;
+      color: var(--negro);
+      margin-bottom: .4rem;
+    }
+
+    .delete-summary p:last-child { margin-bottom: 0; }
+
+    .delete-summary .field-label {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: .15rem;
+    }
+
+    .delete-summary .field-value {
+      font-weight: 500;
+      color: var(--negro);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: .8rem 1.2rem; flex-direction: column; gap: .7rem; }
+
+      .nav-info { width: 100%; justify-content: center; }
+
+      main { padding: 2rem 1.2rem; }
+
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar-left { flex-direction: column; }
+      .search-box  { min-width: auto; }
+      .filter-select { width: 100%; }
+
+      .table-scroll { overflow-x: auto; }
+      table { min-width: 860px; }
+
+      .modal-body { padding: 1.4rem 1.3rem; }
+      .modal-footer { flex-direction: column-reverse; padding: 1.1rem 1.3rem 1.5rem; }
+      .modal-footer .btn { width: 100%; justify-content: center; }
+
+      .detail-grid { grid-template-columns: 1fr; }
+      .detail-field.full { grid-column: auto; }
+    }
+
+    @media (min-width: 769px) and (max-width: 1100px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Administrador</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <!-- Header -->
+    <div class="page-header">
+      <h1>Gestión de Noticias</h1>
+      <p>Consulta, destaca y elimina noticias de la plataforma. Las noticias pueden estar vinculadas a libros del catálogo.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-box">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v2"/><path d="M2 20h.01M2 16h.01M2 12h.01M2 8h.01"/><path d="M8 7h10M8 11h10M8 15h7"/></svg>
+        </div>
+        <div class="stat-text">
+          <div class="number">24</div>
+          <div class="label">Total noticias</div>
+        </div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <div class="stat-text">
+          <div class="number">5</div>
+          <div class="label">Destacadas</div>
+        </div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        </div>
+        <div class="stat-text">
+          <div class="number">11</div>
+          <div class="label">Con libro vinculado</div>
+        </div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </div>
+        <div class="stat-text">
+          <div class="number">3</div>
+          <div class="label">Borradores</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aviso sobre creación/edición -->
+    <div class="module-notice">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p><strong>Creación y edición de noticias:</strong> Se realizan desde el <a href="#">Módulo de Gestión Bibliográfica</a>. Las noticias se generan automáticamente al añadir o editar información de un libro del catálogo. Desde aquí puedes consultarlas, destacarlas y eliminarlas.</p>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" placeholder="Buscar por título, libro, fecha...">
+        </div>
+        <select class="filter-select">
+          <option>Todos los estados</option>
+          <option>Publicada</option>
+          <option>Destacada</option>
+          <option>Borrador</option>
+          <option>Archivada</option>
+        </select>
+        <select class="filter-select">
+          <option>Toda asociación</option>
+          <option>Con libro vinculado</option>
+          <option>Sin libro vinculado</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <span class="selection-info" id="selCount">0 seleccionadas</span>
+        <button class="btn btn-primary" style="opacity:.45;cursor:not-allowed;" disabled title="La creación se realiza desde el módulo bibliográfico">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Nueva Noticia
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-wrapper">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll"></th>
+                <th>Título</th>
+                <th>Libro vinculado</th>
+                <th>Categoría</th>
+                <th>Destacada</th>
+                <th>Estado</th>
+                <th>Fecha de publicación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <!-- Fila 1 — Destacada con libro -->
+              <tr>
+                <td><input type="checkbox"></td>
+                <td class="news-title-cell">
+                  <div class="news-title">El nombre de la rosa llega al catálogo</div>
+                  <div class="news-excerpt">Umberto Eco vuelve a nuestras estanterías con su obra maestra...</div>
+                </td>
+                <td>
+                  <span class="book-link">
+                    <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                    El nombre de la rosa
+                  </span>
+                </td>
+                <td>Novedades</td>
+                <td>
+                  <span class="star-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  </span>
+                </td>
+                <td><span class="badge badge-destacada">Destacada</span></td>
+                <td>01/03/2026</td>
+                <td>
+                  <div class="action-btns">
+                    <a href="#modal-ver" class="btn-icon btn-view" title="Ver detalle">
+                      <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </a>
+                    <button class="btn-icon btn-edit" title="Editar (redirige al módulo bibliográfico)">
+                      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <a href="#modal-eliminar" class="btn-icon btn-delete" title="Eliminar">
+                      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Fila 2 — Publicada con libro -->
+              <tr>
+                <td><input type="checkbox"></td>
+                <td class="news-title-cell">
+                  <div class="news-title">Cien años de soledad en edición especial</div>
+                  <div class="news-excerpt">Celebramos la reedición de este clásico latinoamericano...</div>
+                </td>
+                <td>
+                  <span class="book-link">
+                    <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                    Cien años de soledad
+                  </span>
+                </td>
+                <td>Ediciones especiales</td>
+                <td>
+                  <span class="star-icon empty">
+                    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  </span>
+                </td>
+                <td><span class="badge badge-publicada">Publicada</span></td>
+                <td>26/02/2026</td>
+                <td>
+                  <div class="action-btns">
+                    <a href="#modal-ver" class="btn-icon btn-view" title="Ver detalle">
+                      <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </a>
+                    <button class="btn-icon btn-edit" title="Editar (redirige al módulo bibliográfico)">
+                      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <a href="#modal-eliminar" class="btn-icon btn-delete" title="Eliminar">
+                      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Fila 3 — Destacada con libro -->
+              <tr>
+                <td><input type="checkbox"></td>
+                <td class="news-title-cell">
+                  <div class="news-title">Breve historia del tiempo: ciencia accesible</div>
+                  <div class="news-excerpt">Descubre por qué Hawking sigue siendo lectura obligatoria...</div>
+                </td>
+                <td>
+                  <span class="book-link">
+                    <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                    Breve historia del tiempo
+                  </span>
+                </td>
+                <td>Ciencias</td>
+                <td>
+                  <span class="star-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  </span>
+                </td>
+                <td><span class="badge badge-destacada">Destacada</span></td>
+                <td>22/02/2026</td>
+                <td>
+                  <div class="action-btns">
+                    <a href="#modal-ver" class="btn-icon btn-view" title="Ver detalle">
+                      <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </a>
+                    <button class="btn-icon btn-edit" title="Editar (redirige al módulo bibliográfico)">
+                      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <a href="#modal-eliminar" class="btn-icon btn-delete" title="Eliminar">
+                      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Fila 4 — Publicada sin libro -->
+              <tr>
+                <td><input type="checkbox"></td>
+                <td class="news-title-cell">
+                  <div class="news-title">Cierre por mantenimiento: 10 de marzo</div>
+                  <div class="news-excerpt">Informamos a nuestros usuarios que la plataforma estará en...</div>
+                </td>
+                <td><span class="no-link">Sin libro asociado</span></td>
+                <td>Comunicados</td>
+                <td>
+                  <span class="star-icon empty">
+                    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  </span>
+                </td>
+                <td><span class="badge badge-publicada">Publicada</span></td>
+                <td>20/02/2026</td>
+                <td>
+                  <div class="action-btns">
+                    <a href="#modal-ver" class="btn-icon btn-view" title="Ver detalle">
+                      <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </a>
+                    <button class="btn-icon btn-edit" title="Editar (redirige al módulo bibliográfico)">
+                      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <a href="#modal-eliminar-simple" class="btn-icon btn-delete" title="Eliminar">
+                      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Fila 5 — Borrador sin libro -->
+              <tr>
+                <td><input type="checkbox"></td>
+                <td class="news-title-cell">
+                  <div class="news-title">Promoción de verano — semana del libro</div>
+                  <div class="news-excerpt">Gran descuento en todos los libros de filosofía y ciencias...</div>
+                </td>
+                <td><span class="no-link">Sin libro asociado</span></td>
+                <td>Promociones</td>
+                <td>
+                  <span class="star-icon empty">
+                    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  </span>
+                </td>
+                <td><span class="badge badge-borrador">Borrador</span></td>
+                <td>—</td>
+                <td>
+                  <div class="action-btns">
+                    <a href="#modal-ver" class="btn-icon btn-view" title="Ver detalle">
+                      <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </a>
+                    <button class="btn-icon btn-edit" title="Editar (redirige al módulo bibliográfico)">
+                      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <a href="#modal-eliminar-simple" class="btn-icon btn-delete" title="Eliminar">
+                      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Fila 6 — Archivada con libro -->
+              <tr>
+                <td><input type="checkbox"></td>
+                <td class="news-title-cell">
+                  <div class="news-title">Don Quijote: 420 años de locura literaria</div>
+                  <div class="news-excerpt">Repaso histórico sobre la obra cumbre de Cervantes...</div>
+                </td>
+                <td>
+                  <span class="book-link">
+                    <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                    Don Quijote de la Mancha
+                  </span>
+                </td>
+                <td>Historia</td>
+                <td>
+                  <span class="star-icon empty">
+                    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  </span>
+                </td>
+                <td><span class="badge badge-archivada">Archivada</span></td>
+                <td>10/01/2026</td>
+                <td>
+                  <div class="action-btns">
+                    <a href="#modal-ver" class="btn-icon btn-view" title="Ver detalle">
+                      <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </a>
+                    <button class="btn-icon btn-edit" title="Editar (redirige al módulo bibliográfico)">
+                      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <a href="#modal-eliminar" class="btn-icon btn-delete" title="Eliminar">
+                      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Table footer / paginación -->
+        <div class="table-footer">
+          <span class="table-footer-info">Mostrando 6 de 24 noticias</span>
+          <div class="pagination">
+            <button class="page-btn">
+              <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">4</button>
+            <button class="page-btn">
+              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!--   MODAL: VER NOTICIA                  -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-ver">
+    <div class="modal modal-lg">
+
+      <div class="modal-header">
+        <h2>El nombre de la rosa llega al catálogo</h2>
+        <p>Detalle completo de la noticia y su asociación bibliográfica.</p>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Libro vinculado -->
+        <div class="book-association-box">
+          <div class="book-association-thumb"><span>📖</span></div>
+          <div class="book-association-info">
+            <div class="book-title">El nombre de la rosa</div>
+            <div class="book-meta">Umberto Eco · Ficción Histórica · ISBN: 978-0-15-144647-6</div>
+          </div>
+          <span class="badge badge-destacada" style="margin-left:auto;flex-shrink:0;">Destacada</span>
+        </div>
+
+        <!-- Detalle -->
+        <div class="detail-grid">
+          <div class="detail-field">
+            <span class="detail-label">Categoría</span>
+            <span class="detail-value">Novedades</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Estado</span>
+            <span class="detail-value"><span class="badge badge-destacada">Destacada</span></span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Fecha de publicación</span>
+            <span class="detail-value">01/03/2026</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Última modificación</span>
+            <span class="detail-value">01/03/2026 — 14:35 hs</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Autor de la noticia</span>
+            <span class="detail-value">Ana García (Administrador)</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Visitas</span>
+            <span class="detail-value">342</span>
+          </div>
+          <div class="detail-field full">
+            <span class="detail-label">Contenido</span>
+            <span class="detail-value excerpt">Umberto Eco vuelve a nuestras estanterías con su obra maestra ambientada en la Edad Media. <em>El nombre de la rosa</em> es un laberinto de misterio, erudición y filosofía que ha cautivado a millones de lectores en todo el mundo. Disponible ahora en nuestra plataforma en edición de tapa blanda y formato digital.</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <a href="#" class="btn btn-cancel">Cerrar</a>
+        <button class="btn btn-primary" style="gap:.5rem;">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar en módulo bibliográfico
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!--   MODAL: ELIMINAR CON LIBRO VINCULADO -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-eliminar">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2>Eliminar Noticia</h2>
+        <p>Esta noticia tiene un libro vinculado. Revisa el impacto antes de confirmar.</p>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Advertencia de impacto -->
+        <div class="impact-warning">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <p>Esta noticia está <strong>vinculada a un libro del catálogo</strong>. Al eliminarla, se perderá la referencia editorial del libro. Si el libro también es eliminado posteriormente, esta noticia dejará de tener contexto. <strong>Esta acción no se puede deshacer.</strong></p>
+        </div>
+
+        <!-- Resumen de lo que se eliminará -->
+        <div class="delete-summary">
+          <p class="field-label">Noticia a eliminar</p>
+          <p class="field-value" style="margin-bottom:.9rem;">El nombre de la rosa llega al catálogo</p>
+
+          <p class="field-label">Libro vinculado</p>
+          <p style="display:flex;align-items:center;gap:.5rem;">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:var(--borgona);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+            <span class="field-value">El nombre de la rosa — Umberto Eco</span>
+          </p>
+          <p style="margin-top:.6rem; font-size:.76rem; color:var(--arena); font-style:italic;">El libro permanecerá en el catálogo; solo se eliminará esta noticia.</p>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <a href="#" class="btn btn-cancel">Cancelar</a>
+        <button class="btn btn-danger-solid">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          Sí, eliminar noticia
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════ -->
+  <!--   MODAL: ELIMINAR SIN LIBRO VINCULADO -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-eliminar-simple">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2>Eliminar Noticia</h2>
+        <p>¿Estás seguro de que deseas eliminar esta noticia? Esta acción no se puede deshacer.</p>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="delete-summary">
+          <p class="field-label">Noticia a eliminar</p>
+          <p class="field-value" style="margin-bottom:.9rem;">Cierre por mantenimiento: 10 de marzo</p>
+
+          <p class="field-label">Libro vinculado</p>
+          <p style="font-size:.82rem; color:var(--arena); font-style:italic;">Sin libro asociado — no hay impacto bibliográfico.</p>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <a href="#" class="btn btn-cancel">Cancelar</a>
+        <button class="btn btn-danger-solid">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          Sí, eliminar noticia
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

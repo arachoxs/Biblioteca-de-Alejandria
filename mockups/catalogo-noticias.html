@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de Noticias — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro: #0a0908;
+      --borgona: #49111c;
+      --blanco: #f2f4f3;
+      --arena: #a9927d;
+      --oliva: #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body: 'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Textura de fondo sutil ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+      flex-shrink: 0;
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-search {
+      flex: 1;
+      max-width: 500px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    .nav-search input {
+      width: 100%;
+      height: 40px;
+      padding: 0 3rem 0 1rem;
+      border: 1px solid rgba(169, 146, 125, .3);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      color: var(--blanco);
+      background: rgba(242, 244, 243, .08);
+      transition: background .2s, border-color .2s;
+      outline: none;
+    }
+
+    .nav-search input::placeholder {
+      color: var(--arena);
+      opacity: .7;
+    }
+
+    .nav-search input:focus {
+      background: rgba(242, 244, 243, .12);
+      border-color: var(--arena);
+    }
+
+    .nav-search-icon {
+      position: absolute;
+      right: 1rem;
+      width: 18px;
+      height: 18px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.8rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--arena);
+      text-decoration: none;
+      font-size: .8rem;
+      font-weight: 400;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: color .2s;
+      white-space: nowrap;
+    }
+
+    .nav-links a:hover { color: var(--blanco); }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      position: relative;
+      z-index: 1;
+      padding: 3rem 2rem 4rem;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* ── HEADER CATÁLOGO ── */
+    .catalog-header {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .catalog-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+
+    .catalog-header .divider {
+      display: block;
+      width: 80px;
+      height: 3px;
+      background: var(--arena);
+      margin: 1rem auto 1.2rem;
+      border-radius: 2px;
+    }
+
+    .catalog-header p {
+      font-size: .95rem;
+      color: var(--oliva);
+      font-weight: 300;
+      max-width: 620px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ── SECCIÓN ── */
+    .section-title {
+      font-family: var(--ff-display);
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+      color: var(--oliva);
+      letter-spacing: .02em;
+      margin-bottom: 1.8rem;
+      padding-bottom: .8rem;
+      border-bottom: 2px solid rgba(169, 146, 125, .2);
+      animation: fadeUp .6s .2s ease-out both;
+    }
+
+    .section-title .highlight {
+      color: var(--borgona);
+    }
+
+    /* ── GRID DE LIBROS / NOTICIAS ── */
+    .books-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 2rem;
+      animation: fadeUp .6s .3s ease-out both;
+    }
+
+    .book-card {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow:
+        0 1px 3px rgba(10, 9, 8, .04),
+        0 8px 30px rgba(10, 9, 8, .06);
+      transition: transform .3s, box-shadow .3s;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .book-card:hover {
+      transform: translateY(-4px);
+      box-shadow:
+        0 4px 8px rgba(10, 9, 8, .08),
+        0 16px 40px rgba(10, 9, 8, .12);
+    }
+
+    .book-cover {
+      height: 320px;
+      background: var(--arena);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .book-cover-placeholder {
+      font-family: var(--ff-display);
+      font-size: 4rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, .3);
+      text-align: center;
+    }
+
+    .book-badge {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: var(--borgona);
+      color: var(--blanco);
+      padding: .4rem .8rem;
+      border-radius: 20px;
+      font-size: .7rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .book-badge.available { background: var(--oliva); }
+
+    .book-info {
+      padding: 1.5rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .book-date {
+      font-size: .7rem;
+      color: var(--arena);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .6rem;
+      font-weight: 400;
+    }
+
+    .book-title {
+      font-family: var(--ff-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--borgona);
+      line-height: 1.3;
+      margin-bottom: .7rem;
+    }
+
+    .book-author {
+      font-size: .85rem;
+      color: var(--oliva);
+      font-weight: 400;
+      margin-bottom: .8rem;
+    }
+
+    .book-excerpt {
+      font-size: .82rem;
+      color: var(--oliva);
+      line-height: 1.6;
+      margin-bottom: 1.2rem;
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .book-price {
+      font-family: var(--ff-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--borgona);
+      margin-bottom: 1rem;
+    }
+
+    .book-actions {
+      display: flex;
+      gap: .6rem;
+    }
+
+    .btn-action {
+      flex: 1;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .75rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+    }
+
+    .btn-action.primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-action.primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-action.secondary {
+      background: var(--blanco);
+      border: 1px solid var(--arena);
+      color: var(--oliva);
+    }
+
+    .btn-action.secondary:hover {
+      background: var(--arena);
+      color: var(--blanco);
+      border-color: var(--arena);
+    }
+
+    .btn-action svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── MODAL (solo CSS con target) ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 9, 8, .85);
+      z-index: 1000;
+      padding: 2rem;
+      overflow-y: auto;
+      animation: fadeIn .3s ease-out;
+    }
+
+    .modal-overlay:target {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: #fff;
+      border-radius: 8px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(10, 9, 8, .3);
+      animation: modalSlideUp .4s ease-out;
+      position: relative;
+    }
+
+    @keyframes modalSlideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      padding: 2rem 2.5rem 1.5rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h2 {
+      font-family: var(--ff-display);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--borgona);
+      line-height: 1.3;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background .2s;
+      color: var(--oliva);
+    }
+
+    .modal-close:hover {
+      background: rgba(169, 146, 125, .15);
+    }
+
+    .modal-close svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .modal-body {
+      padding: 2rem 2.5rem;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 2.5rem;
+    }
+
+    .modal-cover {
+      height: 420px;
+      background: var(--arena);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-cover-placeholder {
+      font-family: var(--ff-display);
+      font-size: 6rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, .3);
+    }
+
+    .modal-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .meta-item {
+      font-size: .75rem;
+      color: var(--arena);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 400;
+    }
+
+    .meta-item strong {
+      color: var(--oliva);
+      font-weight: 500;
+    }
+
+    .modal-author {
+      font-size: 1rem;
+      color: var(--oliva);
+      font-weight: 500;
+      margin-bottom: .8rem;
+    }
+
+    .modal-description {
+      font-size: .9rem;
+      color: var(--oliva);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+      flex: 1;
+    }
+
+    .modal-price-section {
+      border-top: 1px solid rgba(169, 146, 125, .2);
+      padding-top: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .modal-price {
+      font-family: var(--ff-display);
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--borgona);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: .8rem;
+    }
+
+    .btn-modal {
+      height: 48px;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+    }
+
+    .btn-modal.primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-modal.primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-modal.secondary {
+      background: var(--blanco);
+      border: 1px solid var(--arena);
+      color: var(--oliva);
+    }
+
+    .btn-modal.secondary:hover {
+      background: var(--arena);
+      color: var(--blanco);
+      border-color: var(--arena);
+    }
+
+    .btn-modal svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { 
+        padding: .8rem 1.2rem;
+        flex-wrap: wrap;
+      }
+      
+      .nav-search {
+        order: 3;
+        flex: 1 1 100%;
+        max-width: 100%;
+        margin-top: .8rem;
+      }
+      
+      .nav-links { display: none; }
+
+      main { padding: 2rem 1.2rem 3rem; }
+      
+      .catalog-header { margin-bottom: 2rem; }
+
+      .books-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .modal-overlay { padding: 1rem; }
+
+      .modal-header {
+        padding: 1.5rem 1.2rem 1rem;
+      }
+
+      .modal-header h2 { font-size: 1.5rem; }
+
+      .modal-body {
+        grid-template-columns: 1fr;
+        padding: 1.5rem 1.2rem;
+        gap: 1.5rem;
+      }
+
+      .modal-cover { height: 320px; }
+
+      .modal-price-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .modal-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .btn-modal {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+      nav {
+        padding: .9rem 1.5rem;
+      }
+
+      .nav-search {
+        max-width: 350px;
+      }
+
+      .books-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .modal-body {
+        grid-template-columns: 240px 1fr;
+        gap: 2rem;
+      }
+
+      .modal-cover { height: 360px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    
+    <div class="nav-search">
+      <input type="text" placeholder="Buscar libros, autores, géneros...">
+      <svg class="nav-search-icon" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+    </div>
+
+    <ul class="nav-links">
+      <li><a href="#">Catálogo</a></li>
+      <li><a href="#">Mis Reservas</a></li>
+      <li><a href="#">Cuenta</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+    <div class="container">
+
+      <!-- Header -->
+      <div class="catalog-header">
+        <h1>Novedades Literarias</h1>
+        <span class="divider"></span>
+      </div>
+
+      <!-- Título de Sección -->
+      <h2 class="section-title"><span class="highlight">★</span> Últimos Libros Agregados</h2>
+
+      <!-- Grid de Libros -->
+      <div class="books-grid">
+
+        <!-- Libro 1 -->
+        <div class="book-card">
+          <a href="#modal-1" style="text-decoration: none; color: inherit;">
+            <div class="book-cover">
+              <div class="book-cover-placeholder">📚</div>
+              <span class="book-badge">Nuevo</span>
+            </div>
+            <div class="book-info">
+              <div class="book-date">4 de Marzo, 2026</div>
+              <h3 class="book-title">Cien Años de Soledad</h3>
+              <p class="book-author">Gabriel García Márquez</p>
+              <p class="book-excerpt">Una obra maestra del realismo mágico que narra la historia de la familia Buendía a lo largo de varias generaciones en el pueblo ficticio de Macondo.</p>
+              <div class="book-price">$24.99</div>
+              <div class="book-actions">
+                <button class="btn-action primary">
+                  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                  Reservar
+                </button>
+                <button class="btn-action secondary">
+                  <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                  Comprar
+                </button>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Libro 2 -->
+        <div class="book-card">
+          <a href="#modal-2" style="text-decoration: none; color: inherit;">
+            <div class="book-cover" style="background: #5e503f;">
+              <div class="book-cover-placeholder">📖</div>
+              <span class="book-badge available">Disponible</span>
+            </div>
+            <div class="book-info">
+              <div class="book-date">2 de Marzo, 2026</div>
+              <h3 class="book-title">Don Quijote de la Mancha</h3>
+              <p class="book-author">Miguel de Cervantes</p>
+              <p class="book-excerpt">La historia del ingenioso hidalgo que pierde la razón tras leer demasiados libros de caballerías y decide convertirse en caballero andante.</p>
+              <div class="book-price">$19.99</div>
+              <div class="book-actions">
+                <button class="btn-action primary">
+                  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                  Reservar
+                </button>
+                <button class="btn-action secondary">
+                  <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                  Comprar
+                </button>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Libro 3 -->
+        <div class="book-card">
+          <a href="#modal-3" style="text-decoration: none; color: inherit;">
+            <div class="book-cover" style="background: #49111c;">
+              <div class="book-cover-placeholder">📕</div>
+              <span class="book-badge">Nuevo</span>
+            </div>
+            <div class="book-info">
+              <div class="book-date">28 de Febrero, 2026</div>
+              <h3 class="book-title">1984</h3>
+              <p class="book-author">George Orwell</p>
+              <p class="book-excerpt">Una distopía totalitaria donde el Gran Hermano vigila cada aspecto de la vida de los ciudadanos y la verdad es manipulada constantemente.</p>
+              <div class="book-price">$22.50</div>
+              <div class="book-actions">
+                <button class="btn-action primary">
+                  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                  Reservar
+                </button>
+                <button class="btn-action secondary">
+                  <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                  Comprar
+                </button>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Libro 4 -->
+        <div class="book-card">
+          <a href="#modal-4" style="text-decoration: none; color: inherit;">
+            <div class="book-cover" style="background: #a9927d;">
+              <div class="book-cover-placeholder">📗</div>
+              <span class="book-badge available">Disponible</span>
+            </div>
+            <div class="book-info">
+              <div class="book-date">25 de Febrero, 2026</div>
+              <h3 class="book-title">Orgullo y Prejuicio</h3>
+              <p class="book-author">Jane Austen</p>
+              <p class="book-excerpt">Una novela romántica que explora las complejidades del amor, la clase social y los malentendidos en la Inglaterra del siglo XIX.</p>
+              <div class="book-price">$18.99</div>
+              <div class="book-actions">
+                <button class="btn-action primary">
+                  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                  Reservar
+                </button>
+                <button class="btn-action secondary">
+                  <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                  Comprar
+                </button>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Libro 5 -->
+        <div class="book-card">
+          <a href="#modal-5" style="text-decoration: none; color: inherit;">
+            <div class="book-cover" style="background: #0a0908;">
+              <div class="book-cover-placeholder" style="color: rgba(169, 146, 125, .4);">📘</div>
+              <span class="book-badge">Nuevo</span>
+            </div>
+            <div class="book-info">
+              <div class="book-date">20 de Febrero, 2026</div>
+              <h3 class="book-title">Crimen y Castigo</h3>
+              <p class="book-author">Fiódor Dostoyevski</p>
+              <p class="book-excerpt">Un profundo análisis psicológico de un joven estudiante que comete un asesinato y enfrenta las consecuencias morales de sus actos.</p>
+              <div class="book-price">$26.99</div>
+              <div class="book-actions">
+                <button class="btn-action primary">
+                  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                  Reservar
+                </button>
+                <button class="btn-action secondary">
+                  <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                  Comprar
+                </button>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Libro 6 -->
+        <div class="book-card">
+          <a href="#modal-6" style="text-decoration: none; color: inherit;">
+            <div class="book-cover" style="background: linear-gradient(135deg, #a9927d 0%, #5e503f 100%);">
+              <div class="book-cover-placeholder">📙</div>
+              <span class="book-badge available">Disponible</span>
+            </div>
+            <div class="book-info">
+              <div class="book-date">15 de Febrero, 2026</div>
+              <h3 class="book-title">El Gran Gatsby</h3>
+              <p class="book-author">F. Scott Fitzgerald</p>
+              <p class="book-excerpt">Una crítica brillante del sueño americano a través de la historia de Jay Gatsby y su obsesión por recuperar un amor perdido.</p>
+              <div class="book-price">$21.99</div>
+              <div class="book-actions">
+                <button class="btn-action primary">
+                  <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                  Reservar
+                </button>
+                <button class="btn-action secondary">
+                  <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                  Comprar
+                </button>
+              </div>
+            </div>
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── MODALES (Solo CSS con :target) ── -->
+  
+  <!-- Modal 1 -->
+  <div id="modal-1" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Cien Años de Soledad</h2>
+        <a href="#" class="modal-close" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
+      </div>
+      <div class="modal-body">
+        <div class="modal-cover">
+          <div class="modal-cover-placeholder">📚</div>
+        </div>
+        <div class="modal-details">
+          <div class="modal-meta">
+            <span class="meta-item"><strong>Publicado:</strong> 4 de Marzo, 2026</span>
+            <span class="meta-item"><strong>ISBN:</strong> 978-0-06-088328-7</span>
+            <span class="meta-item"><strong>Páginas:</strong> 417</span>
+            <span class="meta-item"><strong>Género:</strong> Realismo Mágico</span>
+            <span class="meta-item"><strong>Editorial:</strong> Editorial Sudamericana</span>
+          </div>
+          <p class="modal-author">Por Gabriel García Márquez</p>
+          <div class="modal-description">
+            <p>Una obra maestra del realismo mágico que narra la historia de la familia Buendía a lo largo de siete generaciones en el pueblo ficticio de Macondo. La novela explora temas de soledad, destino, amor, y la naturaleza cíclica de la historia.</p>
+            <p>García Márquez teje una narrativa épica que combina lo cotidiano con lo fantástico, creando un mundo donde los milagros son parte de la realidad diaria. La obra es considerada una de las más importantes de la literatura latinoamericana del siglo XX.</p>
+            <p>Este libro está en perfectas condiciones y forma parte de nuestra nueva colección de clásicos contemporáneos. Disponible para reserva inmediata o compra directa.</p>
+          </div>
+          <div class="modal-price-section">
+            <div class="modal-price">$24.99</div>
+            <div class="modal-actions">
+              <button class="btn-modal primary">
+                <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                Reservar Ahora
+              </button>
+              <button class="btn-modal secondary">
+                <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Comprar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2 -->
+  <div id="modal-2" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Don Quijote de la Mancha</h2>
+        <a href="#" class="modal-close" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
+      </div>
+      <div class="modal-body">
+        <div class="modal-cover" style="background: #5e503f;">
+          <div class="modal-cover-placeholder">📖</div>
+        </div>
+        <div class="modal-details">
+          <div class="modal-meta">
+            <span class="meta-item"><strong>Publicado:</strong> 2 de Marzo, 2026</span>
+            <span class="meta-item"><strong>ISBN:</strong> 978-84-376-0494-7</span>
+            <span class="meta-item"><strong>Páginas:</strong> 863</span>
+            <span class="meta-item"><strong>Género:</strong> Novela de Caballerías</span>
+            <span class="meta-item"><strong>Editorial:</strong> Real Academia Española</span>
+          </div>
+          <p class="modal-author">Por Miguel de Cervantes</p>
+          <div class="modal-description">
+            <p>Considerada una de las obras más importantes de la literatura universal, Don Quijote narra las aventuras de Alonso Quijano, un hidalgo que tras leer demasiados libros de caballerías pierde la razón y decide convertirse en caballero andante.</p>
+            <p>Acompañado por su fiel escudero Sancho Panza, Don Quijote emprende una serie de aventuras que mezclan la realidad con la fantasía, creando una sátira brillante sobre el idealismo y la locura.</p>
+            <p>Esta edición incluye notas explicativas y un estudio introductorio que contextualiza la obra en su época histórica.</p>
+          </div>
+          <div class="modal-price-section">
+            <div class="modal-price">$19.99</div>
+            <div class="modal-actions">
+              <button class="btn-modal primary">
+                <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                Reservar Ahora
+              </button>
+              <button class="btn-modal secondary">
+                <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Comprar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Los demás modales siguen la misma estructura... -->
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+</body>
+</html>

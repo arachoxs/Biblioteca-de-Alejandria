@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Administrador — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro:   #0a0908;
+      --borgona: #49111c;
+      --blanco:  #f2f4f3;
+      --arena:   #a9927d;
+      --oliva:   #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body:    'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Textura de fondo ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px),
+        repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169,146,125,.15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--borgona);
+      box-shadow: 0 0 0 2px rgba(73,17,28,.3);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3.5rem 2.5rem 4rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1160px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      margin-bottom: 3rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    .page-header-top {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: .8rem;
+    }
+
+    .admin-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--borgona);
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .admin-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--blanco);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+    }
+
+    .page-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.7;
+      max-width: 640px;
+      padding-left: calc(44px + 1rem);
+    }
+
+    /* ── SECTION DIVIDER ── */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2.2rem;
+      animation: fadeUp .6s .1s ease-out both;
+    }
+
+    .section-divider span {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      color: var(--arena);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(169,146,125,.3);
+    }
+
+    /* ── ACTIONS FLEX ── */
+    .actions-flex {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    /* ── ACTION CARD ── */
+    .action-card {
+      flex: 1 1 220px;
+      max-width: 260px;
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.22);
+      border-radius: 6px;
+      padding: 2rem 1.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(10,9,8,.04), 0 8px 30px rgba(10,9,8,.05);
+      transition: box-shadow .25s, transform .25s, border-color .25s;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    .action-card:nth-child(1) { animation-delay: .15s; }
+    .action-card:nth-child(2) { animation-delay: .22s; }
+    .action-card:nth-child(3) { animation-delay: .29s; }
+    .action-card:nth-child(4) { animation-delay: .36s; }
+    .action-card:nth-child(5) { animation-delay: .43s; }
+    .action-card:nth-child(6) { animation-delay: .50s; }
+    .action-card:nth-child(7) { animation-delay: .57s; }
+
+    /* Barra borgona superior al hover */
+    .action-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--borgona);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .3s ease;
+    }
+
+    .action-card:hover {
+      box-shadow: 0 4px 16px rgba(10,9,8,.08), 0 20px 60px rgba(10,9,8,.10);
+      transform: translateY(-4px);
+      border-color: rgba(169,146,125,.4);
+    }
+
+    .action-card:hover::before { transform: scaleX(1); }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border: 1.5px solid rgba(169,146,125,.35);
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      background: rgba(242,244,243,.8);
+      flex-shrink: 0;
+    }
+
+    .card-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .card-content { flex: 1; }
+
+    .card-content h2 {
+      font-family: var(--ff-display);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--negro);
+      letter-spacing: .01em;
+      line-height: 1.25;
+      margin-bottom: .45rem;
+    }
+
+    .card-content p {
+      font-size: .79rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(169,146,125,.15);
+    }
+
+    .card-tag {
+      font-size: .66rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+    }
+
+    .card-arrow {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(169,146,125,.3);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      transition: background .2s, border-color .2s;
+    }
+
+    .card-arrow svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .action-card:hover .card-arrow {
+      background: var(--borgona);
+      border-color: var(--borgona);
+    }
+
+    .action-card:hover .card-arrow svg { stroke: var(--blanco); }
+
+    /* ── INFO STRIP ── */
+    .info-strip {
+      background: var(--negro);
+      border-radius: 6px;
+      padding: 1.4rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s .55s ease-out both;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+    }
+
+    .info-item svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .info-item-text { display: flex; flex-direction: column; }
+
+    .info-item-label {
+      font-size: .64rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--oliva);
+      font-weight: 500;
+    }
+
+    .info-item-value {
+      font-size: .82rem;
+      color: var(--blanco);
+      font-weight: 300;
+      margin-top: .08rem;
+    }
+
+    .divider-v {
+      width: 1px;
+      height: 32px;
+      background: rgba(169,146,125,.2);
+      flex-shrink: 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+      .action-card  { flex: 1 1 200px; max-width: 230px; }
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: .8rem 1.2rem; flex-direction: column; gap: .7rem; }
+      .nav-info { width: 100%; justify-content: center; }
+
+      main { padding: 2rem 1.2rem 3rem; }
+
+      .page-header p { padding-left: 0; }
+
+      .action-card { flex: 1 1 calc(50% - .75rem); max-width: calc(50% - .75rem); }
+
+      .info-strip { gap: 1.5rem; padding: 1.2rem 1.4rem; }
+      .divider-v  { display: none; }
+    }
+
+    @media (max-width: 480px) {
+      .action-card { flex: 1 1 100%; max-width: 100%; }
+      .page-header-top { flex-direction: column; align-items: flex-start; }
+      .admin-icon { width: 38px; height: 38px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Administrador</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="page-header-top">
+        <div class="admin-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <h1>Panel de Administración</h1>
+      </div>
+      <p>Bienvenido, <strong>Carlos Méndez</strong>. Desde aquí puedes acceder a todas las funcionalidades de gestión disponibles para tu rol.</p>
+    </div>
+
+    <!-- Section label -->
+    <div class="section-divider">
+      <span>Módulos de gestión</span>
+    </div>
+
+    <!-- ── ACCESOS ── -->
+    <div class="actions-flex">
+
+      <!-- 1. Categorías -->
+      <a href="#" class="action-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </div>
+        <div class="card-content">
+          <h2>Gestionar Categorías</h2>
+          <p>Crea, edita y elimina las categorías literarias del catálogo. Organiza las clasificaciones para facilitar la búsqueda de libros.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Catálogo</span>
+          <span class="card-arrow">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- 2. Autores -->
+      <a href="#" class="action-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="card-content">
+          <h2>Gestionar Autores</h2>
+          <p>Administra el registro de autores del catálogo. Añade, actualiza y consulta la información biográfica y bibliográfica de cada autor.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Catálogo</span>
+          <span class="card-arrow">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- 3. Información bibliográfica -->
+      <a href="#" class="action-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        </div>
+        <div class="card-content">
+          <h2>Información Bibliográfica</h2>
+          <p>Gestiona los libros del catálogo: registra nuevos títulos, actualiza datos bibliográficos, precios y disponibilidad.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Catálogo</span>
+          <span class="card-arrow">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- 4. Tiendas -->
+      <a href="#" class="action-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="card-content">
+          <h2>Gestionar Tiendas</h2>
+          <p>Administra las sucursales y puntos de venta. Configura horarios, direcciones y datos de contacto de cada tienda.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Operaciones</span>
+          <span class="card-arrow">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- 5. Inventario -->
+      <a href="#" class="action-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </div>
+        <div class="card-content">
+          <h2>Gestionar Inventario</h2>
+          <p>Controla el stock de libros por tienda. Consulta disponibilidad, registra entradas y salidas de ejemplares del inventario.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Operaciones</span>
+          <span class="card-arrow">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- 6. Administrar Noticias -->
+      <a href="#" class="action-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg>
+        </div>
+        <div class="card-content">
+          <h2>Administrar Noticias</h2>
+          <p>Gestiona las noticias y novedades de la plataforma. Vincula publicaciones a libros del catálogo.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Contenido</span>
+          <span class="card-arrow">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- 7. Mensajería Instantánea -->
+      <a href="#" class="action-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div class="card-content">
+          <h2>Mensajería Instantánea</h2>
+          <p>Comunícate en tiempo real con usuarios y otros administradores. Gestiona conversaciones y responde consultas desde la plataforma.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Comunicación</span>
+          <span class="card-arrow">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </div>
+      </a>
+
+    </div><!-- /actions-flex -->
+
+    <!-- ── INFO STRIP ── -->
+    <div class="info-strip">
+      <div class="info-item">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div class="info-item-text">
+          <span class="info-item-label">Sesión iniciada</span>
+          <span class="info-item-value">Hoy, 09:14 hs</span>
+        </div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="info-item">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div class="info-item-text">
+          <span class="info-item-label">Usuario</span>
+          <span class="info-item-value">cmendez · Administrador</span>
+        </div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="info-item">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <div class="info-item-text">
+          <span class="info-item-label">Última modificación</span>
+          <span class="info-item-value">03/03/2026 · Información bibliográfica</span>
+        </div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="info-item">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        <div class="info-item-text">
+          <span class="info-item-label">Libros en catálogo</span>
+          <span class="info-item-value">248 títulos activos</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+</body>
+</html>

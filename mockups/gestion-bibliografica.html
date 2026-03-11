@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión Bibliográfica — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro:   #0a0908;
+      --borgona: #49111c;
+      --blanco:  #f2f4f3;
+      --arena:   #a9927d;
+      --oliva:   #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body:    'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 60px,
+          rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px),
+        repeating-linear-gradient(90deg, transparent, transparent 60px,
+          rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169,146,125,.15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--arena);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      margin-bottom: 2.5rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: .9rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .breadcrumb svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: .6;
+    }
+
+    .breadcrumb a {
+      color: var(--arena);
+      text-decoration: none;
+      opacity: .7;
+      transition: opacity .2s;
+    }
+
+    .breadcrumb a:hover { opacity: 1; }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.6rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+      margin-bottom: .5rem;
+    }
+
+    .page-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.65;
+      max-width: 680px;
+    }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: flex;
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s .1s ease-out both;
+    }
+
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .5rem 1.1rem;
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(10,9,8,.04);
+    }
+
+    .stat-chip svg {
+      width: 15px;
+      height: 15px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .stat-chip-num {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--negro);
+      line-height: 1;
+    }
+
+    .stat-chip-label {
+      font-size: .72rem;
+      color: var(--arena);
+      font-weight: 300;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.6rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s .15s ease-out both;
+    }
+
+    .toolbar-search {
+      display: flex;
+      gap: .8rem;
+      flex: 1;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+      max-width: 360px;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: .85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 15px;
+      height: 15px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      height: 40px;
+      padding: 0 .9rem 0 2.4rem;
+      border: 1px solid rgba(169,146,125,.32);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .84rem;
+      color: var(--negro);
+      background: #fff;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .search-wrap input::placeholder { color: var(--arena); opacity: .65; }
+    .search-wrap input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73,17,28,.07);
+    }
+
+    .filter-select {
+      height: 40px;
+      padding: 0 2rem 0 .85rem;
+      border: 1px solid rgba(169,146,125,.32);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .82rem;
+      color: var(--oliva);
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right .75rem center;
+      -webkit-appearance: none;
+      outline: none;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+
+    .filter-select:focus { border-color: var(--borgona); }
+
+    .toolbar-actions {
+      display: flex;
+      gap: .7rem;
+      flex-shrink: 0;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      height: 40px;
+      padding: 0 1.4rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .76rem;
+      font-weight: 500;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169,146,125,.35);
+    }
+
+    .btn-cancel:hover { background: rgba(94,80,63,.05); }
+
+    .btn-danger {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-danger:hover {
+      background: #2d0a10;
+      transform: translateY(-1px);
+    }
+
+    /* ── TABLE ── */
+    .table-container {
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.22);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(10,9,8,.04), 0 8px 32px rgba(10,9,8,.06);
+      animation: fadeUp .6s .2s ease-out both;
+    }
+
+    .table-scroll { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 820px;
+    }
+
+    thead {
+      background: var(--negro);
+      color: var(--blanco);
+    }
+
+    thead th {
+      padding: 1rem 1.1rem;
+      text-align: left;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--borgona);
+      white-space: nowrap;
+    }
+
+    thead th:first-child { padding-left: 1.5rem; }
+    thead th:last-child  { padding-right: 1.5rem; text-align: right; }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(169,146,125,.13);
+      transition: background .15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(169,146,125,.04); }
+
+    tbody td {
+      padding: 1rem 1.1rem;
+      font-size: .84rem;
+      color: var(--negro);
+      vertical-align: middle;
+    }
+
+    tbody td:first-child { padding-left: 1.5rem; }
+    tbody td:last-child  { padding-right: 1.5rem; }
+
+    .book-cell {
+      display: flex;
+      align-items: center;
+      gap: .9rem;
+    }
+
+    .book-cover {
+      width: 34px;
+      height: 46px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-size: .65rem;
+      font-weight: 700;
+      color: var(--blanco);
+      letter-spacing: .04em;
+      text-align: center;
+      line-height: 1.1;
+      padding: 2px;
+    }
+
+    .book-cover.c1 { background: var(--borgona); }
+    .book-cover.c2 { background: var(--oliva); }
+    .book-cover.c3 { background: var(--negro); }
+    .book-cover.c4 { background: #6b3a4a; }
+    .book-cover.c5 { background: #3d3228; }
+    .book-cover.c6 { background: var(--borgona); opacity: .85; }
+
+    .book-title {
+      font-weight: 500;
+      font-size: .86rem;
+      color: var(--negro);
+      line-height: 1.3;
+      max-width: 220px;
+    }
+
+    .book-isbn {
+      font-size: .72rem;
+      color: var(--arena);
+      font-weight: 300;
+      margin-top: .15rem;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .03em;
+    }
+
+    .author-cell {
+      font-size: .82rem;
+      color: var(--oliva);
+    }
+
+    .category-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: .28rem .7rem;
+      border-radius: 14px;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .05em;
+      background: rgba(169,146,125,.12);
+      color: var(--oliva);
+      white-space: nowrap;
+      border: 1px solid rgba(169,146,125,.2);
+    }
+
+    .year-cell {
+      font-size: .82rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .3rem .75rem;
+      border-radius: 14px;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+
+    .status-badge .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+    }
+
+    .status-badge.active {
+      background: rgba(73,17,28,.08);
+      color: var(--borgona);
+    }
+    .status-badge.active .dot { background: var(--borgona); }
+
+    .status-badge.inactive {
+      background: rgba(94,80,63,.08);
+      color: var(--oliva);
+    }
+    .status-badge.inactive .dot { background: var(--oliva); }
+
+    /* ── ROW ACTIONS ── */
+    .row-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: .4rem;
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      border: 1px solid rgba(169,146,125,.25);
+      background: transparent;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all .18s;
+    }
+
+    .action-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .action-btn.view svg   { stroke: var(--oliva); }
+    .action-btn.edit svg   { stroke: var(--arena); }
+    .action-btn.delete svg { stroke: var(--borgona); }
+
+    .action-btn.view:hover   { background: rgba(94,80,63,.08);  border-color: var(--oliva); }
+    .action-btn.edit:hover   { background: rgba(169,146,125,.1); border-color: var(--arena); }
+    .action-btn.delete:hover { background: rgba(73,17,28,.08);  border-color: var(--borgona); }
+
+    /* ── TABLE FOOTER ── */
+    .table-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 1.5rem;
+      border-top: 1px solid rgba(169,146,125,.15);
+      background: rgba(242,244,243,.5);
+      flex-wrap: wrap;
+      gap: .8rem;
+    }
+
+    .table-footer-info {
+      font-size: .74rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .pagination {
+      display: flex;
+      gap: .3rem;
+    }
+
+    .pag-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(169,146,125,.25);
+      border-radius: 4px;
+      background: transparent;
+      font-family: var(--ff-body);
+      font-size: .76rem;
+      color: var(--oliva);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all .15s;
+    }
+
+    .pag-btn.active {
+      background: var(--borgona);
+      color: var(--blanco);
+      border-color: var(--borgona);
+    }
+
+    .pag-btn:hover:not(.active) { background: rgba(94,80,63,.06); }
+
+    .pag-btn svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── MODALS ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,9,8,.62);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 12px 48px rgba(10,9,8,.22), 0 4px 14px rgba(10,9,8,.14);
+      transform: scale(.95) translateY(10px);
+      transition: transform .3s;
+    }
+
+    .modal-overlay.active .modal { transform: scale(1) translateY(0); }
+
+    #modal-registro .modal,
+    #modal-editar   .modal { max-width: 680px; }
+    #modal-ver      .modal { max-width: 640px; }
+    #modal-eliminar .modal { max-width: 440px; }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169,146,125,.18);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .modal-header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: .9rem;
+    }
+
+    .modal-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      margin-top: .1rem;
+    }
+
+    .modal-icon.register { background: rgba(73,17,28,.1); }
+    .modal-icon.edit     { background: rgba(169,146,125,.12); }
+    .modal-icon.view     { background: rgba(94,80,63,.09); }
+    .modal-icon.danger   { background: rgba(73,17,28,.1); }
+
+    .modal-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .modal-icon.register svg,
+    .modal-icon.danger   svg { stroke: var(--borgona); }
+    .modal-icon.edit     svg { stroke: var(--arena); }
+    .modal-icon.view     svg { stroke: var(--oliva); }
+
+    .modal-header-text h2 {
+      font-family: var(--ff-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+    }
+
+    .modal-header-text p {
+      font-size: .8rem;
+      color: var(--oliva);
+      font-weight: 300;
+      margin-top: .4rem;
+      line-height: 1.55;
+    }
+
+    .modal-close {
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(169,146,125,.28);
+      border-radius: 50%;
+      background: transparent;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all .18s;
+    }
+
+    .modal-close:hover { background: rgba(73,17,28,.07); border-color: var(--borgona); }
+
+    .modal-close svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--oliva);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    /* ── FORM ── */
+    .modal-body { padding: 1.8rem 2rem; }
+
+    .form-section {
+      margin-bottom: 1.6rem;
+    }
+
+    .form-section-title {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: 1rem;
+      padding-bottom: .5rem;
+      border-bottom: 1px solid rgba(169,146,125,.15);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.1rem 1.3rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group.third { grid-column: span 1; }
+
+    .form-group label {
+      font-size: .7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+    }
+
+    .form-group label .required { color: var(--borgona); margin-left: 2px; }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      border: 1px solid rgba(169,146,125,.32);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .86rem;
+      color: var(--negro);
+      background: var(--blanco);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
+    }
+
+    .form-group input,
+    .form-group select {
+      height: 42px;
+      padding: 0 .85rem;
+    }
+
+    .form-group select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .85rem center;
+      padding-right: 2.2rem;
+    }
+
+    .form-group textarea {
+      padding: .7rem .85rem;
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.55;
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: var(--arena); opacity: .55; }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73,17,28,.07);
+    }
+
+    /* ── MODAL FOOTER ── */
+    .modal-footer {
+      padding: 1.3rem 2rem 1.7rem;
+      border-top: 1px solid rgba(169,146,125,.18);
+      display: flex;
+      justify-content: flex-end;
+      gap: .8rem;
+    }
+
+    /* ── MODAL VER: DETAIL VIEW ── */
+    .detail-cover-row {
+      display: flex;
+      gap: 1.6rem;
+      align-items: flex-start;
+      margin-bottom: 1.8rem;
+      padding-bottom: 1.6rem;
+      border-bottom: 1px solid rgba(169,146,125,.15);
+    }
+
+    .detail-cover {
+      width: 72px;
+      height: 98px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      background: var(--borgona);
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-size: .8rem;
+      font-weight: 700;
+      color: rgba(242,244,243,.7);
+      text-align: center;
+      padding: 6px;
+      line-height: 1.2;
+    }
+
+    .detail-title-block h3 {
+      font-family: var(--ff-display);
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--negro);
+      line-height: 1.25;
+      margin-bottom: .4rem;
+    }
+
+    .detail-title-block .detail-author {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 400;
+      margin-bottom: .7rem;
+    }
+
+    .detail-tags {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+
+    .detail-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: .22rem .65rem;
+      border-radius: 12px;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+
+    .detail-tag.category { background: rgba(169,146,125,.12); color: var(--oliva); border: 1px solid rgba(169,146,125,.2); }
+    .detail-tag.status   { background: rgba(73,17,28,.08); color: var(--borgona); border: 1px solid rgba(73,17,28,.15); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .9rem 1.4rem;
+      margin-bottom: 1.6rem;
+    }
+
+    .detail-field {
+      display: flex;
+      flex-direction: column;
+      gap: .2rem;
+    }
+
+    .detail-field-label {
+      font-size: .66rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+    }
+
+    .detail-field-value {
+      font-size: .84rem;
+      color: var(--negro);
+      font-weight: 400;
+    }
+
+    .detail-field.full { grid-column: 1 / -1; }
+
+    .detail-synopsis-label {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: .5rem;
+    }
+
+    .detail-synopsis-text {
+      font-size: .84rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.7;
+    }
+
+    /* ── MODAL ELIMINAR ── */
+    .delete-warning {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1rem;
+      padding: .5rem 0 .5rem;
+    }
+
+    .delete-icon-wrap {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(73,17,28,.08);
+      border: 2px solid rgba(73,17,28,.2);
+      display: grid;
+      place-items: center;
+    }
+
+    .delete-icon-wrap svg {
+      width: 26px;
+      height: 26px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .delete-warning h3 {
+      font-family: var(--ff-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--negro);
+    }
+
+    .delete-warning p {
+      font-size: .84rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 320px;
+    }
+
+    .delete-book-name {
+      font-style: italic;
+      color: var(--borgona);
+      font-weight: 400;
+    }
+
+    .delete-warning .alert-note {
+      font-size: .76rem;
+      color: var(--arena);
+      background: rgba(169,146,125,.08);
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 4px;
+      padding: .65rem 1rem;
+      line-height: 1.55;
+      width: 100%;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .stats-bar { gap: .8rem; }
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: .8rem 1.2rem;
+        flex-direction: column;
+        gap: .6rem;
+      }
+
+      .nav-info { width: 100%; justify-content: center; }
+
+      main { padding: 2rem 1.2rem; }
+
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .toolbar-search { flex-direction: column; }
+      .search-wrap { max-width: 100%; }
+      .filter-select { width: 100%; }
+
+      .toolbar-actions { flex-direction: column; }
+      .toolbar-actions .btn { width: 100%; justify-content: center; }
+
+      .table-scroll { overflow-x: auto; }
+
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: auto; }
+
+      .modal-footer { flex-direction: column-reverse; }
+      .modal-footer .btn { width: 100%; justify-content: center; }
+
+      .detail-cover-row { flex-direction: column; gap: 1.2rem; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .detail-field.full { grid-column: auto; }
+
+      .modal-body { padding: 1.4rem; }
+      .modal-header { padding: 1.4rem 1.4rem 1.1rem; }
+      .modal-footer { padding: 1rem 1.4rem 1.4rem; }
+
+      .stats-bar { gap: .6rem; }
+      .stat-chip { flex: 1; min-width: 130px; }
+    }
+
+    @media (max-width: 480px) {
+      .stat-chip-num { font-size: 1rem; }
+      .breadcrumb { font-size: .65rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Administrador</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a href="#">Panel</a>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        <span>Gestión Bibliográfica</span>
+      </div>
+      <h1>Información Bibliográfica</h1>
+      <p>Registra, edita, consulta y elimina los libros del catálogo. Mantén la información actualizada para garantizar una experiencia óptima a los usuarios.</p>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-chip">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <div>
+          <div class="stat-chip-num">248</div>
+          <div class="stat-chip-label">Total libros</div>
+        </div>
+      </div>
+      <div class="stat-chip">
+        <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div>
+          <div class="stat-chip-num">231</div>
+          <div class="stat-chip-label">Activos</div>
+        </div>
+      </div>
+      <div class="stat-chip">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div class="stat-chip-num">17</div>
+          <div class="stat-chip-label">Inactivos</div>
+        </div>
+      </div>
+      <div class="stat-chip">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <div>
+          <div class="stat-chip-num">5</div>
+          <div class="stat-chip-label">Este mes</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-search">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar por título, autor o ISBN…">
+        </div>
+        <select class="filter-select">
+          <option value="">Todas las categorías</option>
+          <option>Ficción</option>
+          <option>Historia</option>
+          <option>Ciencias</option>
+          <option>Filosofía</option>
+          <option>Literatura</option>
+          <option>Tecnología</option>
+        </select>
+        <select class="filter-select">
+          <option value="">Todos los estados</option>
+          <option>Activo</option>
+          <option>Inactivo</option>
+        </select>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn btn-primary" onclick="document.getElementById('modal-registro').classList.add('active')">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Registrar Libro
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Libro / ISBN</th>
+              <th>Autor</th>
+              <th>Categoría</th>
+              <th>Año</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-cover c1">I</div>
+                  <div>
+                    <div class="book-title">Ilíada</div>
+                    <div class="book-isbn">ISBN 978-84-376-0494-7</div>
+                  </div>
+                </div>
+              </td>
+              <td class="author-cell">Homero</td>
+              <td><span class="category-badge">Literatura</span></td>
+              <td class="year-cell">800 a.C.</td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-cover c2">C</div>
+                  <div>
+                    <div class="book-title">Cien años de soledad</div>
+                    <div class="book-isbn">ISBN 978-84-376-0494-8</div>
+                  </div>
+                </div>
+              </td>
+              <td class="author-cell">Gabriel García Márquez</td>
+              <td><span class="category-badge">Ficción</span></td>
+              <td class="year-cell">1967</td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-cover c3">EO</div>
+                  <div>
+                    <div class="book-title">El origen de las especies</div>
+                    <div class="book-isbn">ISBN 978-84-206-5398-2</div>
+                  </div>
+                </div>
+              </td>
+              <td class="author-cell">Charles Darwin</td>
+              <td><span class="category-badge">Ciencias</span></td>
+              <td class="year-cell">1859</td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-cover c4">RM</div>
+                  <div>
+                    <div class="book-title">República</div>
+                    <div class="book-isbn">ISBN 978-84-249-1458-1</div>
+                  </div>
+                </div>
+              </td>
+              <td class="author-cell">Platón</td>
+              <td><span class="category-badge">Filosofía</span></td>
+              <td class="year-cell">375 a.C.</td>
+              <td><span class="status-badge inactive"><span class="dot"></span>Inactivo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-cover c5">BT</div>
+                  <div>
+                    <div class="book-title">Breve historia del tiempo</div>
+                    <div class="book-isbn">ISBN 978-84-08-17566-0</div>
+                  </div>
+                </div>
+              </td>
+              <td class="author-cell">Stephen Hawking</td>
+              <td><span class="category-badge">Ciencias</span></td>
+              <td class="year-cell">1988</td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-cover c6">DO</div>
+                  <div>
+                    <div class="book-title">Don Quijote de la Mancha</div>
+                    <div class="book-isbn">ISBN 978-84-670-5007-3</div>
+                  </div>
+                </div>
+              </td>
+              <td class="author-cell">Miguel de Cervantes</td>
+              <td><span class="category-badge">Literatura</span></td>
+              <td class="year-cell">1605</td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table footer / Pagination -->
+      <div class="table-footer">
+        <span class="table-footer-info">Mostrando 6 de 248 registros</span>
+        <div class="pagination">
+          <button class="pag-btn">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="pag-btn active">1</button>
+          <button class="pag-btn">2</button>
+          <button class="pag-btn">3</button>
+          <span style="display:grid;place-items:center;width:32px;font-size:.76rem;color:var(--arena);">…</span>
+          <button class="pag-btn">42</button>
+          <button class="pag-btn">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══════════════════════════════════════
+       MODAL: REGISTRAR LIBRO
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-registro">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon register">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>Registrar Libro</h2>
+            <p>Complete los datos bibliográficos para agregar el libro al catálogo.</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-registro').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form autocomplete="off">
+
+          <div class="form-section">
+            <div class="form-section-title">Identificación</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>ISBN <span class="required">*</span></label>
+                <input type="text" placeholder="978-XX-XXX-XXXX-X">
+              </div>
+              <div class="form-group">
+                <label>Año de publicación <span class="required">*</span></label>
+                <input type="number" placeholder="2024" min="1" max="2099">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Información principal</div>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label>Título <span class="required">*</span></label>
+                <input type="text" placeholder="Título completo del libro">
+              </div>
+              <div class="form-group">
+                <label>Autor <span class="required">*</span></label>
+                <input type="text" placeholder="Nombre del autor">
+              </div>
+              <div class="form-group">
+                <label>Editorial <span class="required">*</span></label>
+                <input type="text" placeholder="Nombre de la editorial">
+              </div>
+              <div class="form-group">
+                <label>Categoría <span class="required">*</span></label>
+                <select>
+                  <option value="" disabled selected>Seleccionar</option>
+                  <option>Ficción</option>
+                  <option>Historia</option>
+                  <option>Ciencias</option>
+                  <option>Filosofía</option>
+                  <option>Literatura</option>
+                  <option>Tecnología</option>
+                  <option>Arte</option>
+                  <option>Economía</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Idioma <span class="required">*</span></label>
+                <select>
+                  <option value="" disabled selected>Seleccionar</option>
+                  <option>Español</option>
+                  <option>Inglés</option>
+                  <option>Francés</option>
+                  <option>Alemán</option>
+                  <option>Italiano</option>
+                  <option>Portugués</option>
+                  <option>Latín</option>
+                  <option>Griego clásico</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Número de páginas</label>
+                <input type="number" placeholder="Ej. 320" min="1">
+              </div>
+              <div class="form-group">
+                <label>Estado <span class="required">*</span></label>
+                <select>
+                  <option value="" disabled selected>Seleccionar</option>
+                  <option>Activo</option>
+                  <option>Inactivo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom:0">
+            <div class="form-section-title">Descripción</div>
+            <div class="form-group">
+              <label>Sinopsis</label>
+              <textarea placeholder="Breve descripción del contenido del libro…" rows="4"></textarea>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-registro').classList.remove('active')">
+          Cancelar
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Registrar Libro
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       MODAL: EDITAR LIBRO
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-editar">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon edit">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>Editar Libro</h2>
+            <p>Modifica la información bibliográfica del libro seleccionado.</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-editar').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form autocomplete="off">
+
+          <div class="form-section">
+            <div class="form-section-title">Identificación</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>ISBN <span class="required">*</span></label>
+                <input type="text" value="978-84-376-0494-7">
+              </div>
+              <div class="form-group">
+                <label>Año de publicación <span class="required">*</span></label>
+                <input type="number" value="800">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Información principal</div>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label>Título <span class="required">*</span></label>
+                <input type="text" value="Ilíada">
+              </div>
+              <div class="form-group">
+                <label>Autor <span class="required">*</span></label>
+                <input type="text" value="Homero">
+              </div>
+              <div class="form-group">
+                <label>Editorial <span class="required">*</span></label>
+                <input type="text" value="Gredos">
+              </div>
+              <div class="form-group">
+                <label>Categoría <span class="required">*</span></label>
+                <select>
+                  <option>Ficción</option>
+                  <option>Historia</option>
+                  <option>Ciencias</option>
+                  <option>Filosofía</option>
+                  <option selected>Literatura</option>
+                  <option>Tecnología</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Idioma <span class="required">*</span></label>
+                <select>
+                  <option selected>Español</option>
+                  <option>Inglés</option>
+                  <option>Francés</option>
+                  <option>Griego clásico</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Número de páginas</label>
+                <input type="number" value="624">
+              </div>
+              <div class="form-group">
+                <label>Estado <span class="required">*</span></label>
+                <select>
+                  <option selected>Activo</option>
+                  <option>Inactivo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom:0">
+            <div class="form-section-title">Descripción</div>
+            <div class="form-group">
+              <label>Sinopsis</label>
+              <textarea rows="4">Poema épico de la antigua Grecia que narra los sucesos acontecidos durante las últimas semanas del décimo y último año de la guerra de Troya, con la cólera de Aquiles como hilo conductor del relato.</textarea>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-editar').classList.remove('active')">
+          Cancelar
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       MODAL: VER DETALLE
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-ver">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon view">
+            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>Detalle del Libro</h2>
+            <p>Información bibliográfica completa del registro seleccionado.</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-ver').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Cover + Title row -->
+        <div class="detail-cover-row">
+          <div class="detail-cover">Ilíada</div>
+          <div class="detail-title-block">
+            <h3>Ilíada</h3>
+            <div class="detail-author">Homero</div>
+            <div class="detail-tags">
+              <span class="detail-tag category">Literatura</span>
+              <span class="detail-tag status">Activo</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fields grid -->
+        <div class="detail-grid">
+          <div class="detail-field">
+            <span class="detail-field-label">ISBN</span>
+            <span class="detail-field-value" style="font-family:monospace;font-size:.82rem;">978-84-376-0494-7</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Año de publicación</span>
+            <span class="detail-field-value">800 a.C.</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Editorial</span>
+            <span class="detail-field-value">Gredos</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Idioma</span>
+            <span class="detail-field-value">Español (traducción)</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Número de páginas</span>
+            <span class="detail-field-value">624 páginas</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Categoría</span>
+            <span class="detail-field-value">Literatura</span>
+          </div>
+        </div>
+
+        <!-- Synopsis -->
+        <div>
+          <div class="detail-synopsis-label">Sinopsis</div>
+          <p class="detail-synopsis-text">Poema épico de la antigua Grecia que narra los sucesos acontecidos durante las últimas semanas del décimo y último año de la guerra de Troya, con la cólera de Aquiles como hilo conductor del relato.</p>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-ver').classList.remove('active')">
+          Cerrar
+        </button>
+        <button class="btn btn-primary" onclick="document.getElementById('modal-ver').classList.remove('active'); document.getElementById('modal-editar').classList.add('active')">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       MODAL: ELIMINAR
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-eliminar">
+    <div class="modal">
+      <div class="modal-header" style="border-bottom:none; padding-bottom:.8rem;">
+        <div></div>
+        <button class="modal-close" onclick="document.getElementById('modal-eliminar').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding-top:.5rem;">
+        <div class="delete-warning">
+          <div class="delete-icon-wrap">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </div>
+          <h3>Eliminar libro</h3>
+          <p>¿Estás seguro de que deseas eliminar <span class="delete-book-name">«Ilíada»</span> del catálogo? Esta acción no se puede deshacer.</p>
+          <div class="alert-note">
+            El libro será eliminado permanentemente del sistema y dejará de estar disponible en el catálogo público.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:center; gap:1rem;">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-eliminar').classList.remove('active')" style="min-width:130px;">
+          Cancelar
+        </button>
+        <button class="btn btn-danger" style="min-width:130px;">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+  <script>
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+      });
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Hilos — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro:   #0a0908;
+      --borgona: #49111c;
+      --blanco:  #f2f4f3;
+      --arena:   #a9927d;
+      --oliva:   #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body:    'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 60px,
+          rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px),
+        repeating-linear-gradient(90deg, transparent, transparent 60px,
+          rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169,146,125,.15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--borgona);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    .page-header-text h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(1.9rem, 4vw, 2.45rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.15;
+      margin-bottom: .5rem;
+    }
+
+    .page-header-text p {
+      font-size: .86rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 580px;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .72rem;
+      color: var(--arena);
+      font-weight: 300;
+      margin-bottom: .6rem;
+    }
+
+    .breadcrumb a {
+      color: var(--arena);
+      text-decoration: none;
+      transition: color .15s;
+    }
+
+    .breadcrumb a:hover { color: var(--borgona); }
+
+    .breadcrumb svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── STATS STRIP ── */
+    .stats-strip {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s ease-out .08s both;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 140px;
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 5px;
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+      box-shadow: 0 1px 4px rgba(10,9,8,.04);
+    }
+
+    .stat-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      background: rgba(73,17,28,.07);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .stat-info {}
+
+    .stat-value {
+      font-family: var(--ff-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--negro);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 400;
+      margin-top: .15rem;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s ease-out .16s both;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      flex-wrap: wrap;
+    }
+
+    /* Search */
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: .85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 15px;
+      height: 15px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .search-input {
+      height: 40px;
+      padding: 0 1rem 0 2.4rem;
+      border: 1px solid rgba(169,146,125,.3);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .83rem;
+      color: var(--negro);
+      background: #fff;
+      outline: none;
+      width: 240px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .search-input::placeholder { color: var(--arena); opacity: .6; }
+
+    .search-input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73,17,28,.07);
+    }
+
+    /* Filter tabs */
+    .filter-tabs {
+      display: flex;
+      gap: 0;
+      border: 1px solid rgba(169,146,125,.28);
+      border-radius: 4px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .filter-tab {
+      padding: 0 1.1rem;
+      height: 40px;
+      font-family: var(--ff-body);
+      font-size: .75rem;
+      font-weight: 500;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--arena);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all .18s;
+      border-right: 1px solid rgba(169,146,125,.2);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    .filter-tab:last-child { border-right: none; }
+
+    .filter-tab.active {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .filter-tab .tab-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9px;
+      font-size: .65rem;
+      font-weight: 600;
+    }
+
+    .filter-tab.active .tab-count {
+      background: rgba(242,244,243,.25);
+      color: var(--blanco);
+    }
+
+    .filter-tab:not(.active) .tab-count {
+      background: rgba(169,146,125,.15);
+      color: var(--oliva);
+    }
+
+    /* Primary button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      height: 40px;
+      padding: 0 1.4rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .78rem;
+      font-weight: 500;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .btn svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary { background: var(--borgona); color: var(--blanco); }
+    .btn-primary:hover { background: var(--negro); transform: translateY(-1px); }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169,146,125,.35);
+    }
+
+    .btn-cancel:hover { background: rgba(94,80,63,.05); }
+
+    /* ── THREAD LIST ── */
+    .thread-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.22);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(10,9,8,.04), 0 8px 30px rgba(10,9,8,.05);
+      animation: fadeUp .6s ease-out .22s both;
+    }
+
+    .thread-item {
+      display: flex;
+      align-items: center;
+      gap: 1.1rem;
+      padding: 1.2rem 1.5rem;
+      border-bottom: 1px solid rgba(169,146,125,.13);
+      cursor: pointer;
+      transition: background .18s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .thread-item:last-child { border-bottom: none; }
+    .thread-item:hover { background: rgba(169,146,125,.04); }
+
+    .thread-item.unread { background: rgba(73,17,28,.025); }
+    .thread-item.unread:hover { background: rgba(73,17,28,.04); }
+
+    /* Unread indicator */
+    .thread-unread-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--borgona);
+      flex-shrink: 0;
+      opacity: 0;
+    }
+
+    .thread-item.unread .thread-unread-dot { opacity: 1; }
+
+    /* Category icon */
+    .thread-category-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 5px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .thread-category-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .cat-pedido { background: rgba(73,17,28,.08); }
+    .cat-pedido svg { stroke: var(--borgona); }
+
+    .cat-libro { background: rgba(94,80,63,.1); }
+    .cat-libro svg { stroke: var(--oliva); }
+
+    .cat-soporte { background: rgba(169,146,125,.15); }
+    .cat-soporte svg { stroke: var(--arena); }
+
+    /* Thread content */
+    .thread-content { flex: 1; min-width: 0; }
+
+    .thread-top {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      margin-bottom: .3rem;
+      flex-wrap: wrap;
+    }
+
+    .thread-title {
+      font-size: .88rem;
+      font-weight: 500;
+      color: var(--negro);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 480px;
+    }
+
+    .thread-item.unread .thread-title { font-weight: 600; }
+
+    .thread-cat-tag {
+      font-size: .63rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      padding: .18rem .6rem;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .tag-pedido { background: rgba(73,17,28,.1); color: var(--borgona); }
+    .tag-libro  { background: rgba(94,80,63,.1);  color: var(--oliva);  }
+    .tag-soporte{ background: rgba(169,146,125,.18); color: var(--oliva); }
+
+    .thread-preview {
+      font-size: .78rem;
+      color: var(--arena);
+      font-weight: 300;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 600px;
+    }
+
+    /* Thread meta */
+    .thread-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: .4rem;
+      flex-shrink: 0;
+    }
+
+    .thread-date {
+      font-size: .72rem;
+      color: var(--arena);
+      font-weight: 300;
+      white-space: nowrap;
+    }
+
+    .thread-replies {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .72rem;
+      color: var(--oliva);
+      font-weight: 400;
+    }
+
+    .thread-replies svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .25rem .7rem;
+      border-radius: 12px;
+      font-size: .67rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .status-badge .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+    }
+
+    .badge-abierto   { background: rgba(73,17,28,.1);   color: var(--borgona); }
+    .badge-abierto .dot   { background: var(--borgona); }
+
+    .badge-revision  { background: rgba(169,146,125,.18); color: var(--oliva); }
+    .badge-revision .dot  { background: var(--arena); }
+
+    .badge-resuelto  { background: rgba(94,80,63,.1);   color: var(--oliva); }
+    .badge-resuelto .dot  { background: var(--oliva); }
+
+    /* Empty state */
+    .thread-empty {
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .thread-empty svg {
+      width: 44px;
+      height: 44px;
+      stroke: rgba(169,146,125,.4);
+      fill: none;
+      stroke-width: 1.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      margin-bottom: 1rem;
+    }
+
+    .thread-empty h3 {
+      font-family: var(--ff-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+    }
+
+    .thread-empty p {
+      font-size: .8rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    /* ── PAGINATION ── */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 0 0;
+      animation: fadeUp .6s ease-out .3s both;
+      flex-wrap: wrap;
+      gap: .8rem;
+    }
+
+    .pagination-info {
+      font-size: .75rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .pagination-controls {
+      display: flex;
+      gap: .3rem;
+    }
+
+    .page-btn {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(169,146,125,.28);
+      border-radius: 4px;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-family: var(--ff-body);
+      font-size: .78rem;
+      color: var(--oliva);
+      transition: all .18s;
+    }
+
+    .page-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .page-btn:hover { border-color: var(--borgona); color: var(--borgona); }
+    .page-btn:hover svg { stroke: var(--borgona); }
+
+    .page-btn.active {
+      background: var(--borgona);
+      border-color: var(--borgona);
+      color: var(--blanco);
+    }
+
+    /* ══════════════════
+       MODALS
+    ══════════════════ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,9,8,.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 580px;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(10,9,8,.2), 0 4px 12px rgba(10,9,8,.15);
+      transform: scale(.95) translateY(8px);
+      transition: transform .3s;
+    }
+
+    .modal-overlay.active .modal { transform: scale(1) translateY(0); }
+
+    .modal.modal-wide { max-width: 680px; }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169,146,125,.18);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .modal-header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: .9rem;
+    }
+
+    .modal-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      background: rgba(73,17,28,.08);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      margin-top: .1rem;
+    }
+
+    .modal-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .modal-header-text h2 {
+      font-family: var(--ff-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+    }
+
+    .modal-header-text p {
+      font-size: .8rem;
+      color: var(--oliva);
+      font-weight: 300;
+      margin-top: .35rem;
+      line-height: 1.5;
+    }
+
+    .modal-close {
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(169,146,125,.28);
+      border-radius: 50%;
+      background: transparent;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all .18s;
+    }
+
+    .modal-close:hover { background: rgba(73,17,28,.07); border-color: var(--borgona); }
+
+    .modal-close svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--oliva);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    .modal-body { padding: 2rem; }
+
+    .modal-footer {
+      padding: 1.4rem 2rem 1.8rem;
+      border-top: 1px solid rgba(169,146,125,.15);
+      display: flex;
+      justify-content: flex-end;
+      gap: .9rem;
+    }
+
+    /* ── FORM ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem 1.4rem;
+    }
+
+    .form-group { display: flex; flex-direction: column; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: .7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+    }
+
+    .form-group label .required { color: var(--borgona); margin-left: 2px; }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: .7rem .9rem;
+      border: 1px solid rgba(169,146,125,.32);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .86rem;
+      color: var(--negro);
+      background: var(--blanco);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
+    }
+
+    .form-group input { height: 44px; padding: 0 .9rem; }
+
+    .form-group select {
+      height: 44px;
+      padding: 0 .9rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .9rem center;
+      padding-right: 2.2rem;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 110px;
+      line-height: 1.55;
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: var(--arena); opacity: .6; }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73,17,28,.07);
+    }
+
+    .form-hint {
+      font-size: .7rem;
+      color: var(--arena);
+      font-weight: 300;
+      margin-top: .35rem;
+      line-height: 1.45;
+    }
+
+    /* ── CONVERSATION VIEW (modal ver hilo) ── */
+    .conv-meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .7rem 2rem;
+      background: rgba(242,244,243,.7);
+      border-bottom: 1px solid rgba(169,146,125,.14);
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .conv-meta-left {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      flex-wrap: wrap;
+    }
+
+    .conv-meta-left span {
+      font-size: .74rem;
+      color: var(--oliva);
+      font-weight: 300;
+    }
+
+    /* Messages */
+    .conv-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .conv-message {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid rgba(169,146,125,.1);
+    }
+
+    .conv-message:last-of-type { border-bottom: none; }
+
+    .conv-message.client-msg { background: #fff; }
+    .conv-message.support-msg { background: rgba(242,244,243,.6); }
+
+    .msg-header {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      margin-bottom: .8rem;
+    }
+
+    .msg-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-size: .8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .avatar-client {
+      background: rgba(73,17,28,.12);
+      color: var(--borgona);
+    }
+
+    .avatar-support {
+      background: rgba(94,80,63,.12);
+      color: var(--oliva);
+    }
+
+    .msg-author {
+      display: flex;
+      flex-direction: column;
+      gap: .1rem;
+    }
+
+    .msg-author-name {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--negro);
+    }
+
+    .msg-author-role {
+      font-size: .68rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .msg-date {
+      margin-left: auto;
+      font-size: .7rem;
+      color: var(--arena);
+      font-weight: 300;
+      white-space: nowrap;
+    }
+
+    .msg-body {
+      font-size: .84rem;
+      color: var(--negro);
+      font-weight: 300;
+      line-height: 1.65;
+    }
+
+    /* Original message indicator */
+    .msg-original-tag {
+      display: inline-block;
+      font-size: .62rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--borgona);
+      font-weight: 500;
+      background: rgba(73,17,28,.07);
+      padding: .15rem .55rem;
+      border-radius: 3px;
+      margin-bottom: .55rem;
+    }
+
+    /* No replies notice */
+    .no-replies {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .4rem;
+      padding: 1.8rem 2rem;
+      border-bottom: 1px solid rgba(169,146,125,.1);
+      background: rgba(242,244,243,.4);
+    }
+
+    .no-replies svg {
+      width: 28px;
+      height: 28px;
+      stroke: rgba(169,146,125,.45);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      margin-bottom: .2rem;
+    }
+
+    .no-replies p {
+      font-size: .78rem;
+      color: var(--arena);
+      font-weight: 300;
+      text-align: center;
+    }
+
+    /* Reply form */
+    .reply-form {
+      padding: 1.4rem 2rem 0;
+      border-top: 2px solid rgba(169,146,125,.12);
+      background: rgba(242,244,243,.3);
+    }
+
+    .reply-form-label {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: .7rem;
+    }
+
+    .reply-form textarea {
+      width: 100%;
+      min-height: 90px;
+      padding: .75rem .9rem;
+      border: 1px solid rgba(169,146,125,.3);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .84rem;
+      color: var(--negro);
+      background: var(--blanco);
+      outline: none;
+      resize: vertical;
+      line-height: 1.55;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .reply-form textarea:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73,17,28,.07);
+    }
+
+    .reply-form textarea::placeholder { color: var(--arena); opacity: .55; }
+
+    .reply-form-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 0 1.4rem;
+      gap: .8rem;
+      flex-wrap: wrap;
+    }
+
+    .reply-form-note {
+      font-size: .7rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .btn-reply {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      height: 38px;
+      padding: 0 1.3rem;
+      background: var(--borgona);
+      color: var(--blanco);
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .75rem;
+      font-weight: 500;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+      white-space: nowrap;
+    }
+
+    .btn-reply svg {
+      width: 13px;
+      height: 13px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-reply:hover { background: var(--negro); transform: translateY(-1px); }
+
+    /* Resolved notice */
+    .resolved-notice {
+      margin: 0 2rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .7rem .95rem;
+      background: rgba(94,80,63,.07);
+      border: 1px solid rgba(94,80,63,.18);
+      border-radius: 4px;
+    }
+
+    .resolved-notice svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--oliva);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .resolved-notice p {
+      font-size: .74rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.45;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: .8rem 1.2rem; flex-direction: column; gap: .6rem; }
+      .nav-info { width: 100%; justify-content: center; }
+
+      main { padding: 2rem 1.2rem 3rem; }
+
+      .page-header { flex-direction: column; }
+
+      .stats-strip { gap: .6rem; }
+      .stat-card { min-width: 100px; }
+
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar-left { flex-direction: column; align-items: stretch; }
+      .search-input { width: 100%; }
+      .filter-tabs { width: 100%; }
+      .filter-tab { flex: 1; justify-content: center; font-size: .7rem; padding: 0 .6rem; }
+
+      .thread-item { padding: 1rem 1.1rem; gap: .8rem; }
+      .thread-title { max-width: 200px; }
+      .thread-preview { max-width: 200px; }
+
+      .conv-meta-bar { padding: .6rem 1.2rem; }
+      .conv-message { padding: 1.2rem 1.4rem; }
+      .reply-form { padding: 1.2rem 1.4rem 0; }
+      .modal-body { padding: 1.4rem; }
+      .modal-header { padding: 1.4rem 1.4rem 1.1rem; }
+      .modal-footer { padding: 1rem 1.4rem 1.4rem; flex-direction: column-reverse; }
+      .modal-footer .btn { width: 100%; justify-content: center; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: auto; }
+    }
+
+    @media (max-width: 480px) {
+      .thread-meta { display: none; }
+      .thread-preview { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Ana Torres</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-text">
+        <div class="breadcrumb">
+          <a href="#">Inicio</a>
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          <span>Mis hilos</span>
+        </div>
+        <h1>Mis Hilos de Discusión</h1>
+        <p>Gestiona tus consultas, solicitudes y conversaciones con nuestro equipo de soporte.</p>
+      </div>
+      <button class="btn btn-primary" onclick="document.getElementById('modal-nuevo').classList.add('active')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo hilo
+      </button>
+    </div>
+
+    <!-- Stats Strip -->
+    <div class="stats-strip">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">8</div>
+          <div class="stat-label">Total hilos</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(73,17,28,.09);">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">3</div>
+          <div class="stat-label">Abiertos</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(169,146,125,.12);">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">2</div>
+          <div class="stat-label">En revisión</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(94,80,63,.09);">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">3</div>
+          <div class="stat-label">Resueltos</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-input" type="text" placeholder="Buscar en mis hilos…">
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active">
+            Todos
+            <span class="tab-count">8</span>
+          </button>
+          <button class="filter-tab">
+            Abiertos
+            <span class="tab-count">3</span>
+          </button>
+          <button class="filter-tab">
+            En revisión
+            <span class="tab-count">2</span>
+          </button>
+          <button class="filter-tab">
+            Resueltos
+            <span class="tab-count">3</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thread List -->
+    <div class="thread-list">
+
+      <!-- Thread 1 — unread, abierto, pedido -->
+      <div class="thread-item unread" onclick="document.getElementById('modal-ver-abierto').classList.add('active')">
+        <div class="thread-unread-dot"></div>
+        <div class="thread-category-icon cat-pedido">
+          <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <div class="thread-content">
+          <div class="thread-top">
+            <span class="thread-title">Problema con mi pedido #PA-2024-00812</span>
+            <span class="thread-cat-tag tag-pedido">Pedido</span>
+            <span class="status-badge badge-abierto"><span class="dot"></span>Abierto</span>
+          </div>
+          <div class="thread-preview">Realicé el pedido el 28 de febrero y aún no recibo confirmación de envío…</div>
+        </div>
+        <div class="thread-meta">
+          <span class="thread-date">Hace 2 h</span>
+          <span class="thread-replies">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            0 respuestas
+          </span>
+        </div>
+      </div>
+
+      <!-- Thread 2 — unread, revisión, soporte -->
+      <div class="thread-item unread" onclick="document.getElementById('modal-ver-revision').classList.add('active')">
+        <div class="thread-unread-dot"></div>
+        <div class="thread-category-icon cat-soporte">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="thread-content">
+          <div class="thread-top">
+            <span class="thread-title">Consulta sobre membresía y beneficios exclusivos</span>
+            <span class="thread-cat-tag tag-soporte">Soporte</span>
+            <span class="status-badge badge-revision"><span class="dot"></span>En revisión</span>
+          </div>
+          <div class="thread-preview">Me gustaría saber si existe algún plan de suscripción con descuentos especiales…</div>
+        </div>
+        <div class="thread-meta">
+          <span class="thread-date">Ayer, 15:30</span>
+          <span class="thread-replies">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            1 respuesta
+          </span>
+        </div>
+      </div>
+
+      <!-- Thread 3 — abierto, libro -->
+      <div class="thread-item">
+        <div class="thread-unread-dot"></div>
+        <div class="thread-category-icon cat-libro">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="thread-content">
+          <div class="thread-top">
+            <span class="thread-title">¿Cuándo dispondrán del nuevo volumen de «El nombre del viento»?</span>
+            <span class="thread-cat-tag tag-libro">Libro</span>
+            <span class="status-badge badge-abierto"><span class="dot"></span>Abierto</span>
+          </div>
+          <div class="thread-preview">Vi que en la web no aparece la tercera parte de la trilogía de Rothfuss…</div>
+        </div>
+        <div class="thread-meta">
+          <span class="thread-date">27 feb</span>
+          <span class="thread-replies">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            0 respuestas
+          </span>
+        </div>
+      </div>
+
+      <!-- Thread 4 — en revisión, pedido -->
+      <div class="thread-item">
+        <div class="thread-unread-dot"></div>
+        <div class="thread-category-icon cat-pedido">
+          <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <div class="thread-content">
+          <div class="thread-top">
+            <span class="thread-title">Solicitud de cambio de edición en pedido #PA-2024-00791</span>
+            <span class="thread-cat-tag tag-pedido">Pedido</span>
+            <span class="status-badge badge-revision"><span class="dot"></span>En revisión</span>
+          </div>
+          <div class="thread-preview">Compré la edición en rústica pero me gustaría cambiarla por la edición especial…</div>
+        </div>
+        <div class="thread-meta">
+          <span class="thread-date">25 feb</span>
+          <span class="thread-replies">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            2 respuestas
+          </span>
+        </div>
+      </div>
+
+      <!-- Thread 5 — resuelto, soporte -->
+      <div class="thread-item">
+        <div class="thread-unread-dot"></div>
+        <div class="thread-category-icon cat-soporte" style="background:rgba(94,80,63,.06);">
+          <svg viewBox="0 0 24 24" style="stroke:rgba(94,80,63,.5);"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="thread-content">
+          <div class="thread-top">
+            <span class="thread-title" style="color:var(--arena);">Problema con inicio de sesión resuelto</span>
+            <span class="thread-cat-tag tag-soporte">Soporte</span>
+            <span class="status-badge badge-resuelto"><span class="dot"></span>Resuelto</span>
+          </div>
+          <div class="thread-preview">No podía iniciar sesión después de cambiar mi contraseña…</div>
+        </div>
+        <div class="thread-meta">
+          <span class="thread-date">20 feb</span>
+          <span class="thread-replies">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            3 respuestas
+          </span>
+        </div>
+      </div>
+
+      <!-- Thread 6 — resuelto, libro -->
+      <div class="thread-item">
+        <div class="thread-unread-dot"></div>
+        <div class="thread-category-icon cat-libro" style="background:rgba(94,80,63,.06);">
+          <svg viewBox="0 0 24 24" style="stroke:rgba(94,80,63,.4);"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="thread-content">
+          <div class="thread-top">
+            <span class="thread-title" style="color:var(--arena);">Solicitud de recomendación de libros similares a Dune</span>
+            <span class="thread-cat-tag tag-libro">Libro</span>
+            <span class="status-badge badge-resuelto"><span class="dot"></span>Resuelto</span>
+          </div>
+          <div class="thread-preview">Busco novelas de ciencia ficción con construcción de mundo similar…</div>
+        </div>
+        <div class="thread-meta">
+          <span class="thread-date">14 feb</span>
+          <span class="thread-replies">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            4 respuestas
+          </span>
+        </div>
+      </div>
+
+      <!-- Thread 7 — abierto, soporte -->
+      <div class="thread-item">
+        <div class="thread-unread-dot"></div>
+        <div class="thread-category-icon cat-soporte">
+          <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <div class="thread-content">
+          <div class="thread-top">
+            <span class="thread-title">Devolución por libro dañado — pedido #PA-2024-00750</span>
+            <span class="thread-cat-tag tag-pedido">Pedido</span>
+            <span class="status-badge badge-abierto"><span class="dot"></span>Abierto</span>
+          </div>
+          <div class="thread-preview">Recibí el libro con la cubierta rota y páginas húmedas…</div>
+        </div>
+        <div class="thread-meta">
+          <span class="thread-date">10 feb</span>
+          <span class="thread-replies">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            1 respuesta
+          </span>
+        </div>
+      </div>
+
+      <!-- Thread 8 — resuelto, soporte -->
+      <div class="thread-item">
+        <div class="thread-unread-dot"></div>
+        <div class="thread-category-icon cat-soporte" style="background:rgba(94,80,63,.06);">
+          <svg viewBox="0 0 24 24" style="stroke:rgba(94,80,63,.4);"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="thread-content">
+          <div class="thread-top">
+            <span class="thread-title" style="color:var(--arena);">Consulta sobre factura electrónica de mi compra</span>
+            <span class="thread-cat-tag tag-soporte">Soporte</span>
+            <span class="status-badge badge-resuelto"><span class="dot"></span>Resuelto</span>
+          </div>
+          <div class="thread-preview">Necesito la factura con RUC para deducción de impuestos…</div>
+        </div>
+        <div class="thread-meta">
+          <span class="thread-date">5 feb</span>
+          <span class="thread-replies">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            2 respuestas
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <span class="pagination-info">Mostrando 8 de 8 hilos</span>
+      <div class="pagination-controls">
+        <button class="page-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- ══════════════════════════════════════
+       MODAL 1: ABRIR NUEVO HILO
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-nuevo">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>Abrir Nuevo Hilo</h2>
+            <p>Describe tu consulta o problema. Nuestro equipo responderá a la brevedad.</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-nuevo').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Asunto <span class="required">*</span></label>
+            <input type="text" placeholder="Describe brevemente tu consulta…">
+          </div>
+
+          <div class="form-group full">
+            <label>Mensaje <span class="required">*</span></label>
+            <textarea placeholder="Explica con detalle tu consulta o problema. Incluye cualquier información relevante como números de pedido, títulos de libros, etc."></textarea>
+            <span class="form-hint">Mínimo 20 caracteres. Puedes agregar respuestas adicionales una vez creado el hilo.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-nuevo').classList.remove('active')">Cancelar</button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Enviar hilo
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       MODAL 2: VER HILO — ABIERTO (sin respuestas)
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-ver-abierto">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>Problema con mi pedido #PA-2024-00812</h2>
+            <p>Pedido · Abierto el 4 mar 2026</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-ver-abierto').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Meta bar -->
+      <div class="conv-meta-bar">
+        <div class="conv-meta-left">
+          <span class="thread-cat-tag tag-pedido">Pedido</span>
+          <span class="status-badge badge-abierto"><span class="dot"></span>Abierto</span>
+          <span style="font-size:.72rem;color:var(--arena);">Pedido #PA-2024-00812</span>
+        </div>
+        <span style="font-size:.7rem;color:var(--arena);font-weight:300;">0 respuestas</span>
+      </div>
+
+      <!-- Messages -->
+      <div class="conv-messages">
+        <!-- Original message -->
+        <div class="conv-message client-msg">
+          <div class="msg-original-tag">Mensaje original</div>
+          <div class="msg-header">
+            <div class="msg-avatar avatar-client">AT</div>
+            <div class="msg-author">
+              <span class="msg-author-name">Ana Torres</span>
+              <span class="msg-author-role">Cliente</span>
+            </div>
+            <span class="msg-date">4 mar 2026, 11:02</span>
+          </div>
+          <div class="msg-body">
+            Realicé el pedido #PA-2024-00812 el 28 de febrero y a la fecha todavía no recibo confirmación de envío ni número de seguimiento por parte del courier.<br><br>
+            En mi historial aparece como "procesando" desde hace más de 4 días, cuando la política dice que el despacho demora máximo 48 horas hábiles. ¿Podrían verificar qué ocurrió con mi pedido?
+          </div>
+        </div>
+
+        <!-- No replies yet -->
+        <div class="no-replies">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <p>Aún no hay respuestas. Nuestro equipo revisará tu consulta pronto.</p>
+        </div>
+      </div>
+
+      <!-- Reply form -->
+      <div class="reply-form">
+        <div class="reply-form-label">Agregar respuesta</div>
+        <textarea placeholder="Escribe tu respuesta o información adicional…"></textarea>
+        <div class="reply-form-footer">
+          <span class="reply-form-note">Tu respuesta será visible para el equipo de soporte.</span>
+          <button class="btn-reply">
+            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Enviar respuesta
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       MODAL 3: VER HILO — EN REVISIÓN (con respuestas)
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-ver-revision">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon" style="background:rgba(169,146,125,.1);">
+            <svg viewBox="0 0 24 24" style="stroke:var(--arena);"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>Consulta sobre membresía y beneficios</h2>
+            <p>Soporte general · Abierto el 3 mar 2026</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-ver-revision').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Meta bar -->
+      <div class="conv-meta-bar">
+        <div class="conv-meta-left">
+          <span class="thread-cat-tag tag-soporte">Soporte</span>
+          <span class="status-badge badge-revision"><span class="dot"></span>En revisión</span>
+        </div>
+        <span style="font-size:.7rem;color:var(--arena);font-weight:300;">1 respuesta</span>
+      </div>
+
+      <!-- Messages -->
+      <div class="conv-messages">
+
+        <!-- Original message -->
+        <div class="conv-message client-msg">
+          <div class="msg-original-tag">Mensaje original</div>
+          <div class="msg-header">
+            <div class="msg-avatar avatar-client">AT</div>
+            <div class="msg-author">
+              <span class="msg-author-name">Ana Torres</span>
+              <span class="msg-author-role">Cliente</span>
+            </div>
+            <span class="msg-date">3 mar 2026, 15:30</span>
+          </div>
+          <div class="msg-body">
+            Me gustaría saber si existe algún plan de suscripción o membresía que ofrezca beneficios como descuentos permanentes, acceso anticipado a nuevos títulos o envíos gratuitos.<br><br>
+            Vi en otras librerías que manejan clubes de lectura con beneficios exclusivos. ¿Tienen algo similar disponible o planean implementarlo próximamente?
+          </div>
+        </div>
+
+        <!-- Support reply -->
+        <div class="conv-message support-msg">
+          <div class="msg-header">
+            <div class="msg-avatar avatar-support">SA</div>
+            <div class="msg-author">
+              <span class="msg-author-name">Soporte Alejandría</span>
+              <span class="msg-author-role">Equipo de atención al cliente</span>
+            </div>
+            <span class="msg-date">3 mar 2026, 17:45</span>
+          </div>
+          <div class="msg-body">
+            ¡Hola Ana! Gracias por tu consulta. Actualmente estamos en proceso de desarrollar un programa de membresía para nuestros clientes más fieles. Se llamará <strong style="font-weight:600;">Club Alejandría</strong> y contemplará beneficios como descuentos progresivos, acceso prioritario a ediciones limitadas y envíos gratuitos desde cierto monto.<br><br>
+            Hemos registrado tu interés y serás una de las primeras en recibir notificación cuando esté disponible. Mientras tanto, recuerda que ya cuentas con la <strong style="font-weight:600;">promoción de cumpleaños</strong> activa este mes. ¿Tienes alguna otra consulta?
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Reply form -->
+      <div class="reply-form">
+        <div class="reply-form-label">Agregar respuesta</div>
+        <textarea placeholder="Escribe tu respuesta o información adicional…"></textarea>
+        <div class="reply-form-footer">
+          <span class="reply-form-note">Tu respuesta será visible para el equipo de soporte.</span>
+          <button class="btn-reply">
+            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Enviar respuesta
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+  <script>
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+      });
+    });
+  </script>
+
+</body>
+</html>

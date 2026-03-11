@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Hilos — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro: #0a0908;
+      --borgona: #49111c;
+      --blanco: #f2f4f3;
+      --arena: #a9927d;
+      --oliva: #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body: 'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Textura de fondo sutil ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169, 146, 125, .15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--borgona);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      margin-bottom: 2.5rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.5rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+      margin-bottom: .6rem;
+    }
+
+    .page-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 700px;
+    }
+
+    /* ── STATS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      padding: 1.3rem 1.5rem;
+      box-shadow: 0 1px 3px rgba(10, 9, 8, .04);
+    }
+
+    .stat-label {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: .5rem;
+    }
+
+    .stat-value {
+      font-family: var(--ff-display);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--borgona);
+      line-height: 1;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.8rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-filters {
+      display: flex;
+      gap: .8rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      height: 42px;
+      padding: 0 2.5rem 0 1rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 1rem center;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      color: var(--negro);
+      cursor: pointer;
+      outline: none;
+      -webkit-appearance: none;
+      min-width: 180px;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      height: 42px;
+      padding: 0 1rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      background: #fff;
+      min-width: 280px;
+    }
+
+    .search-box svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+
+    .search-box input {
+      border: none;
+      outline: none;
+      flex: 1;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      color: var(--negro);
+      background: transparent;
+    }
+
+    .search-box input::placeholder {
+      color: var(--arena);
+      opacity: .6;
+    }
+
+    /* ── THREADS LIST ── */
+    .threads-container {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow:
+        0 1px 3px rgba(10, 9, 8, .04),
+        0 8px 30px rgba(10, 9, 8, .06);
+    }
+
+    .thread-item {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1.3rem 1.5rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .15);
+      transition: all .2s;
+      cursor: pointer;
+    }
+
+    .thread-item:hover {
+      background: rgba(169, 146, 125, .04);
+    }
+
+    .thread-item:last-child {
+      border-bottom: none;
+    }
+
+    .thread-priority {
+      width: 4px;
+      height: 50px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .thread-priority.high {
+      background: var(--borgona);
+    }
+
+    .thread-priority.normal {
+      background: var(--arena);
+    }
+
+    .thread-priority.low {
+      background: rgba(169, 146, 125, .3);
+    }
+
+    .thread-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--arena) 0%, var(--oliva) 100%);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-family: var(--ff-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--blanco);
+    }
+
+    .thread-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .thread-header {
+      display: flex;
+      align-items: baseline;
+      gap: .8rem;
+      margin-bottom: .4rem;
+      flex-wrap: wrap;
+    }
+
+    .thread-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--borgona);
+      margin: 0;
+    }
+
+    .thread-id {
+      font-size: .7rem;
+      color: var(--arena);
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .thread-meta {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .78rem;
+      color: var(--oliva);
+    }
+
+    .meta-item svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+
+    .thread-preview {
+      font-size: .82rem;
+      color: var(--oliva);
+      line-height: 1.4;
+      margin-top: .5rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .thread-status {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .4rem .9rem;
+      border-radius: 16px;
+      font-size: .72rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+      flex-shrink: 0;
+    }
+
+    .thread-status .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .thread-status.open {
+      background: rgba(73, 17, 28, .1);
+      color: var(--borgona);
+    }
+
+    .thread-status.open .dot {
+      background: var(--borgona);
+    }
+
+    .thread-status.in-review {
+      background: rgba(169, 146, 125, .2);
+      color: var(--oliva);
+    }
+
+    .thread-status.in-review .dot {
+      background: var(--oliva);
+    }
+
+    .thread-status.closed {
+      background: rgba(94, 80, 63, .1);
+      color: var(--arena);
+    }
+
+    .thread-status.closed .dot {
+      background: var(--arena);
+    }
+
+    /* ── MODAL DETALLE ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 9, 8, .6);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow:
+        0 10px 40px rgba(10, 9, 8, .2),
+        0 4px 12px rgba(10, 9, 8, .15);
+      transform: scale(.95);
+      transition: transform .3s;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 1.8rem 2rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+      flex-shrink: 0;
+    }
+
+    .modal-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: .8rem;
+    }
+
+    .modal-title-row h2 {
+      font-family: var(--ff-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      flex: 1;
+    }
+
+    .modal-info {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-size: .82rem;
+      color: var(--oliva);
+    }
+
+    .modal-info-item {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    .modal-info-item svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+    }
+
+    /* ── MESSAGES ── */
+    .messages-container {
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .message {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .message.admin {
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: .95rem;
+      color: var(--blanco);
+    }
+
+    .message.client .message-avatar {
+      background: linear-gradient(135deg, var(--arena) 0%, var(--oliva) 100%);
+    }
+
+    .message.admin .message-avatar {
+      background: linear-gradient(135deg, var(--borgona) 0%, var(--negro) 100%);
+    }
+
+    .message-content {
+      flex: 1;
+      max-width: 70%;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      margin-bottom: .4rem;
+    }
+
+    .message.admin .message-header {
+      justify-content: flex-end;
+    }
+
+    .message-author {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--negro);
+    }
+
+    .message-time {
+      font-size: .72rem;
+      color: var(--arena);
+    }
+
+    .message-bubble {
+      padding: .9rem 1.2rem;
+      border-radius: 8px;
+      font-size: .88rem;
+      line-height: 1.6;
+      color: var(--negro);
+    }
+
+    .message.client .message-bubble {
+      background: rgba(169, 146, 125, .12);
+      border-bottom-left-radius: 3px;
+    }
+
+    .message.admin .message-bubble {
+      background: rgba(73, 17, 28, .08);
+      border-bottom-right-radius: 3px;
+    }
+
+    /* ── RESPONSE FORM ── */
+    .response-section {
+      padding: 1.5rem 2rem;
+      border-top: 1px solid rgba(169, 146, 125, .2);
+      background: rgba(169, 146, 125, .03);
+      flex-shrink: 0;
+    }
+
+    .status-control {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .status-label {
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      font-weight: 600;
+    }
+
+    .status-select {
+      height: 38px;
+      padding: 0 2rem 0 .9rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right .7rem center;
+      font-family: var(--ff-body);
+      font-size: .82rem;
+      color: var(--negro);
+      cursor: pointer;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .response-form {
+      display: flex;
+      flex-direction: column;
+      gap: .8rem;
+    }
+
+    .response-textarea {
+      min-height: 100px;
+      padding: .9rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .88rem;
+      color: var(--negro);
+      background: #fff;
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .response-textarea::placeholder {
+      color: var(--arena);
+      opacity: .6;
+    }
+
+    .response-textarea:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .08);
+    }
+
+    .response-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: .8rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      height: 42px;
+      padding: 0 1.6rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .8rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169, 146, 125, .35);
+    }
+
+    .btn-cancel:hover {
+      background: rgba(94, 80, 63, .05);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav {
+        padding: .8rem 1.2rem;
+        flex-direction: column;
+        gap: .7rem;
+      }
+
+      .nav-info {
+        width: 100%;
+        justify-content: center;
+      }
+
+      main {
+        padding: 2rem 1.2rem;
+      }
+
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .toolbar-filters {
+        flex-direction: column;
+      }
+
+      .filter-select,
+      .search-box {
+        width: 100%;
+        min-width: auto;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .thread-item {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+
+      .thread-priority {
+        width: 100%;
+        height: 3px;
+      }
+
+      .thread-content {
+        width: 100%;
+      }
+
+      .thread-status {
+        align-self: flex-start;
+      }
+
+      .modal {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+      }
+
+      .message-content {
+        max-width: 85%;
+      }
+
+      .status-control {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .status-select {
+        width: 100%;
+      }
+
+      .response-actions {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Administrador</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+    
+    <div class="page-header">
+      <h1>Gestión de Hilos</h1>
+      <p>Administra todas las consultas y solicitudes de los clientes. Responde, actualiza el estado y mantén un seguimiento efectivo de cada conversación.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Hilos Abiertos</div>
+        <div class="stat-value">24</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">En Revisión</div>
+        <div class="stat-value">12</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Cerrados Hoy</div>
+        <div class="stat-value">8</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Hilos</div>
+        <div class="stat-value">156</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-filters">
+        <select class="filter-select">
+          <option value="">Todos los estados</option>
+          <option>Abiertos</option>
+          <option>En revisión</option>
+          <option>Cerrados</option>
+        </select>
+        <select class="filter-select">
+          <option value="">Todas las prioridades</option>
+          <option>Alta</option>
+          <option>Normal</option>
+          <option>Baja</option>
+        </select>
+      </div>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Buscar por cliente, asunto o ID...">
+      </div>
+    </div>
+
+    <!-- Lista de hilos -->
+    <div class="threads-container">
+
+      <!-- Hilo 1 -->
+      <div class="thread-item" onclick="document.getElementById('modalThread').classList.add('active')">
+        <div class="thread-priority high"></div>
+        <div class="thread-avatar">CP</div>
+        <div class="thread-content">
+          <div class="thread-header">
+            <h3 class="thread-title">Problema con el pago de mi reserva</h3>
+            <span class="thread-id">#TH-1047</span>
+          </div>
+          <div class="thread-meta">
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Carlos Pérez
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Hace 15 min
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              3 mensajes
+            </div>
+          </div>
+          <div class="thread-preview">
+            He realizado el pago de mi reserva pero no se refleja en mi cuenta. ¿Podrían ayudarme?
+          </div>
+        </div>
+        <span class="thread-status open">
+          <span class="dot"></span>
+          Abierto
+        </span>
+      </div>
+
+      <!-- Hilo 2 -->
+      <div class="thread-item" onclick="document.getElementById('modalThread').classList.add('active')">
+        <div class="thread-priority normal"></div>
+        <div class="thread-avatar">MS</div>
+        <div class="thread-content">
+          <div class="thread-header">
+            <h3 class="thread-title">Consulta sobre disponibilidad de libro</h3>
+            <span class="thread-id">#TH-1046</span>
+          </div>
+          <div class="thread-meta">
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              María Silva
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Hace 1 hora
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              5 mensajes
+            </div>
+          </div>
+          <div class="thread-preview">
+            ¿Cuándo estará disponible "El Código Da Vinci" en la tienda de Miraflores?
+          </div>
+        </div>
+        <span class="thread-status in-review">
+          <span class="dot"></span>
+          En Revisión
+        </span>
+      </div>
+
+      <!-- Hilo 3 -->
+      <div class="thread-item" onclick="document.getElementById('modalThread').classList.add('active')">
+        <div class="thread-priority normal"></div>
+        <div class="thread-avatar">AR</div>
+        <div class="thread-content">
+          <div class="thread-header">
+            <h3 class="thread-title">Cambio de dirección de entrega</h3>
+            <span class="thread-id">#TH-1045</span>
+          </div>
+          <div class="thread-meta">
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Ana Rodríguez
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Hace 3 horas
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              2 mensajes
+            </div>
+          </div>
+          <div class="thread-preview">
+            Necesito cambiar la dirección de entrega de mi pedido #ORD-458
+          </div>
+        </div>
+        <span class="thread-status in-review">
+          <span class="dot"></span>
+          En Revisión
+        </span>
+      </div>
+
+      <!-- Hilo 4 -->
+      <div class="thread-item" onclick="document.getElementById('modalThread').classList.add('active')">
+        <div class="thread-priority low"></div>
+        <div class="thread-avatar">JM</div>
+        <div class="thread-content">
+          <div class="thread-header">
+            <h3 class="thread-title">Sugerencia de nuevos títulos</h3>
+            <span class="thread-id">#TH-1044</span>
+          </div>
+          <div class="thread-meta">
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Jorge Méndez
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Ayer
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              1 mensaje
+            </div>
+          </div>
+          <div class="thread-preview">
+            Me gustaría sugerir incluir más libros de autores peruanos contemporáneos
+          </div>
+        </div>
+        <span class="thread-status open">
+          <span class="dot"></span>
+          Abierto
+        </span>
+      </div>
+
+      <!-- Hilo 5 -->
+      <div class="thread-item" onclick="document.getElementById('modalThread').classList.add('active')">
+        <div class="thread-priority high"></div>
+        <div class="thread-avatar">LT</div>
+        <div class="thread-content">
+          <div class="thread-header">
+            <h3 class="thread-title">Libro recibido con daños</h3>
+            <span class="thread-id">#TH-1043</span>
+          </div>
+          <div class="thread-meta">
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Laura Torres
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Hace 2 días
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              6 mensajes
+            </div>
+          </div>
+          <div class="thread-preview">
+            El libro que recibí tiene la portada dañada y algunas páginas sueltas
+          </div>
+        </div>
+        <span class="thread-status closed">
+          <span class="dot"></span>
+          Cerrado
+        </span>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ── MODAL DETALLE DEL HILO ── -->
+  <div class="modal-overlay" id="modalThread">
+    <div class="modal">
+      
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <h2>Problema con el pago de mi reserva</h2>
+          <span class="thread-status open">
+            <span class="dot"></span>
+            Abierto
+          </span>
+        </div>
+        <div class="modal-info">
+          <div class="modal-info-item">
+            <svg viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"/></svg>
+            ID: #TH-1047
+          </div>
+          <div class="modal-info-item">
+            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Carlos Pérez (carlos.perez@correo.com)
+          </div>
+          <div class="modal-info-item">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            Creado: 04 Mar 2026, 10:45 AM
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="messages-container">
+          
+          <!-- Mensaje 1 - Cliente -->
+          <div class="message client">
+            <div class="message-avatar">CP</div>
+            <div class="message-content">
+              <div class="message-header">
+                <span class="message-author">Carlos Pérez</span>
+                <span class="message-time">10:45 AM</span>
+              </div>
+              <div class="message-bubble">
+                Buen día, tengo un problema con mi reserva. He realizado el pago hace dos horas mediante transferencia bancaria pero todavía no se refleja en mi cuenta. El número de operación es OP-789456123. ¿Podrían ayudarme a verificar el estado?
+              </div>
+            </div>
+          </div>
+
+          <!-- Mensaje 2 - Admin -->
+          <div class="message admin">
+            <div class="message-avatar">AD</div>
+            <div class="message-content">
+              <div class="message-header">
+                <span class="message-author">Administrador</span>
+                <span class="message-time">11:02 AM</span>
+              </div>
+              <div class="message-bubble">
+                Buenos días Carlos, gracias por contactarnos. Estoy revisando su caso. ¿Podría proporcionarme el número de su reserva para poder verificar el estado del pago en nuestro sistema?
+              </div>
+            </div>
+          </div>
+
+          <!-- Mensaje 3 - Cliente -->
+          <div class="message client">
+            <div class="message-avatar">CP</div>
+            <div class="message-content">
+              <div class="message-header">
+                <span class="message-author">Carlos Pérez</span>
+                <span class="message-time">11:15 AM</span>
+              </div>
+              <div class="message-bubble">
+                Claro, el número de reserva es RSV-20260304-1847. El monto pagado es S/. 125.00 según el comprobante que tengo.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="response-section">
+        <div class="status-control">
+          <span class="status-label">Estado del hilo:</span>
+          <select class="status-select">
+            <option selected>Abierto</option>
+            <option>En Revisión</option>
+            <option>Cerrado</option>
+          </select>
+        </div>
+        
+        <form class="response-form">
+          <textarea class="response-textarea" placeholder="Escribe tu respuesta al cliente..."></textarea>
+          <div class="response-actions">
+            <button type="button" class="btn btn-cancel" onclick="document.getElementById('modalThread').classList.remove('active')">
+              Cerrar
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+              Enviar Respuesta
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+  <script>
+    // Cerrar modal al hacer clic fuera
+    document.getElementById('modalThread').addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('active');
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historial de Compras — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro: #0a0908;
+      --borgona: #49111c;
+      --blanco: #f2f4f3;
+      --arena: #a9927d;
+      --oliva: #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body: 'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg, transparent, transparent 60px,
+          rgba(94, 80, 63, .03) 60px, rgba(94, 80, 63, .03) 61px
+        ),
+        repeating-linear-gradient(
+          90deg, transparent, transparent 60px,
+          rgba(94, 80, 63, .03) 60px, rgba(94, 80, 63, .03) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169, 146, 125, .15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--arena);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+      margin-bottom: .5rem;
+    }
+
+    .page-header .divider {
+      display: block;
+      width: 60px;
+      height: 3px;
+      background: var(--arena);
+      margin: .9rem auto 1rem;
+      border-radius: 2px;
+    }
+
+    .page-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ── STATS SUMMARY ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+      animation: fadeUp .6s .1s ease-out both;
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      padding: 1.4rem 1.6rem;
+      box-shadow: 0 1px 3px rgba(10, 9, 8, .04), 0 8px 30px rgba(10, 9, 8, .06);
+      display: flex;
+      align-items: center;
+      gap: 1.1rem;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(169, 146, 125, .12);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .stat-info .label {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: .3rem;
+    }
+
+    .stat-info .value {
+      font-family: var(--ff-display);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--borgona);
+      line-height: 1;
+    }
+
+    /* ── FILTERS ── */
+    .filters-bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.6rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s .2s ease-out both;
+    }
+
+    .filter-search {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+
+    .filter-search input {
+      width: 100%;
+      height: 42px;
+      padding: 0 2.8rem 0 1rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      color: var(--negro);
+      background: #fff;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .filter-search input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .08);
+    }
+
+    .filter-search input::placeholder { color: var(--arena); opacity: .8; }
+
+    .filter-search svg {
+      position: absolute;
+      right: .9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .filter-select {
+      height: 42px;
+      padding: 0 2.2rem 0 .9rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .82rem;
+      color: var(--oliva);
+      background: #fff;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .8rem center;
+      -webkit-appearance: none;
+      outline: none;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+
+    .filter-select:focus { border-color: var(--borgona); }
+
+    /* ── ORDERS TABLE ── */
+    .orders-wrapper {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(10, 9, 8, .04), 0 8px 30px rgba(10, 9, 8, .06);
+      overflow: hidden;
+      animation: fadeUp .6s .3s ease-out both;
+    }
+
+    .orders-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .orders-table thead {
+      background: var(--negro);
+    }
+
+    .orders-table thead th {
+      padding: 1rem 1.4rem;
+      text-align: left;
+      font-size: .68rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      white-space: nowrap;
+    }
+
+    .orders-table tbody tr {
+      border-bottom: 1px solid rgba(169, 146, 125, .15);
+      transition: background .15s;
+    }
+
+    .orders-table tbody tr:last-child { border-bottom: none; }
+
+    .orders-table tbody tr:hover { background: rgba(169, 146, 125, .04); }
+
+    .orders-table tbody td {
+      padding: 1.1rem 1.4rem;
+      font-size: .85rem;
+      color: var(--negro);
+      vertical-align: middle;
+    }
+
+    .order-id {
+      font-family: var(--ff-display);
+      font-weight: 600;
+      color: var(--borgona);
+      font-size: .95rem;
+    }
+
+    .order-date {
+      color: var(--oliva);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .order-items {
+      font-size: .82rem;
+      color: var(--oliva);
+    }
+
+    .order-items span {
+      display: inline-block;
+      background: rgba(169, 146, 125, .12);
+      padding: .25rem .6rem;
+      border-radius: 20px;
+      font-size: .7rem;
+      color: var(--arena);
+      margin-left: .4rem;
+    }
+
+    .order-total {
+      font-family: var(--ff-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--borgona);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .3rem .75rem;
+      border-radius: 20px;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .badge.entregado   { background: rgba(94, 80, 63, .12);  color: var(--oliva);   }
+    .badge.entregado .badge-dot   { background: var(--oliva); }
+    .badge.en-camino   { background: rgba(169, 146, 125, .18); color: #7a5c2e; }
+    .badge.en-camino .badge-dot   { background: #b07a30; }
+    .badge.procesando  { background: rgba(73, 17, 28, .1);   color: var(--borgona); }
+    .badge.procesando .badge-dot  { background: var(--borgona); }
+    .badge.cancelado   { background: rgba(10, 9, 8, .07);    color: #6b6059; }
+    .badge.cancelado .badge-dot   { background: #6b6059; }
+
+    .btn-detail {
+      height: 36px;
+      padding: 0 1.2rem;
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      border: 1px solid var(--borgona);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .72rem;
+      font-weight: 500;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--borgona);
+      background: transparent;
+      cursor: pointer;
+      transition: background .2s, color .2s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-detail:hover {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-detail svg {
+      width: 13px;
+      height: 13px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── PAGINATION ── */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.4rem;
+      border-top: 1px solid rgba(169, 146, 125, .2);
+      background: rgba(169, 146, 125, .03);
+    }
+
+    .pagination-info {
+      font-size: .75rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .pagination-controls {
+      display: flex;
+      gap: .4rem;
+    }
+
+    .pg-btn {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(169, 146, 125, .3);
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+      font-family: var(--ff-body);
+      font-size: .8rem;
+      color: var(--oliva);
+      transition: all .2s;
+    }
+
+    .pg-btn:hover,
+    .pg-btn.active {
+      background: var(--borgona);
+      border-color: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .pg-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── MODAL (CSS :target) ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 9, 8, .82);
+      backdrop-filter: blur(3px);
+      z-index: 500;
+      padding: 1.5rem;
+      overflow-y: auto;
+      animation: fadeIn .25s ease-out;
+    }
+
+    .modal-overlay:target {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 760px;
+      box-shadow: 0 20px 60px rgba(10, 9, 8, .3);
+      animation: modalSlideUp .35s ease-out;
+      position: relative;
+    }
+
+    @keyframes modalSlideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .modal-header-info h2 {
+      font-family: var(--ff-display);
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+    }
+
+    .modal-header-info .order-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .8rem;
+      margin-top: .5rem;
+    }
+
+    .modal-header-info .order-meta span {
+      font-size: .75rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .modal-header-info .order-meta strong {
+      font-weight: 500;
+      color: var(--oliva);
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background .2s;
+      color: var(--oliva);
+      text-decoration: none;
+    }
+
+    .modal-close:hover { background: rgba(169, 146, 125, .15); }
+
+    .modal-close svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .modal-body {
+      padding: 1.8rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.8rem;
+    }
+
+    /* ── SHIPPING STATUS ── */
+    .section-label {
+      font-family: var(--ff-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--oliva);
+      margin-bottom: 1.2rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+      letter-spacing: .02em;
+    }
+
+    .shipping-track {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      overflow-x: auto;
+      padding-bottom: .5rem;
+    }
+
+    .track-step {
+      flex: 1;
+      min-width: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      text-align: center;
+    }
+
+    .track-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: rgba(169, 146, 125, .25);
+      z-index: 0;
+    }
+
+    .track-step.done:not(:last-child)::after { background: var(--oliva); }
+    .track-step.active:not(:last-child)::after { background: linear-gradient(90deg, var(--oliva), rgba(169,146,125,.25)); }
+
+    .track-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid rgba(169, 146, 125, .3);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      z-index: 1;
+      position: relative;
+      margin-bottom: .6rem;
+    }
+
+    .track-step.done .track-circle {
+      border-color: var(--oliva);
+      background: var(--oliva);
+    }
+
+    .track-step.active .track-circle {
+      border-color: var(--borgona);
+      background: var(--borgona);
+    }
+
+    .track-circle svg {
+      width: 14px;
+      height: 14px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .track-step:not(.done):not(.active) .track-circle svg { stroke: var(--arena); }
+
+    .track-label {
+      font-size: .68rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--oliva);
+      line-height: 1.3;
+    }
+
+    .track-step:not(.done):not(.active) .track-label { color: var(--arena); }
+
+    .track-date {
+      font-size: .62rem;
+      color: var(--arena);
+      font-weight: 300;
+      margin-top: .2rem;
+    }
+
+    /* ── PRODUCTS LIST ── */
+    .products-list {
+      display: flex;
+      flex-direction: column;
+      gap: .8rem;
+    }
+
+    .product-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: .9rem 1.1rem;
+      border: 1px solid rgba(169, 146, 125, .2);
+      border-radius: 4px;
+      background: var(--blanco);
+    }
+
+    .product-thumb {
+      width: 48px;
+      height: 64px;
+      border-radius: 3px;
+      background: var(--arena);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .product-thumb svg {
+      width: 20px;
+      height: 20px;
+      stroke: rgba(255,255,255,.6);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .product-info { flex: 1; }
+
+    .product-info .title {
+      font-size: .9rem;
+      font-weight: 500;
+      color: var(--negro);
+      margin-bottom: .2rem;
+    }
+
+    .product-info .author {
+      font-size: .75rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .product-qty {
+      font-size: .78rem;
+      color: var(--oliva);
+      text-align: center;
+      min-width: 50px;
+    }
+
+    .product-price {
+      font-family: var(--ff-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--borgona);
+      min-width: 70px;
+      text-align: right;
+    }
+
+    /* ── ORDER SUMMARY ── */
+    .order-summary {
+      background: rgba(169, 146, 125, .05);
+      border: 1px solid rgba(169, 146, 125, .2);
+      border-radius: 4px;
+      padding: 1.2rem 1.4rem;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .45rem 0;
+      font-size: .85rem;
+      color: var(--oliva);
+    }
+
+    .summary-row:not(:last-child) { border-bottom: 1px solid rgba(169, 146, 125, .12); }
+
+    .summary-row.total {
+      font-family: var(--ff-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--borgona);
+      padding-top: .7rem;
+    }
+
+    .summary-row .method {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .summary-row .method svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── MODAL FOOTER ── */
+    .modal-footer {
+      padding: 1.2rem 2rem 1.6rem;
+      border-top: 1px solid rgba(169, 146, 125, .2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .8rem;
+    }
+
+    .return-note {
+      font-size: .75rem;
+      color: var(--arena);
+      font-weight: 300;
+      max-width: 300px;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: .7rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      height: 44px;
+      padding: 0 1.6rem;
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .78rem;
+      font-weight: 500;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .2s, transform .15s, color .2s;
+      text-decoration: none;
+    }
+
+    .btn svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-primary:hover { background: var(--negro); transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: var(--blanco);
+      border: 1px solid var(--arena);
+      color: var(--oliva);
+    }
+
+    .btn-secondary:hover { background: var(--arena); color: var(--blanco); border-color: var(--arena); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .empty-state svg {
+      width: 56px;
+      height: 56px;
+      stroke: rgba(169, 146, 125, .4);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+      font-size: .9rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: .8rem 1.2rem; }
+
+      main { padding: 2rem 1.2rem; }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: .8rem;
+      }
+
+      .filters-bar { flex-direction: column; align-items: stretch; }
+
+      .filter-search { min-width: unset; }
+
+      /* Table → card layout */
+      .orders-table thead { display: none; }
+
+      .orders-table tbody tr {
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
+        padding: 1.1rem 1rem;
+        border-bottom: 1px solid rgba(169, 146, 125, .15);
+      }
+
+      .orders-table tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .25rem 0;
+        font-size: .83rem;
+        border: none;
+      }
+
+      .orders-table tbody td::before {
+        content: attr(data-label);
+        font-size: .65rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: .09em;
+        color: var(--arena);
+        min-width: 90px;
+      }
+
+      .pagination {
+        flex-direction: column;
+        gap: .8rem;
+        text-align: center;
+      }
+
+      .modal-overlay:target { padding: .8rem; padding-top: 1rem; }
+
+      .modal-header { padding: 1.4rem 1.2rem 1.1rem; }
+
+      .modal-header-info h2 { font-size: 1.5rem; }
+
+      .modal-body { padding: 1.2rem; gap: 1.4rem; }
+
+      .modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem 1.2rem 1.4rem;
+      }
+
+      .return-note { max-width: 100%; }
+
+      .modal-actions { flex-direction: column; }
+
+      .btn { justify-content: center; }
+
+      .shipping-track { gap: 0; }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      nav { padding: .9rem 1.5rem; }
+      main { padding: 2.5rem 1.5rem; }
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Carlos Pérez</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <!-- Header -->
+    <div class="page-header">
+      <h1>Historial de Compras</h1>
+      <span class="divider"></span>
+      <p>Consulta todas tus compras realizadas, revisa el estado de envío y gestiona devoluciones desde el detalle de cada pedido.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="label">Total Pedidos</div>
+          <div class="value">24</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="label">Total Gastado</div>
+          <div class="value">S/ 842</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="label">Devoluciones</div>
+          <div class="value">2</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-bar">
+      <div class="filter-search">
+        <input type="text" placeholder="Buscar por N.º de pedido o título…">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      </div>
+      <select class="filter-select">
+        <option>Todos los estados</option>
+        <option>Entregado</option>
+        <option>En camino</option>
+        <option>Procesando</option>
+        <option>Cancelado</option>
+      </select>
+      <select class="filter-select">
+        <option>Últimos 6 meses</option>
+        <option>Último mes</option>
+        <option>Último año</option>
+        <option>Todo el historial</option>
+      </select>
+    </div>
+
+    <!-- Tabla de pedidos -->
+    <div class="orders-wrapper">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>N.º Pedido</th>
+            <th>Fecha</th>
+            <th>Productos</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr>
+            <td data-label="N.º Pedido"><span class="order-id">#BA-20240301</span></td>
+            <td data-label="Fecha"><span class="order-date">01 Mar 2024</span></td>
+            <td data-label="Productos">
+              <span class="order-items">El nombre de la rosa <span>×1</span></span>
+            </td>
+            <td data-label="Total"><span class="order-total">S/ 58.00</span></td>
+            <td data-label="Estado"><span class="badge entregado"><span class="badge-dot"></span>Entregado</span></td>
+            <td data-label="Acciones">
+              <a href="#modal-orden-1" class="btn-detail">
+                <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Ver detalle
+              </a>
+            </td>
+          </tr>
+
+          <tr>
+            <td data-label="N.º Pedido"><span class="order-id">#BA-20240218</span></td>
+            <td data-label="Fecha"><span class="order-date">18 Feb 2024</span></td>
+            <td data-label="Productos">
+              <span class="order-items">Cien años de soledad <span>×1</span>, Don Quijote <span>×1</span></span>
+            </td>
+            <td data-label="Total"><span class="order-total">S/ 124.50</span></td>
+            <td data-label="Estado"><span class="badge en-camino"><span class="badge-dot"></span>En camino</span></td>
+            <td data-label="Acciones">
+              <a href="#modal-orden-2" class="btn-detail">
+                <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Ver detalle
+              </a>
+            </td>
+          </tr>
+
+          <tr>
+            <td data-label="N.º Pedido"><span class="order-id">#BA-20240130</span></td>
+            <td data-label="Fecha"><span class="order-date">30 Ene 2024</span></td>
+            <td data-label="Productos">
+              <span class="order-items">Sapiens <span>×1</span></span>
+            </td>
+            <td data-label="Total"><span class="order-total">S/ 72.00</span></td>
+            <td data-label="Estado"><span class="badge procesando"><span class="badge-dot"></span>Procesando</span></td>
+            <td data-label="Acciones">
+              <a href="#modal-orden-3" class="btn-detail">
+                <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Ver detalle
+              </a>
+            </td>
+          </tr>
+
+          <tr>
+            <td data-label="N.º Pedido"><span class="order-id">#BA-20240105</span></td>
+            <td data-label="Fecha"><span class="order-date">05 Ene 2024</span></td>
+            <td data-label="Productos">
+              <span class="order-items">El Principito <span>×2</span></span>
+            </td>
+            <td data-label="Total"><span class="order-total">S/ 49.90</span></td>
+            <td data-label="Estado"><span class="badge entregado"><span class="badge-dot"></span>Entregado</span></td>
+            <td data-label="Acciones">
+              <a href="#modal-orden-1" class="btn-detail">
+                <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Ver detalle
+              </a>
+            </td>
+          </tr>
+
+          <tr>
+            <td data-label="N.º Pedido"><span class="order-id">#BA-20231210</span></td>
+            <td data-label="Fecha"><span class="order-date">10 Dic 2023</span></td>
+            <td data-label="Productos">
+              <span class="order-items">1984 <span>×1</span>, Fahrenheit 451 <span>×1</span></span>
+            </td>
+            <td data-label="Total"><span class="order-total">S/ 98.00</span></td>
+            <td data-label="Estado"><span class="badge cancelado"><span class="badge-dot"></span>Cancelado</span></td>
+            <td data-label="Acciones">
+              <a href="#modal-orden-1" class="btn-detail">
+                <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Ver detalle
+              </a>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <!-- Paginación -->
+      <div class="pagination">
+        <span class="pagination-info">Mostrando 1–5 de 24 pedidos</span>
+        <div class="pagination-controls">
+          <button class="pg-btn">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="pg-btn active">1</button>
+          <button class="pg-btn">2</button>
+          <button class="pg-btn">3</button>
+          <button class="pg-btn">…</button>
+          <button class="pg-btn">5</button>
+          <button class="pg-btn">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── FOOTER ── -->
+  <footer>© 2024 Biblioteca de Alejandría — Todos los derechos reservados</footer>
+
+
+  <!-- ══════════════════════════════════════════
+       MODAL 1 — Pedido Entregado (con devolución)
+       ══════════════════════════════════════════ -->
+  <div id="modal-orden-1" class="modal-overlay">
+    <div class="modal">
+
+      <div class="modal-header">
+        <div class="modal-header-info">
+          <h2>Pedido #BA-20240301</h2>
+          <div class="order-meta">
+            <span>Fecha: <strong>01 Mar 2024</strong></span>
+            <span>·</span>
+            <span><span class="badge entregado"><span class="badge-dot"></span>Entregado</span></span>
+          </div>
+        </div>
+        <a href="#" class="modal-close" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Estado de envío -->
+        <div>
+          <div class="section-label">Estado de envío</div>
+          <div class="shipping-track">
+            <div class="track-step done">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">Confirmado</div>
+              <div class="track-date">01 Mar</div>
+            </div>
+            <div class="track-step done">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">Preparado</div>
+              <div class="track-date">02 Mar</div>
+            </div>
+            <div class="track-step done">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">En tránsito</div>
+              <div class="track-date">03 Mar</div>
+            </div>
+            <div class="track-step done">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">Entregado</div>
+              <div class="track-date">05 Mar</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Productos -->
+        <div>
+          <div class="section-label">Productos del pedido</div>
+          <div class="products-list">
+            <div class="product-row">
+              <div class="product-thumb">
+                <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </div>
+              <div class="product-info">
+                <div class="title">El nombre de la rosa</div>
+                <div class="author">Umberto Eco · Ed. Lumen, 2023</div>
+              </div>
+              <div class="product-qty">×1</div>
+              <div class="product-price">S/ 58.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen de la orden -->
+        <div>
+          <div class="section-label">Resumen del pago</div>
+          <div class="order-summary">
+            <div class="summary-row">
+              <span>Subtotal</span>
+              <span>S/ 58.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Envío</span>
+              <span>S/ 0.00 <small style="color:var(--arena);font-size:.7rem">(Gratis)</small></span>
+            </div>
+            <div class="summary-row">
+              <span>Método de pago</span>
+              <span class="method">
+                <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Tarjeta •••• 4291
+              </span>
+            </div>
+            <div class="summary-row total">
+              <span>Total pagado</span>
+              <span>S/ 58.00</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer del modal -->
+      <div class="modal-footer">
+        <p class="return-note">
+          Este pedido fue entregado. Puedes solicitar una devolución dentro de los 15 días posteriores a la entrega.
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary">
+            <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+            Solicitar devolución
+          </button>
+          <a href="#" class="btn btn-primary">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Cerrar
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       MODAL 2 — Pedido En camino
+       ══════════════════════════════════════════ -->
+  <div id="modal-orden-2" class="modal-overlay">
+    <div class="modal">
+
+      <div class="modal-header">
+        <div class="modal-header-info">
+          <h2>Pedido #BA-20240218</h2>
+          <div class="order-meta">
+            <span>Fecha: <strong>18 Feb 2024</strong></span>
+            <span>·</span>
+            <span><span class="badge en-camino"><span class="badge-dot"></span>En camino</span></span>
+          </div>
+        </div>
+        <a href="#" class="modal-close" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Estado de envío -->
+        <div>
+          <div class="section-label">Estado de envío</div>
+          <div class="shipping-track">
+            <div class="track-step done">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">Confirmado</div>
+              <div class="track-date">18 Feb</div>
+            </div>
+            <div class="track-step done">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">Preparado</div>
+              <div class="track-date">19 Feb</div>
+            </div>
+            <div class="track-step active">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">En tránsito</div>
+              <div class="track-date">20 Feb</div>
+            </div>
+            <div class="track-step">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">Entregado</div>
+              <div class="track-date">Est. 22 Feb</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Productos -->
+        <div>
+          <div class="section-label">Productos del pedido</div>
+          <div class="products-list">
+            <div class="product-row">
+              <div class="product-thumb">
+                <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </div>
+              <div class="product-info">
+                <div class="title">Cien años de soledad</div>
+                <div class="author">Gabriel García Márquez · Ed. Sudamericana</div>
+              </div>
+              <div class="product-qty">×1</div>
+              <div class="product-price">S/ 65.50</div>
+            </div>
+            <div class="product-row">
+              <div class="product-thumb">
+                <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </div>
+              <div class="product-info">
+                <div class="title">Don Quijote de la Mancha</div>
+                <div class="author">Miguel de Cervantes · Ed. Alfaguara</div>
+              </div>
+              <div class="product-qty">×1</div>
+              <div class="product-price">S/ 59.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen -->
+        <div>
+          <div class="section-label">Resumen del pago</div>
+          <div class="order-summary">
+            <div class="summary-row">
+              <span>Subtotal</span>
+              <span>S/ 124.50</span>
+            </div>
+            <div class="summary-row">
+              <span>Envío</span>
+              <span>S/ 8.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Método de pago</span>
+              <span class="method">
+                <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Yape / Plin
+              </span>
+            </div>
+            <div class="summary-row total">
+              <span>Total pagado</span>
+              <span>S/ 132.50</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer del modal -->
+      <div class="modal-footer">
+        <p class="return-note">
+          Tu pedido está en camino. La devolución estará disponible una vez sea entregado.
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" style="opacity:.5;cursor:not-allowed;" disabled>
+            <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+            Solicitar devolución
+          </button>
+          <a href="#" class="btn btn-primary">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Cerrar
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       MODAL 3 — Pedido Procesando
+       ══════════════════════════════════════════ -->
+  <div id="modal-orden-3" class="modal-overlay">
+    <div class="modal">
+
+      <div class="modal-header">
+        <div class="modal-header-info">
+          <h2>Pedido #BA-20240130</h2>
+          <div class="order-meta">
+            <span>Fecha: <strong>30 Ene 2024</strong></span>
+            <span>·</span>
+            <span><span class="badge procesando"><span class="badge-dot"></span>Procesando</span></span>
+          </div>
+        </div>
+        <a href="#" class="modal-close" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Estado de envío -->
+        <div>
+          <div class="section-label">Estado de envío</div>
+          <div class="shipping-track">
+            <div class="track-step done">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">Confirmado</div>
+              <div class="track-date">30 Ene</div>
+            </div>
+            <div class="track-step active">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">Preparado</div>
+              <div class="track-date">En proceso</div>
+            </div>
+            <div class="track-step">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">En tránsito</div>
+              <div class="track-date">—</div>
+            </div>
+            <div class="track-step">
+              <div class="track-circle">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="track-label">Entregado</div>
+              <div class="track-date">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Productos -->
+        <div>
+          <div class="section-label">Productos del pedido</div>
+          <div class="products-list">
+            <div class="product-row">
+              <div class="product-thumb">
+                <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </div>
+              <div class="product-info">
+                <div class="title">Sapiens: De animales a dioses</div>
+                <div class="author">Yuval Noah Harari · Ed. Debate</div>
+              </div>
+              <div class="product-qty">×1</div>
+              <div class="product-price">S/ 72.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen -->
+        <div>
+          <div class="section-label">Resumen del pago</div>
+          <div class="order-summary">
+            <div class="summary-row">
+              <span>Subtotal</span>
+              <span>S/ 72.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Envío</span>
+              <span>S/ 0.00 <small style="color:var(--arena);font-size:.7rem">(Gratis)</small></span>
+            </div>
+            <div class="summary-row">
+              <span>Método de pago</span>
+              <span class="method">
+                <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Tarjeta •••• 8810
+              </span>
+            </div>
+            <div class="summary-row total">
+              <span>Total pagado</span>
+              <span>S/ 72.00</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer del modal -->
+      <div class="modal-footer">
+        <p class="return-note">
+          Tu pedido está siendo preparado. La devolución estará disponible una vez sea entregado.
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" style="opacity:.5;cursor:not-allowed;" disabled>
+            <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+            Solicitar devolución
+          </button>
+          <a href="#" class="btn btn-primary">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Cerrar
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

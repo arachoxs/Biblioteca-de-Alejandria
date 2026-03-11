@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Administradores — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro: #0a0908;
+      --borgona: #49111c;
+      --blanco: #f2f4f3;
+      --arena: #a9927d;
+      --oliva: #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body: 'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Textura de fondo sutil ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169, 146, 125, .15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--negro);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      margin-bottom: 2.5rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.5rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+      margin-bottom: .6rem;
+    }
+
+    .page-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 700px;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.8rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: .8rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      height: 42px;
+      padding: 0 1.6rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .8rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169, 146, 125, .4);
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary.active {
+      opacity: 1;
+      cursor: pointer;
+      border-color: var(--borgona);
+      color: var(--borgona);
+    }
+
+    .btn-secondary.active:hover {
+      background: rgba(73, 17, 28, .05);
+    }
+
+    .toolbar-info {
+      font-size: .8rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    /* ── TABLA ── */
+    .table-container {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow:
+        0 1px 3px rgba(10, 9, 8, .04),
+        0 8px 30px rgba(10, 9, 8, .06);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: var(--negro);
+      color: var(--blanco);
+    }
+
+    thead th {
+      padding: 1rem 1.2rem;
+      text-align: left;
+      font-size: .72rem;
+      font-weight: 500;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--borgona);
+    }
+
+    thead th:first-child {
+      width: 40px;
+      padding-left: 1.5rem;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(169, 146, 125, .15);
+      transition: background .2s;
+    }
+
+    tbody tr:hover {
+      background: rgba(169, 146, 125, .04);
+    }
+
+    tbody td {
+      padding: 1.1rem 1.2rem;
+      font-size: .86rem;
+      color: var(--negro);
+    }
+
+    tbody td:first-child {
+      padding-left: 1.5rem;
+    }
+
+    .checkbox-cell input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--borgona);
+      cursor: pointer;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .35rem .8rem;
+      border-radius: 16px;
+      font-size: .72rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+
+    .status-badge.active {
+      background: rgba(73, 17, 28, .1);
+      color: var(--borgona);
+    }
+
+    .status-badge.inactive {
+      background: rgba(94, 80, 63, .1);
+      color: var(--oliva);
+    }
+
+    .status-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .status-badge.active .dot {
+      background: var(--borgona);
+    }
+
+    .status-badge.inactive .dot {
+      background: var(--oliva);
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 9, 8, .6);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 580px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow:
+        0 10px 40px rgba(10, 9, 8, .2),
+        0 4px 12px rgba(10, 9, 8, .15);
+      transform: scale(.95);
+      transition: transform .3s;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+    }
+
+    .modal-header h2 {
+      font-family: var(--ff-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+    }
+
+    .modal-header p {
+      font-size: .82rem;
+      color: var(--oliva);
+      font-weight: 300;
+      margin-top: .5rem;
+      line-height: 1.5;
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem 1.4rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: .72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+    }
+
+    .form-group label .required {
+      color: var(--borgona);
+      margin-left: 2px;
+    }
+
+    .form-group input,
+    .form-group select {
+      height: 44px;
+      padding: 0 .9rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .88rem;
+      color: var(--negro);
+      background: var(--blanco);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .form-group select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .9rem center;
+      padding-right: 2.2rem;
+    }
+
+    .form-group input::placeholder { color: var(--arena); opacity: .6; }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .08);
+    }
+
+    .modal-footer {
+      padding: 1.4rem 2rem 1.8rem;
+      border-top: 1px solid rgba(169, 146, 125, .2);
+      display: flex;
+      justify-content: flex-end;
+      gap: .9rem;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169, 146, 125, .35);
+    }
+
+    .btn-cancel:hover {
+      background: rgba(94, 80, 63, .05);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav {
+        padding: .8rem 1.2rem;
+        flex-direction: column;
+        gap: .7rem;
+      }
+
+      .nav-info {
+        width: 100%;
+        justify-content: center;
+      }
+
+      main {
+        padding: 2rem 1.2rem;
+      }
+
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .toolbar-actions {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .table-container {
+        overflow-x: auto;
+      }
+
+      table {
+        min-width: 700px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .form-group.full {
+        grid-column: auto;
+      }
+
+      .modal-footer {
+        flex-direction: column-reverse;
+      }
+
+      .modal-footer .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Root Admin</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+    
+    <div class="page-header">
+      <h1>Gestión de Administradores</h1>
+      <p>Administra los usuarios con permisos de administrador del sistema. Puedes crear nuevos administradores o inhabilitar los existentes según sea necesario.</p>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-actions">
+        <button class="btn btn-primary" onclick="document.querySelector('.modal-overlay').classList.add('active')">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Crear Administrador
+        </button>
+        <button class="btn btn-secondary" id="btnInhabilitar">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 14.14 14.14"/></svg>
+          Inhabilitar
+        </button>
+      </div>
+      <div class="toolbar-info">
+        <span id="selectionCount">0 seleccionados</span>
+      </div>
+    </div>
+
+    <!-- Tabla de administradores -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAll"></th>
+            <th>ID</th>
+            <th>Nombre Completo</th>
+            <th>Usuario</th>
+            <th>Correo Electrónico</th>
+            <th>Fecha de Creación</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" class="row-checkbox"></td>
+            <td>#001</td>
+            <td>María Elena Rodríguez</td>
+            <td>mrodriguez</td>
+            <td>maria.rodriguez@biblioteca.com</td>
+            <td>15/01/2026</td>
+            <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+          </tr>
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" class="row-checkbox"></td>
+            <td>#002</td>
+            <td>Carlos Alberto Méndez</td>
+            <td>cmendez</td>
+            <td>carlos.mendez@biblioteca.com</td>
+            <td>22/01/2026</td>
+            <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+          </tr>
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" class="row-checkbox"></td>
+            <td>#003</td>
+            <td>Ana Patricia Silva</td>
+            <td>asilva</td>
+            <td>ana.silva@biblioteca.com</td>
+            <td>05/02/2026</td>
+            <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+          </tr>
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" class="row-checkbox"></td>
+            <td>#004</td>
+            <td>Roberto Fernández</td>
+            <td>rfernandez</td>
+            <td>roberto.fernandez@biblioteca.com</td>
+            <td>18/12/2025</td>
+            <td><span class="status-badge inactive"><span class="dot"></span>Inactivo</span></td>
+          </tr>
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" class="row-checkbox"></td>
+            <td>#005</td>
+            <td>Laura Beatriz Torres</td>
+            <td>ltorres</td>
+            <td>laura.torres@biblioteca.com</td>
+            <td>28/02/2026</td>
+            <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- ── MODAL CREAR ADMINISTRADOR ── -->
+  <div class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Crear Nuevo Administrador</h2>
+        <p>Complete los datos para registrar un nuevo usuario administrador en el sistema.</p>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>DNI <span class="required">*</span></label>
+              <input type="text" placeholder="12345678">
+            </div>
+            <div class="form-group">
+              <label>Género <span class="required">*</span></label>
+              <select>
+                <option value="" disabled selected>Seleccionar</option>
+                <option>Masculino</option>
+                <option>Femenino</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Nombres <span class="required">*</span></label>
+              <input type="text" placeholder="Ingrese nombres">
+            </div>
+            <div class="form-group">
+              <label>Apellidos <span class="required">*</span></label>
+              <input type="text" placeholder="Ingrese apellidos">
+            </div>
+            <div class="form-group">
+              <label>Fecha de Nacimiento <span class="required">*</span></label>
+              <input type="date">
+            </div>
+            <div class="form-group">
+              <label>Lugar de Nacimiento <span class="required">*</span></label>
+              <input type="text" placeholder="Ciudad, País">
+            </div>
+            <div class="form-group full">
+              <label>Dirección <span class="required">*</span></label>
+              <input type="text" placeholder="Dirección completa">
+            </div>
+            <div class="form-group full">
+              <label>Correo Electrónico <span class="required">*</span></label>
+              <input type="email" placeholder="ejemplo@correo.com">
+            </div>
+            <div class="form-group">
+              <label>Usuario <span class="required">*</span></label>
+              <input type="text" placeholder="Nombre de usuario">
+            </div>
+            <div class="form-group">
+              <label>Contraseña <span class="required">*</span></label>
+              <input type="password" placeholder="••••••••">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.querySelector('.modal-overlay').classList.remove('active')">
+          Cancelar
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+          Crear Administrador
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+  <script>
+    // Manejo de selección de checkboxes
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    const btnInhabilitar = document.getElementById('btnInhabilitar');
+    const selectionCount = document.getElementById('selectionCount');
+
+    function updateSelection() {
+      const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+      selectionCount.textContent = `${checkedCount} seleccionado${checkedCount !== 1 ? 's' : ''}`;
+      
+      if (checkedCount > 0) {
+        btnInhabilitar.classList.add('active');
+      } else {
+        btnInhabilitar.classList.remove('active');
+      }
+    }
+
+    selectAll.addEventListener('change', function() {
+      checkboxes.forEach(cb => cb.checked = this.checked);
+      updateSelection();
+    });
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', updateSelection);
+    });
+
+    // Cerrar modal al hacer clic fuera
+    document.querySelector('.modal-overlay').addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('active');
+      }
+    });
+  </script>
+
+</body>
+</html>
