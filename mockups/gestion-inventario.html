@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Inventario — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro: #0a0908;
+      --borgona: #49111c;
+      --blanco: #f2f4f3;
+      --arena: #a9927d;
+      --oliva: #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body: 'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Textura de fondo sutil ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169, 146, 125, .15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--borgona);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      margin-bottom: 2.5rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.5rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+      margin-bottom: .6rem;
+    }
+
+    .page-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 700px;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.8rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-left {
+      display: flex;
+      gap: .8rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar-right {
+      display: flex;
+      gap: .8rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      height: 42px;
+      padding: 0 1.6rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .8rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .filter-select {
+      height: 42px;
+      padding: 0 2.5rem 0 1rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 1rem center;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      color: var(--negro);
+      cursor: pointer;
+      outline: none;
+      -webkit-appearance: none;
+      min-width: 200px;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      height: 42px;
+      padding: 0 1rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      background: #fff;
+      min-width: 280px;
+    }
+
+    .search-box svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+
+    .search-box input {
+      border: none;
+      outline: none;
+      flex: 1;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      color: var(--negro);
+      background: transparent;
+    }
+
+    .search-box input::placeholder {
+      color: var(--arena);
+      opacity: .6;
+    }
+
+    /* ── STATS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      padding: 1.3rem 1.5rem;
+      box-shadow: 0 1px 3px rgba(10, 9, 8, .04);
+    }
+
+    .stat-label {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: .5rem;
+    }
+
+    .stat-value {
+      font-family: var(--ff-display);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--borgona);
+      line-height: 1;
+    }
+
+    /* ── TABLA ── */
+    .table-container {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow:
+        0 1px 3px rgba(10, 9, 8, .04),
+        0 8px 30px rgba(10, 9, 8, .06);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: var(--negro);
+      color: var(--blanco);
+    }
+
+    thead th {
+      padding: 1rem 1.2rem;
+      text-align: left;
+      font-size: .72rem;
+      font-weight: 500;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--borgona);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(169, 146, 125, .15);
+      transition: background .2s;
+    }
+
+    tbody tr:hover {
+      background: rgba(169, 146, 125, .04);
+    }
+
+    tbody td {
+      padding: 1.1rem 1.2rem;
+      font-size: .86rem;
+      color: var(--negro);
+    }
+
+    .book-info {
+      display: flex;
+      flex-direction: column;
+      gap: .3rem;
+    }
+
+    .book-title {
+      font-weight: 600;
+      color: var(--borgona);
+    }
+
+    .book-author {
+      font-size: .78rem;
+      color: var(--arena);
+      font-style: italic;
+    }
+
+    .stock-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 45px;
+      padding: .35rem .7rem;
+      border-radius: 16px;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+
+    .stock-badge.high {
+      background: rgba(73, 17, 28, .1);
+      color: var(--borgona);
+    }
+
+    .stock-badge.medium {
+      background: rgba(169, 146, 125, .2);
+      color: var(--oliva);
+    }
+
+    .stock-badge.low {
+      background: rgba(94, 80, 63, .15);
+      color: var(--oliva);
+    }
+
+    .stock-badge.zero {
+      background: rgba(169, 146, 125, .1);
+      color: var(--arena);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: .5rem;
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: all .2s;
+      background: transparent;
+    }
+
+    .btn-icon svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-transfer {
+      color: var(--oliva);
+    }
+
+    .btn-transfer:hover {
+      background: rgba(94, 80, 63, .1);
+      color: var(--negro);
+    }
+
+    .btn-delete {
+      color: var(--arena);
+    }
+
+    .btn-delete:hover {
+      background: rgba(73, 17, 28, .1);
+      color: var(--borgona);
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 9, 8, .6);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 650px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow:
+        0 10px 40px rgba(10, 9, 8, .2),
+        0 4px 12px rgba(10, 9, 8, .15);
+      transform: scale(.95);
+      transition: transform .3s;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+    }
+
+    .modal-header h2 {
+      font-family: var(--ff-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+    }
+
+    .modal-header p {
+      font-size: .82rem;
+      color: var(--oliva);
+      font-weight: 300;
+      margin-top: .5rem;
+      line-height: 1.5;
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem 1.4rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: .72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+    }
+
+    .form-group label .required {
+      color: var(--borgona);
+      margin-left: 2px;
+    }
+
+    .form-group input,
+    .form-group select {
+      height: 44px;
+      padding: 0 .9rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .88rem;
+      color: var(--negro);
+      background: var(--blanco);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .form-group select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .9rem center;
+      padding-right: 2.2rem;
+    }
+
+    .form-group input::placeholder {
+      color: var(--arena);
+      opacity: .6;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .08);
+    }
+
+    .transfer-summary {
+      background: rgba(169, 146, 125, .08);
+      border-radius: 6px;
+      padding: 1.2rem;
+      margin-top: 1rem;
+    }
+
+    .transfer-summary-title {
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 600;
+      margin-bottom: .8rem;
+    }
+
+    .transfer-flow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .transfer-point {
+      flex: 1;
+      text-align: center;
+    }
+
+    .transfer-label {
+      font-size: .7rem;
+      color: var(--arena);
+      margin-bottom: .3rem;
+    }
+
+    .transfer-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--borgona);
+    }
+
+    .transfer-arrow {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      color: var(--oliva);
+      font-weight: 600;
+    }
+
+    .transfer-arrow svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .modal-footer {
+      padding: 1.4rem 2rem 1.8rem;
+      border-top: 1px solid rgba(169, 146, 125, .2);
+      display: flex;
+      justify-content: flex-end;
+      gap: .9rem;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169, 146, 125, .35);
+    }
+
+    .btn-cancel:hover {
+      background: rgba(94, 80, 63, .05);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav {
+        padding: .8rem 1.2rem;
+        flex-direction: column;
+        gap: .7rem;
+      }
+
+      .nav-info {
+        width: 100%;
+        justify-content: center;
+      }
+
+      main {
+        padding: 2rem 1.2rem;
+      }
+
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .toolbar-left,
+      .toolbar-right {
+        flex-direction: column;
+      }
+
+      .btn,
+      .filter-select,
+      .search-box {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .search-box {
+        min-width: auto;
+      }
+
+      .filter-select {
+        min-width: auto;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .table-container {
+        overflow-x: auto;
+      }
+
+      table {
+        min-width: 900px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .form-group.full {
+        grid-column: auto;
+      }
+
+      .modal-footer {
+        flex-direction: column-reverse;
+      }
+
+      .modal-footer .btn {
+        width: 100%;
+      }
+
+      .transfer-flow {
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .transfer-arrow {
+        transform: rotate(90deg);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Administrador</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+    
+    <div class="page-header">
+      <h1>Gestión de Inventario</h1>
+      <p>Administra el stock de libros disponibles en cada tienda. Añade nuevas unidades, consulta disponibilidad y traslada inventario entre ubicaciones.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Libros</div>
+        <div class="stat-value">2,847</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Títulos Únicos</div>
+        <div class="stat-value">487</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Stock Bajo</div>
+        <div class="stat-value">23</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sin Stock</div>
+        <div class="stat-value">8</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="btn btn-primary" onclick="document.getElementById('modalAdd').classList.add('active')">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Añadir Inventario
+        </button>
+        <select class="filter-select">
+          <option value="">Todas las tiendas</option>
+          <option>Tienda San Isidro</option>
+          <option>Tienda Miraflores</option>
+          <option>Tienda San Miguel</option>
+          <option>Tienda Surco</option>
+        </select>
+        <select class="filter-select">
+          <option value="">Todos los estados</option>
+          <option>Stock alto (&gt;20)</option>
+          <option>Stock medio (10-20)</option>
+          <option>Stock bajo (&lt;10)</option>
+          <option>Sin stock</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Buscar por título, autor o ISBN...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de inventario -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Libro</th>
+            <th>ISBN</th>
+            <th>San Isidro</th>
+            <th>Miraflores</th>
+            <th>San Miguel</th>
+            <th>Surco</th>
+            <th>Total</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="book-info">
+                <div class="book-title">Cien Años de Soledad</div>
+                <div class="book-author">Gabriel García Márquez</div>
+              </div>
+            </td>
+            <td>978-0307474728</td>
+            <td><span class="stock-badge high">45</span></td>
+            <td><span class="stock-badge high">38</span></td>
+            <td><span class="stock-badge medium">18</span></td>
+            <td><span class="stock-badge medium">12</span></td>
+            <td><strong>113</strong></td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-transfer" onclick="document.getElementById('modalTransfer').classList.add('active')" title="Trasladar">
+                  <svg viewBox="0 0 24 24"><path d="M21 12H9M21 12l-4-4M21 12l-4 4M3 12h4m-4 0 4 4m-4-4 4-4"/></svg>
+                </button>
+                <button class="btn-icon btn-delete" title="Eliminar">
+                  <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="book-info">
+                <div class="book-title">1984</div>
+                <div class="book-author">George Orwell</div>
+              </div>
+            </td>
+            <td>978-0451524935</td>
+            <td><span class="stock-badge high">52</span></td>
+            <td><span class="stock-badge high">41</span></td>
+            <td><span class="stock-badge high">29</span></td>
+            <td><span class="stock-badge medium">15</span></td>
+            <td><strong>137</strong></td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-transfer" onclick="document.getElementById('modalTransfer').classList.add('active')" title="Trasladar">
+                  <svg viewBox="0 0 24 24"><path d="M21 12H9M21 12l-4-4M21 12l-4 4M3 12h4m-4 0 4 4m-4-4 4-4"/></svg>
+                </button>
+                <button class="btn-icon btn-delete" title="Eliminar">
+                  <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="book-info">
+                <div class="book-title">El Principito</div>
+                <div class="book-author">Antoine de Saint-Exupéry</div>
+              </div>
+            </td>
+            <td>978-0156012195</td>
+            <td><span class="stock-badge medium">15</span></td>
+            <td><span class="stock-badge high">22</span></td>
+            <td><span class="stock-badge low">8</span></td>
+            <td><span class="stock-badge low">6</span></td>
+            <td><strong>51</strong></td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-transfer" onclick="document.getElementById('modalTransfer').classList.add('active')" title="Trasladar">
+                  <svg viewBox="0 0 24 24"><path d="M21 12H9M21 12l-4-4M21 12l-4 4M3 12h4m-4 0 4 4m-4-4 4-4"/></svg>
+                </button>
+                <button class="btn-icon btn-delete" title="Eliminar">
+                  <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="book-info">
+                <div class="book-title">Don Quijote de la Mancha</div>
+                <div class="book-author">Miguel de Cervantes</div>
+              </div>
+            </td>
+            <td>978-8424116927</td>
+            <td><span class="stock-badge high">28</span></td>
+            <td><span class="stock-badge medium">19</span></td>
+            <td><span class="stock-badge medium">14</span></td>
+            <td><span class="stock-badge low">9</span></td>
+            <td><strong>70</strong></td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-transfer" onclick="document.getElementById('modalTransfer').classList.add('active')" title="Trasladar">
+                  <svg viewBox="0 0 24 24"><path d="M21 12H9M21 12l-4-4M21 12l-4 4M3 12h4m-4 0 4 4m-4-4 4-4"/></svg>
+                </button>
+                <button class="btn-icon btn-delete" title="Eliminar">
+                  <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="book-info">
+                <div class="book-title">Rayuela</div>
+                <div class="book-author">Julio Cortázar</div>
+              </div>
+            </td>
+            <td>978-8420471648</td>
+            <td><span class="stock-badge low">5</span></td>
+            <td><span class="stock-badge low">7</span></td>
+            <td><span class="stock-badge low">4</span></td>
+            <td><span class="stock-badge zero">0</span></td>
+            <td><strong>16</strong></td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-transfer" onclick="document.getElementById('modalTransfer').classList.add('active')" title="Trasladar">
+                  <svg viewBox="0 0 24 24"><path d="M21 12H9M21 12l-4-4M21 12l-4 4M3 12h4m-4 0 4 4m-4-4 4-4"/></svg>
+                </button>
+                <button class="btn-icon btn-delete" title="Eliminar">
+                  <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="book-info">
+                <div class="book-title">La Casa de los Espíritus</div>
+                <div class="book-author">Isabel Allende</div>
+              </div>
+            </td>
+            <td>978-8401337796</td>
+            <td><span class="stock-badge medium">12</span></td>
+            <td><span class="stock-badge medium">16</span></td>
+            <td><span class="stock-badge low">8</span></td>
+            <td><span class="stock-badge low">5</span></td>
+            <td><strong>41</strong></td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-transfer" onclick="document.getElementById('modalTransfer').classList.add('active')" title="Trasladar">
+                  <svg viewBox="0 0 24 24"><path d="M21 12H9M21 12l-4-4M21 12l-4 4M3 12h4m-4 0 4 4m-4-4 4-4"/></svg>
+                </button>
+                <button class="btn-icon btn-delete" title="Eliminar">
+                  <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- ── MODAL AÑADIR INVENTARIO ── -->
+  <div class="modal-overlay" id="modalAdd">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Añadir Inventario</h2>
+        <p>Registra nuevas unidades de un libro en una tienda específica.</p>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-grid">
+            
+            <div class="form-group full">
+              <label>Libro <span class="required">*</span></label>
+              <select>
+                <option value="" disabled selected>Seleccionar libro</option>
+                <option>Cien Años de Soledad - Gabriel García Márquez</option>
+                <option>1984 - George Orwell</option>
+                <option>El Principito - Antoine de Saint-Exupéry</option>
+                <option>Don Quijote de la Mancha - Miguel de Cervantes</option>
+                <option>Rayuela - Julio Cortázar</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Tienda <span class="required">*</span></label>
+              <select>
+                <option value="" disabled selected>Seleccionar tienda</option>
+                <option>Tienda San Isidro</option>
+                <option>Tienda Miraflores</option>
+                <option>Tienda San Miguel</option>
+                <option>Tienda Surco</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Cantidad <span class="required">*</span></label>
+              <input type="number" min="1" placeholder="0">
+            </div>
+
+            <div class="form-group full">
+              <label>Notas</label>
+              <input type="text" placeholder="Información adicional (opcional)">
+            </div>
+
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modalAdd').classList.remove('active')">
+          Cancelar
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+          Añadir Inventario
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL TRASLADAR INVENTARIO ── -->
+  <div class="modal-overlay" id="modalTransfer">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Trasladar Inventario</h2>
+        <p>Mueve unidades de un libro desde una tienda origen hacia una tienda destino.</p>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-grid">
+            
+            <div class="form-group full">
+              <label>Libro <span class="required">*</span></label>
+              <select>
+                <option value="" disabled>Seleccionar libro</option>
+                <option selected>Cien Años de Soledad - Gabriel García Márquez</option>
+                <option>1984 - George Orwell</option>
+                <option>El Principito - Antoine de Saint-Exupéry</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Tienda Origen <span class="required">*</span></label>
+              <select>
+                <option value="" disabled>Seleccionar</option>
+                <option selected>Tienda San Isidro (45 unidades)</option>
+                <option>Tienda Miraflores (38 unidades)</option>
+                <option>Tienda San Miguel (18 unidades)</option>
+                <option>Tienda Surco (12 unidades)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Tienda Destino <span class="required">*</span></label>
+              <select>
+                <option value="" disabled>Seleccionar</option>
+                <option>Tienda San Isidro</option>
+                <option>Tienda Miraflores</option>
+                <option>Tienda San Miguel</option>
+                <option selected>Tienda Surco</option>
+              </select>
+            </div>
+
+            <div class="form-group full">
+              <label>Cantidad a Trasladar <span class="required">*</span></label>
+              <input type="number" min="1" placeholder="0" value="10">
+            </div>
+
+          </div>
+
+          <!-- Resumen visual -->
+          <div class="transfer-summary">
+            <div class="transfer-summary-title">Resumen del Traslado</div>
+            <div class="transfer-flow">
+              <div class="transfer-point">
+                <div class="transfer-label">Origen</div>
+                <div class="transfer-value">45 → 35</div>
+                <div class="transfer-label" style="margin-top: .3rem; font-size: .65rem;">San Isidro</div>
+              </div>
+              <div class="transfer-arrow">
+                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <span style="font-size: .85rem;">10 unidades</span>
+              </div>
+              <div class="transfer-point">
+                <div class="transfer-label">Destino</div>
+                <div class="transfer-value">12 → 22</div>
+                <div class="transfer-label" style="margin-top: .3rem; font-size: .65rem;">Surco</div>
+              </div>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modalTransfer').classList.remove('active')">
+          Cancelar
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><path d="M21 12H9M21 12l-4-4M21 12l-4 4"/></svg>
+          Confirmar Traslado
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+  <script>
+    // Cerrar modales al hacer clic fuera
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+      modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+          this.classList.remove('active');
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

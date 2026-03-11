@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestionar Reservas — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro:   #0a0908;
+      --borgona: #49111c;
+      --blanco:  #f2f4f3;
+      --arena:   #a9927d;
+      --oliva:   #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body:    'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Textura de fondo ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px),
+        repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+      flex-shrink: 0;
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169,146,125,.15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--arena);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.8rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--arena);
+      text-decoration: none;
+      font-size: .8rem;
+      font-weight: 400;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: color .2s;
+      white-space: nowrap;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active { color: var(--blanco); }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      position: relative;
+      z-index: 1;
+      padding: 3rem 2.5rem 4rem;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.15;
+      margin-bottom: .5rem;
+    }
+
+    .page-header .divider {
+      display: block;
+      width: 70px;
+      height: 3px;
+      background: var(--arena);
+      margin: .9rem auto 1.1rem;
+      border-radius: 2px;
+    }
+
+    .page-header p {
+      font-size: .9rem;
+      color: var(--oliva);
+      font-weight: 300;
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.8rem;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+      max-width: 360px;
+    }
+
+    .search-box input {
+      width: 100%;
+      height: 40px;
+      padding: 0 2.8rem 0 .9rem;
+      border: 1px solid rgba(169,146,125,.35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      color: var(--negro);
+      background: #fff;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .search-box input::placeholder { color: var(--arena); opacity: .7; }
+
+    .search-box input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73,17,28,.07);
+    }
+
+    .search-box svg {
+      position: absolute;
+      right: .85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 15px;
+      height: 15px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .filter-select {
+      height: 40px;
+      padding: 0 2rem 0 .9rem;
+      border: 1px solid rgba(169,146,125,.35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .82rem;
+      color: var(--oliva);
+      background: #fff;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .75rem center;
+    }
+
+    /* ── BOTONES ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .45rem;
+      height: 40px;
+      padding: 0 1.4rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .78rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .btn-primary {
+      background: var(--borgona);
+      color: var(--blanco);
+      flex: 1;
+    }
+
+    .btn-primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.4);
+      color: var(--oliva);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(169,146,125,.1);
+    }
+
+    .btn-danger {
+      background: transparent;
+      border: 1px solid rgba(73,17,28,.3);
+      color: var(--borgona);
+    }
+
+    .btn-danger:hover {
+      background: rgba(73,17,28,.07);
+    }
+
+    .btn-lg {
+      height: 48px;
+      padding: 12px 10px;
+      font-size: .85rem;
+    }
+
+    .btn:disabled,
+    .btn.disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ── INFO CARD (alerta expiración) ── */
+    .alert-info {
+      display: flex;
+      align-items: flex-start;
+      gap: .9rem;
+      padding: 1rem 1.3rem;
+      background: rgba(169,146,125,.1);
+      border: 1px solid rgba(169,146,125,.3);
+      border-left: 4px solid var(--arena);
+      border-radius: 4px;
+      margin-bottom: 2rem;
+    }
+
+    .alert-info svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .alert-info p {
+      font-size: .82rem;
+      color: var(--oliva);
+      line-height: 1.55;
+    }
+
+    .alert-info strong { color: var(--negro); font-weight: 500; }
+
+    /* ── RESERVAS LIST ── */
+    .reservas-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .reserva-card {
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.25);
+      border-radius: 6px;
+      padding: 1.5rem 1.8rem;
+      box-shadow: 0 1px 3px rgba(10,9,8,.04), 0 4px 16px rgba(10,9,8,.05);
+      display: grid;
+      grid-template-columns: 72px 1fr auto;
+      gap: 1.4rem;
+      align-items: center;
+      transition: box-shadow .2s;
+    }
+
+    .reserva-card:hover {
+      box-shadow: 0 2px 6px rgba(10,9,8,.06), 0 8px 24px rgba(10,9,8,.09);
+    }
+
+    .reserva-thumb {
+      width: 72px;
+      height: 96px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .reserva-thumb span {
+      font-family: var(--ff-display);
+      font-size: 2rem;
+      font-weight: 700;
+      color: rgba(255,255,255,.4);
+    }
+
+    .reserva-info { min-width: 0; }
+
+    .reserva-category {
+      font-size: .68rem;
+      color: var(--arena);
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      margin-bottom: .3rem;
+    }
+
+    .reserva-title {
+      font-family: var(--ff-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--borgona);
+      margin-bottom: .25rem;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .reserva-author {
+      font-size: .8rem;
+      color: var(--oliva);
+      margin-bottom: .8rem;
+    }
+
+    .reserva-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .8rem 1.8rem;
+    }
+
+    .reserva-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: .1rem;
+    }
+
+    .reserva-meta-item .label {
+      font-size: .65rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+    }
+
+    .reserva-meta-item .value {
+      font-size: .82rem;
+      color: var(--negro);
+      font-weight: 400;
+    }
+
+    /* ── STATUS BADGES ── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .28rem .7rem;
+      border-radius: 20px;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .status-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-badge.activa {
+      background: rgba(94,80,63,.1);
+      color: var(--oliva);
+    }
+    .status-badge.activa::before { background: var(--oliva); }
+
+    .status-badge.proxima {
+      background: rgba(169,146,125,.15);
+      color: #8a6a3a;
+    }
+    .status-badge.proxima::before { background: #c4913a; }
+
+    .status-badge.expirada {
+      background: rgba(73,17,28,.08);
+      color: var(--borgona);
+    }
+    .status-badge.expirada::before { background: var(--borgona); }
+
+    /* ── EXPIRY BAR ── */
+    .expiry-bar-wrap {
+      margin-top: .8rem;
+    }
+
+    .expiry-bar-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: .3rem;
+    }
+
+    .expiry-bar-label span {
+      font-size: .7rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+    }
+
+    .expiry-bar-label .days-left {
+      font-weight: 500;
+      color: var(--oliva);
+    }
+
+    .expiry-bar-label .days-left.urgent { color: var(--borgona); }
+
+    .expiry-bar {
+      height: 4px;
+      background: rgba(169,146,125,.2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .expiry-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .4s;
+    }
+
+    .expiry-bar-fill.high   { background: var(--oliva); }
+    .expiry-bar-fill.medium { background: #c4913a; }
+    .expiry-bar-fill.low    { background: var(--borgona); }
+
+    /* ── RESERVA ACTIONS ── */
+    .reserva-actions {
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+      flex-shrink: 0;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--arena);
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      stroke: rgba(169,146,125,.4);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      margin-bottom: 1.2rem;
+    }
+
+    .empty-state h3 {
+      font-family: var(--ff-display);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--oliva);
+      margin-bottom: .5rem;
+    }
+
+    .empty-state p {
+      font-size: .85rem;
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-box {
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 6px;
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 1px 3px rgba(10,9,8,.04);
+    }
+
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(169,146,125,.1);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .stat-text .number {
+      font-family: var(--ff-display);
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--borgona);
+      line-height: 1;
+    }
+
+    .stat-text .description {
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-top: .2rem;
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,9,8,.82);
+      z-index: 1000;
+      padding: 2rem;
+      overflow-y: auto;
+      animation: fadeIn .3s ease-out;
+    }
+
+    .modal-overlay:target {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes modalSlideUp {
+      from { opacity: 0; transform: translateY(30px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: 0 20px 60px rgba(10,9,8,.3);
+      animation: modalSlideUp .35s ease-out;
+      position: relative;
+    }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169,146,125,.2);
+    }
+
+    .modal-header h2 {
+      font-family: var(--ff-display);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.25;
+      margin-bottom: .35rem;
+    }
+
+    .modal-header p {
+      font-size: .82rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.5;
+    }
+
+    .modal-body {
+      padding: 1.8rem 2rem;
+    }
+
+    .modal-book-preview {
+      display: flex;
+      gap: 1.2rem;
+      padding: 1.1rem;
+      background: var(--blanco);
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-book-thumb {
+      width: 56px;
+      height: 76px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-book-thumb span {
+      font-family: var(--ff-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: rgba(255,255,255,.4);
+    }
+
+    .modal-book-text { min-width: 0; }
+
+    .modal-book-text .title {
+      font-family: var(--ff-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--borgona);
+      margin-bottom: .2rem;
+    }
+
+    .modal-book-text .author {
+      font-size: .8rem;
+      color: var(--oliva);
+      margin-bottom: .5rem;
+    }
+
+    .modal-book-text .price {
+      font-family: var(--ff-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--negro);
+    }
+
+    .modal-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      padding: .9rem 1.1rem;
+      background: rgba(73,17,28,.05);
+      border: 1px solid rgba(73,17,28,.12);
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-notice svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .modal-notice p {
+      font-size: .8rem;
+      color: var(--borgona);
+      line-height: 1.55;
+    }
+
+    .modal-notice strong { font-weight: 600; }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1.1rem;
+    }
+
+    .form-group label {
+      font-size: .72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+    }
+
+    .form-group label .required { color: var(--borgona); margin-left: 2px; }
+
+    .form-group select,
+    .form-group input {
+      height: 44px;
+      padding: 0 .9rem;
+      border: 1px solid rgba(169,146,125,.35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .88rem;
+      color: var(--negro);
+      background: var(--blanco);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
+    }
+
+    .form-group select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .9rem center;
+      padding-right: 2.2rem;
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73,17,28,.08);
+    }
+
+    .field-hint {
+      font-size: .7rem;
+      color: var(--arena);
+      margin-top: .35rem;
+      font-weight: 300;
+      font-style: italic;
+    }
+
+    .modal-footer {
+      padding: 1.3rem 2rem 1.8rem;
+      border-top: 1px solid rgba(169,146,125,.2);
+      display: flex;
+      justify-content: flex-end;
+      gap: .8rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── CANCEL MODAL ── */
+    .cancel-modal .modal-header h2 { color: var(--borgona); }
+
+    .cancel-reason {
+      margin-bottom: 1.2rem;
+    }
+
+    .cancel-reason textarea {
+      width: 100%;
+      min-height: 90px;
+      padding: .75rem .9rem;
+      border: 1px solid rgba(169,146,125,.35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      color: var(--negro);
+      background: var(--blanco);
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .cancel-reason textarea:focus { border-color: var(--borgona); }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav {
+        padding: .8rem 1.2rem;
+        flex-wrap: wrap;
+        gap: .8rem;
+      }
+
+      .nav-links { display: none; }
+
+      main { padding: 2rem 1.2rem 3rem; }
+
+      .stats-bar {
+        grid-template-columns: 1fr;
+        gap: .7rem;
+      }
+
+      .reserva-card {
+        grid-template-columns: 56px 1fr;
+        grid-template-rows: auto auto;
+        gap: .9rem 1rem;
+      }
+
+      .reserva-thumb {
+        width: 56px;
+        height: 76px;
+      }
+
+      .reserva-actions {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      .reserva-actions .btn { flex: 1; }
+
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .search-box { max-width: 100%; }
+
+      .modal-overlay { padding: 1rem; }
+
+      .modal-header { padding: 1.5rem 1.3rem 1.1rem; }
+      .modal-body   { padding: 1.4rem 1.3rem; }
+      .modal-footer { padding: 1.1rem 1.3rem 1.5rem; flex-direction: column; }
+      .modal-footer .btn { width: 100%; justify-content: center; }
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+      nav { padding: .9rem 1.5rem; }
+
+      .stats-bar { grid-template-columns: repeat(3, 1fr); }
+
+      .reserva-card { grid-template-columns: 72px 1fr auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#">Catálogo</a></li>
+      <li><a href="#" class="active">Mis Reservas</a></li>
+      <li><a href="#">Mis Compras</a></li>
+      <li><a href="#">Cuenta</a></li>
+    </ul>
+
+    <div class="nav-info">
+      <div class="user-badge">
+        <div class="dot"></div>
+        Ana García
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <!-- Header -->
+    <div class="page-header">
+      <h1>Gestionar Reservas</h1>
+      <span class="divider"></span>
+      <p>Consulta y administra tus reservas activas. Puedes concretar la compra o cancelar una reserva antes de que expire.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════ -->
+    <!--   MIS RESERVAS                     -->
+    <!-- ═══════════════════════════════════ -->
+    <div id="mis-reservas">
+
+      <!-- Stats -->
+      <div class="stats-bar">
+        <div class="stat-box">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="stat-text">
+            <div class="number">3</div>
+            <div class="description">Reservas activas</div>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-text">
+            <div class="number">1</div>
+            <div class="description">Por expirar pronto</div>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="stat-text">
+            <div class="number">7</div>
+            <div class="description">Reservas concretadas</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert info sobre expiración -->
+      <div class="alert-info">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p><strong>Política de expiración:</strong> Las reservas no concretadas expiran automáticamente a los <strong>7 días</strong> desde su creación. Recibirás un correo de recordatorio 24 h antes de la expiración.</p>
+      </div>
+
+      <!-- Toolbar de Mis Reservas -->
+      <div class="toolbar" style="margin-bottom:1.5rem;">
+        <div class="toolbar-left">
+          <div class="search-box">
+            <input type="text" placeholder="Buscar reserva...">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </div>
+          <select class="filter-select">
+            <option>Todos los estados</option>
+            <option>Activa</option>
+            <option>Por expirar</option>
+            <option>Expirada</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Lista de reservas -->
+      <div class="reservas-list">
+
+        <!-- Reserva 1 — Activa (5 días restantes) -->
+        <div class="reserva-card">
+          <div class="reserva-thumb c1">
+            <span>📖</span>
+          </div>
+          <div class="reserva-info">
+            <div class="reserva-category">Ficción Histórica</div>
+            <div class="reserva-title">El nombre de la rosa</div>
+            <div class="reserva-author">Umberto Eco · $28.000</div>
+            <div class="reserva-meta">
+              <div class="reserva-meta-item">
+                <span class="label">Reservado el</span>
+                <span class="value">28 feb. 2026</span>
+              </div>
+              <div class="reserva-meta-item">
+                <span class="label">Expira el</span>
+                <span class="value">07 mar. 2026</span>
+              </div>
+              <div class="reserva-meta-item">
+                <span class="label">Estado</span>
+                <span class="status-badge activa">Activa</span>
+              </div>
+            </div>
+            <div class="expiry-bar-wrap">
+              <div class="expiry-bar-label">
+                <span>Tiempo restante</span>
+                <span class="days-left">5 días</span>
+              </div>
+              <div class="expiry-bar">
+                <div class="expiry-bar-fill high" style="width: 71%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="reserva-actions">
+            <button class="btn btn-primary btn-lg">
+              <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+              Comprar ahora
+            </button>
+            <a href="#modal-cancelar" class="btn btn-danger">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              Cancelar
+            </a>
+          </div>
+        </div>
+
+        <!-- Reserva 2 — Por expirar (1 día) -->
+        <div class="reserva-card" style="border-color: rgba(73,17,28,.2);">
+          <div class="reserva-thumb c5">
+            <span>🔬</span>
+          </div>
+          <div class="reserva-info">
+            <div class="reserva-category">Ciencias</div>
+            <div class="reserva-title">Breve historia del tiempo</div>
+            <div class="reserva-author">Stephen Hawking · $19.800</div>
+            <div class="reserva-meta">
+              <div class="reserva-meta-item">
+                <span class="label">Reservado el</span>
+                <span class="value">26 feb. 2026</span>
+              </div>
+              <div class="reserva-meta-item">
+                <span class="label">Expira el</span>
+                <span class="value">05 mar. 2026</span>
+              </div>
+              <div class="reserva-meta-item">
+                <span class="label">Estado</span>
+                <span class="status-badge proxima">⚠ Expira pronto</span>
+              </div>
+            </div>
+            <div class="expiry-bar-wrap">
+              <div class="expiry-bar-label">
+                <span>Tiempo restante</span>
+                <span class="days-left urgent">1 día</span>
+              </div>
+              <div class="expiry-bar">
+                <div class="expiry-bar-fill low" style="width: 14%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="reserva-actions">
+            <button class="btn btn-primary btn-lg">
+              <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+              Comprar ahora
+            </button>
+            <a href="#modal-cancelar" class="btn btn-danger">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              Cancelar
+            </a>
+          </div>
+        </div>
+
+        <!-- Reserva 3 — Activa (4 días) -->
+        <div class="reserva-card">
+          <div class="reserva-thumb c4">
+            <span>✨</span>
+          </div>
+          <div class="reserva-info">
+            <div class="reserva-category">Realismo mágico</div>
+            <div class="reserva-title">Cien años de soledad</div>
+            <div class="reserva-author">Gabriel García Márquez · $24.900</div>
+            <div class="reserva-meta">
+              <div class="reserva-meta-item">
+                <span class="label">Reservado el</span>
+                <span class="value">01 mar. 2026</span>
+              </div>
+              <div class="reserva-meta-item">
+                <span class="label">Expira el</span>
+                <span class="value">08 mar. 2026</span>
+              </div>
+              <div class="reserva-meta-item">
+                <span class="label">Estado</span>
+                <span class="status-badge activa">Activa</span>
+              </div>
+            </div>
+            <div class="expiry-bar-wrap">
+              <div class="expiry-bar-label">
+                <span>Tiempo restante</span>
+                <span class="days-left">4 días</span>
+              </div>
+              <div class="expiry-bar">
+                <div class="expiry-bar-fill medium" style="width: 57%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="reserva-actions">
+            <button class="btn btn-primary btn-lg">
+              <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+              Comprar ahora
+            </button>
+            <a href="#modal-cancelar" class="btn btn-danger">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              Cancelar
+            </a>
+          </div>
+        </div>
+
+        <!-- Reserva expirada (sección al fondo) -->
+        <div style="margin-top:.5rem; padding-top:1.5rem; border-top:1px solid rgba(169,146,125,.2);">
+          <p style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--arena);font-weight:500;margin-bottom:1rem;">Historial — Expiradas</p>
+
+          <div class="reserva-card" style="opacity:.55;">
+            <div class="reserva-thumb c2">
+              <span>📚</span>
+            </div>
+            <div class="reserva-info">
+              <div class="reserva-category">Filosofía</div>
+              <div class="reserva-title">Así habló Zaratustra</div>
+              <div class="reserva-author">Friedrich Nietzsche · $22.500</div>
+              <div class="reserva-meta">
+                <div class="reserva-meta-item">
+                  <span class="label">Reservado el</span>
+                  <span class="value">18 feb. 2026</span>
+                </div>
+                <div class="reserva-meta-item">
+                  <span class="label">Expiró el</span>
+                  <span class="value">25 feb. 2026</span>
+                </div>
+                <div class="reserva-meta-item">
+                  <span class="label">Estado</span>
+                  <span class="status-badge expirada">Expirada</span>
+                </div>
+              </div>
+            </div>
+            <div class="reserva-actions">
+              <button class="btn btn-secondary btn-lg">
+                <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Volver a reservar
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /reservas-list -->
+    </div><!-- /mis-reservas -->
+
+  </main>
+
+  <!-- ── FOOTER ── -->
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+  <!-- ════════════════════════════════════════ -->
+  <!--   MODAL: CANCELAR RESERVA               -->
+  <!-- ════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-cancelar">
+    <div class="modal cancel-modal">
+
+      <div class="modal-header">
+        <h2>Cancelar Reserva</h2>
+        <p>¿Estás seguro de que deseas cancelar la reserva de <strong>El nombre de la rosa</strong>? El libro volverá a estar disponible para otros clientes.</p>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="modal-notice">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <p>Esta acción <strong>no se puede deshacer</strong>. La reserva quedará cancelada de forma inmediata.</p>
+        </div>
+
+        <div class="cancel-reason form-group">
+          <label>Motivo de cancelación <span style="font-weight:300;text-transform:none;letter-spacing:0;color:var(--arena);">(opcional)</span></label>
+          <textarea placeholder="Cuéntanos por qué cancelas esta reserva..."></textarea>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <a href="#" class="btn btn-secondary btn-lg">Mantener reserva</a>
+        <button class="btn btn-danger btn-lg" style="height:48px;padding:0 2rem;font-size:.85rem;">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          Sí, cancelar reserva
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

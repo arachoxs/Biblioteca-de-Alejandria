@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Autores — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro:   #0a0908;
+      --borgona: #49111c;
+      --blanco:  #f2f4f3;
+      --arena:   #a9927d;
+      --oliva:   #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body:    'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 60px,
+          rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px),
+        repeating-linear-gradient(90deg, transparent, transparent 60px,
+          rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169,146,125,.15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--arena);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      margin-bottom: 2.5rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: .9rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .breadcrumb svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: .6;
+    }
+
+    .breadcrumb a {
+      color: var(--arena);
+      text-decoration: none;
+      opacity: .7;
+      transition: opacity .2s;
+    }
+
+    .breadcrumb a:hover { opacity: 1; }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.6rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+      margin-bottom: .5rem;
+    }
+
+    .page-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.65;
+      max-width: 680px;
+    }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: flex;
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s .1s ease-out both;
+    }
+
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .55rem 1.1rem;
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(10,9,8,.04);
+    }
+
+    .stat-chip svg {
+      width: 15px;
+      height: 15px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .stat-chip-num {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--negro);
+      line-height: 1;
+    }
+
+    .stat-chip-label {
+      font-size: .72rem;
+      color: var(--arena);
+      font-weight: 300;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.6rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s .15s ease-out both;
+    }
+
+    .toolbar-search {
+      display: flex;
+      gap: .8rem;
+      flex: 1;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+      max-width: 360px;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: .85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 15px;
+      height: 15px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      height: 40px;
+      padding: 0 .9rem 0 2.4rem;
+      border: 1px solid rgba(169,146,125,.32);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .84rem;
+      color: var(--negro);
+      background: #fff;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .search-wrap input::placeholder { color: var(--arena); opacity: .65; }
+
+    .search-wrap input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73,17,28,.07);
+    }
+
+    .filter-select {
+      height: 40px;
+      padding: 0 2rem 0 .85rem;
+      border: 1px solid rgba(169,146,125,.32);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .82rem;
+      color: var(--oliva);
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right .75rem center;
+      -webkit-appearance: none;
+      outline: none;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+
+    .filter-select:focus { border-color: var(--borgona); }
+
+    .toolbar-actions { flex-shrink: 0; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      height: 40px;
+      padding: 0 1.4rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .76rem;
+      font-weight: 500;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary { background: var(--borgona); color: var(--blanco); }
+    .btn-primary:hover { background: var(--negro); transform: translateY(-1px); }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169,146,125,.35);
+    }
+    .btn-cancel:hover { background: rgba(94,80,63,.05); }
+
+    .btn-danger { background: var(--borgona); color: var(--blanco); }
+    .btn-danger:hover { background: #2d0a10; transform: translateY(-1px); }
+
+    .btn-disabled {
+      background: rgba(169,146,125,.15);
+      color: var(--arena);
+      border: 1px solid rgba(169,146,125,.25);
+      cursor: not-allowed;
+      opacity: .7;
+    }
+
+    /* ── TABLE ── */
+    .table-container {
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.22);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(10,9,8,.04), 0 8px 32px rgba(10,9,8,.06);
+      animation: fadeUp .6s .2s ease-out both;
+    }
+
+    .table-scroll { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 780px;
+    }
+
+    thead {
+      background: var(--negro);
+      color: var(--blanco);
+    }
+
+    thead th {
+      padding: 1rem 1.1rem;
+      text-align: left;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--borgona);
+      white-space: nowrap;
+    }
+
+    thead th:first-child { padding-left: 1.5rem; }
+    thead th:last-child  { padding-right: 1.5rem; text-align: right; }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(169,146,125,.13);
+      transition: background .15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(169,146,125,.04); }
+
+    tbody td {
+      padding: 1rem 1.1rem;
+      font-size: .84rem;
+      color: var(--negro);
+      vertical-align: middle;
+    }
+
+    tbody td:first-child { padding-left: 1.5rem; }
+    tbody td:last-child  { padding-right: 1.5rem; }
+
+    /* ── AUTHOR CELL ── */
+    .author-cell-wrap {
+      display: flex;
+      align-items: center;
+      gap: .9rem;
+    }
+
+    .author-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--blanco);
+      letter-spacing: .02em;
+    }
+
+    .avatar-a1 { background: var(--borgona); }
+    .avatar-a2 { background: var(--oliva); }
+    .avatar-a3 { background: var(--negro); }
+    .avatar-a4 { background: #6b3a4a; }
+    .avatar-a5 { background: #3d3228; }
+    .avatar-a6 { background: #7a4a33; }
+    .avatar-a7 { background: #2c4a3e; }
+
+    .author-name {
+      font-weight: 500;
+      font-size: .86rem;
+      color: var(--negro);
+      line-height: 1.3;
+    }
+
+    .author-dates {
+      font-size: .72rem;
+      color: var(--arena);
+      font-weight: 300;
+      margin-top: .1rem;
+    }
+
+    .nationality-cell {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .82rem;
+      color: var(--oliva);
+    }
+
+    /* ── BOOKS COUNT BADGE ── */
+    .books-count {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .28rem .7rem;
+      border-radius: 14px;
+      font-size: .72rem;
+      font-weight: 500;
+    }
+
+    .books-count.has-books {
+      background: rgba(73,17,28,.08);
+      color: var(--borgona);
+      border: 1px solid rgba(73,17,28,.15);
+    }
+
+    .books-count.no-books {
+      background: rgba(169,146,125,.1);
+      color: var(--arena);
+      border: 1px solid rgba(169,146,125,.2);
+    }
+
+    .books-count svg {
+      width: 11px;
+      height: 11px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .3rem .75rem;
+      border-radius: 14px;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+
+    .status-badge .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+    }
+
+    .status-badge.active   { background: rgba(73,17,28,.08);  color: var(--borgona); }
+    .status-badge.active .dot  { background: var(--borgona); }
+    .status-badge.inactive { background: rgba(94,80,63,.08);  color: var(--oliva); }
+    .status-badge.inactive .dot { background: var(--oliva); }
+
+    /* ── ROW ACTIONS ── */
+    .row-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: .4rem;
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      border: 1px solid rgba(169,146,125,.25);
+      background: transparent;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all .18s;
+    }
+
+    .action-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .action-btn.view   svg { stroke: var(--oliva); }
+    .action-btn.edit   svg { stroke: var(--arena); }
+    .action-btn.delete svg { stroke: var(--borgona); }
+
+    .action-btn.view:hover   { background: rgba(94,80,63,.08);   border-color: var(--oliva); }
+    .action-btn.edit:hover   { background: rgba(169,146,125,.1); border-color: var(--arena); }
+    .action-btn.delete:hover { background: rgba(73,17,28,.08);   border-color: var(--borgona); }
+
+    /* ── TABLE FOOTER ── */
+    .table-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 1.5rem;
+      border-top: 1px solid rgba(169,146,125,.15);
+      background: rgba(242,244,243,.5);
+      flex-wrap: wrap;
+      gap: .8rem;
+    }
+
+    .table-footer-info {
+      font-size: .74rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .pagination { display: flex; gap: .3rem; }
+
+    .pag-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(169,146,125,.25);
+      border-radius: 4px;
+      background: transparent;
+      font-family: var(--ff-body);
+      font-size: .76rem;
+      color: var(--oliva);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all .15s;
+    }
+
+    .pag-btn.active { background: var(--borgona); color: var(--blanco); border-color: var(--borgona); }
+    .pag-btn:hover:not(.active) { background: rgba(94,80,63,.06); }
+
+    .pag-btn svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ══════════════════
+       MODALS
+    ══════════════════ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,9,8,.62);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 12px 48px rgba(10,9,8,.22), 0 4px 14px rgba(10,9,8,.14);
+      transform: scale(.95) translateY(10px);
+      transition: transform .3s;
+    }
+
+    .modal-overlay.active .modal { transform: scale(1) translateY(0); }
+
+    #modal-registro .modal,
+    #modal-editar   .modal { max-width: 600px; }
+    #modal-ver      .modal { max-width: 580px; }
+    #modal-eliminar .modal { max-width: 480px; }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169,146,125,.18);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .modal-header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: .9rem;
+    }
+
+    .modal-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      margin-top: .1rem;
+    }
+
+    .modal-icon.register { background: rgba(73,17,28,.1); }
+    .modal-icon.edit     { background: rgba(169,146,125,.12); }
+    .modal-icon.view     { background: rgba(94,80,63,.09); }
+    .modal-icon.danger   { background: rgba(73,17,28,.1); }
+    .modal-icon.blocked  { background: rgba(169,146,125,.15); }
+
+    .modal-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .modal-icon.register svg,
+    .modal-icon.danger   svg { stroke: var(--borgona); }
+    .modal-icon.edit     svg { stroke: var(--arena); }
+    .modal-icon.view     svg { stroke: var(--oliva); }
+    .modal-icon.blocked  svg { stroke: var(--arena); }
+
+    .modal-header-text h2 {
+      font-family: var(--ff-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+    }
+
+    .modal-header-text p {
+      font-size: .8rem;
+      color: var(--oliva);
+      font-weight: 300;
+      margin-top: .4rem;
+      line-height: 1.55;
+    }
+
+    .modal-close {
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(169,146,125,.28);
+      border-radius: 50%;
+      background: transparent;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all .18s;
+    }
+
+    .modal-close:hover { background: rgba(73,17,28,.07); border-color: var(--borgona); }
+
+    .modal-close svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--oliva);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    /* ── FORM ── */
+    .modal-body { padding: 1.8rem 2rem; }
+
+    .form-section { margin-bottom: 1.6rem; }
+    .form-section:last-child { margin-bottom: 0; }
+
+    .form-section-title {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: 1rem;
+      padding-bottom: .5rem;
+      border-bottom: 1px solid rgba(169,146,125,.15);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.1rem 1.3rem;
+    }
+
+    .form-group { display: flex; flex-direction: column; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: .7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+    }
+
+    .form-group label .required { color: var(--borgona); margin-left: 2px; }
+    .form-group label .optional { color: var(--arena); margin-left: 4px; font-weight: 300; text-transform: none; letter-spacing: 0; font-size: .68rem; }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      border: 1px solid rgba(169,146,125,.32);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .86rem;
+      color: var(--negro);
+      background: var(--blanco);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
+    }
+
+    .form-group input,
+    .form-group select { height: 42px; padding: 0 .85rem; }
+
+    .form-group select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .85rem center;
+      padding-right: 2.2rem;
+    }
+
+    .form-group textarea {
+      padding: .7rem .85rem;
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.55;
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: var(--arena); opacity: .55; }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73,17,28,.07);
+    }
+
+    .modal-footer {
+      padding: 1.3rem 2rem 1.7rem;
+      border-top: 1px solid rgba(169,146,125,.18);
+      display: flex;
+      justify-content: flex-end;
+      gap: .8rem;
+    }
+
+    /* ── MODAL VER DETALLE ── */
+    .detail-author-header {
+      display: flex;
+      align-items: center;
+      gap: 1.3rem;
+      padding-bottom: 1.6rem;
+      border-bottom: 1px solid rgba(169,146,125,.15);
+      margin-bottom: 1.6rem;
+    }
+
+    .detail-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--borgona);
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: rgba(242,244,243,.85);
+    }
+
+    .detail-name-block h3 {
+      font-family: var(--ff-display);
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--negro);
+      line-height: 1.2;
+      margin-bottom: .35rem;
+    }
+
+    .detail-name-block .detail-dates {
+      font-size: .8rem;
+      color: var(--arena);
+      font-weight: 300;
+      margin-bottom: .6rem;
+    }
+
+    .detail-tags { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+    .detail-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: .22rem .65rem;
+      border-radius: 12px;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+
+    .detail-tag.nationality { background: rgba(169,146,125,.12); color: var(--oliva);   border: 1px solid rgba(169,146,125,.2); }
+    .detail-tag.status      { background: rgba(73,17,28,.08);    color: var(--borgona); border: 1px solid rgba(73,17,28,.15); }
+    .detail-tag.books       { background: rgba(73,17,28,.06);    color: var(--borgona); border: 1px solid rgba(73,17,28,.12); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem 1.4rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .detail-field { display: flex; flex-direction: column; gap: .2rem; }
+    .detail-field.full { grid-column: 1 / -1; }
+
+    .detail-field-label {
+      font-size: .66rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+    }
+
+    .detail-field-value {
+      font-size: .84rem;
+      color: var(--negro);
+    }
+
+    .detail-bio-label {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: .5rem;
+    }
+
+    .detail-bio-text {
+      font-size: .84rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.7;
+    }
+
+    /* ── MODAL ELIMINAR: dos variantes ── */
+    .delete-body { padding: 2rem; }
+
+    /* Variante BLOQUEADA */
+    .delete-blocked {
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+
+    .blocked-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.1rem 1.2rem;
+      background: rgba(73,17,28,.05);
+      border: 1px solid rgba(73,17,28,.18);
+      border-left: 4px solid var(--borgona);
+      border-radius: 4px;
+    }
+
+    .blocked-banner svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+      margin-top: .05rem;
+    }
+
+    .blocked-banner-text strong {
+      display: block;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--borgona);
+      margin-bottom: .25rem;
+    }
+
+    .blocked-banner-text span {
+      font-size: .8rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.5;
+    }
+
+    .blocked-author-info {
+      display: flex;
+      align-items: center;
+      gap: .9rem;
+      padding: .9rem 1.1rem;
+      background: rgba(242,244,243,.8);
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 4px;
+    }
+
+    .blocked-author-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--borgona);
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--blanco);
+      flex-shrink: 0;
+    }
+
+    .blocked-author-name {
+      font-weight: 500;
+      font-size: .86rem;
+      color: var(--negro);
+    }
+
+    .blocked-author-sub {
+      font-size: .74rem;
+      color: var(--arena);
+      font-weight: 300;
+      margin-top: .1rem;
+    }
+
+    .books-list-mini {
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .books-list-mini-header {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .65rem 1rem;
+      background: var(--negro);
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+    }
+
+    .books-list-mini-header svg {
+      width: 13px;
+      height: 13px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .books-list-mini-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .6rem 1rem;
+      border-top: 1px solid rgba(169,146,125,.12);
+      font-size: .8rem;
+      color: var(--negro);
+    }
+
+    .books-list-mini-item .book-active-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .68rem;
+      color: var(--borgona);
+      font-weight: 500;
+    }
+
+    .books-list-mini-item .book-active-dot::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--borgona);
+      flex-shrink: 0;
+    }
+
+    .delete-resolution-note {
+      font-size: .78rem;
+      color: var(--arena);
+      font-weight: 300;
+      line-height: 1.55;
+      padding: .7rem 1rem;
+      background: rgba(169,146,125,.07);
+      border: 1px solid rgba(169,146,125,.18);
+      border-radius: 4px;
+    }
+
+    /* Variante CONFIRMACIÓN */
+    .delete-confirm {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1rem;
+    }
+
+    .delete-icon-wrap {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(73,17,28,.08);
+      border: 2px solid rgba(73,17,28,.2);
+      display: grid;
+      place-items: center;
+    }
+
+    .delete-icon-wrap svg {
+      width: 26px;
+      height: 26px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .delete-confirm h3 {
+      font-family: var(--ff-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--negro);
+    }
+
+    .delete-confirm p {
+      font-size: .84rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 340px;
+    }
+
+    .delete-author-name {
+      font-style: italic;
+      color: var(--borgona);
+      font-weight: 400;
+    }
+
+    .alert-note {
+      font-size: .76rem;
+      color: var(--arena);
+      background: rgba(169,146,125,.08);
+      border: 1px solid rgba(169,146,125,.2);
+      border-radius: 4px;
+      padding: .65rem 1rem;
+      line-height: 1.55;
+      width: 100%;
+      text-align: left;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: .8rem 1.2rem; flex-direction: column; gap: .6rem; }
+      .nav-info { width: 100%; justify-content: center; }
+
+      main { padding: 2rem 1.2rem; }
+
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar-search { flex-direction: column; }
+      .search-wrap { max-width: 100%; }
+      .filter-select { width: 100%; }
+      .toolbar-actions .btn { width: 100%; justify-content: center; }
+
+      .table-scroll { overflow-x: auto; }
+
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: auto; }
+
+      .detail-grid { grid-template-columns: 1fr; }
+      .detail-field.full { grid-column: auto; }
+      .detail-author-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+
+      .modal-footer { flex-direction: column-reverse; }
+      .modal-footer .btn { width: 100%; justify-content: center; }
+
+      .modal-body, .delete-body { padding: 1.4rem; }
+      .modal-header { padding: 1.4rem 1.4rem 1.1rem; }
+      .modal-footer { padding: 1rem 1.4rem 1.4rem; }
+
+      .stats-bar { gap: .6rem; }
+      .stat-chip { flex: 1; min-width: 130px; }
+    }
+
+    @media (max-width: 480px) {
+      .blocked-author-info { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Administrador</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a href="#">Panel</a>
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        <span>Gestión de Autores</span>
+      </div>
+      <h1>Autores</h1>
+      <p>Registra, edita, consulta y elimina la información de los autores para asociarlos correctamente a las obras del catálogo bibliográfico.</p>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-chip">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div>
+          <div class="stat-chip-num">84</div>
+          <div class="stat-chip-label">Total autores</div>
+        </div>
+      </div>
+      <div class="stat-chip">
+        <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div>
+          <div class="stat-chip-num">76</div>
+          <div class="stat-chip-label">Activos</div>
+        </div>
+      </div>
+      <div class="stat-chip">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <div>
+          <div class="stat-chip-num">248</div>
+          <div class="stat-chip-label">Obras asociadas</div>
+        </div>
+      </div>
+      <div class="stat-chip">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div class="stat-chip-num">8</div>
+          <div class="stat-chip-label">Sin obras</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-search">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar por nombre o nacionalidad…">
+        </div>
+        <select class="filter-select">
+          <option value="">Todas las nacionalidades</option>
+          <option>Español</option>
+          <option>Colombiano</option>
+          <option>Inglés</option>
+          <option>Griego</option>
+          <option>Alemán</option>
+          <option>Francés</option>
+          <option>Estadounidense</option>
+        </select>
+        <select class="filter-select">
+          <option value="">Todos los estados</option>
+          <option>Activo</option>
+          <option>Inactivo</option>
+        </select>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn btn-primary" onclick="document.getElementById('modal-registro').classList.add('active')">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Registrar Autor
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Autor</th>
+              <th>Nacionalidad</th>
+              <th>Nacimiento</th>
+              <th>Obras activas</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="author-cell-wrap">
+                  <div class="author-avatar avatar-a1">Ho</div>
+                  <div>
+                    <div class="author-name">Homero</div>
+                    <div class="author-dates">ca. 800 a.C. — fecha desconocida</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="nationality-cell">Grecia antigua</span></td>
+              <td style="font-size:.82rem;color:var(--arena);font-weight:300;">ca. 800 a.C.</td>
+              <td>
+                <span class="books-count has-books">
+                  <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  3 obras
+                </span>
+              </td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar-bloqueado').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="author-cell-wrap">
+                  <div class="author-avatar avatar-a2">GM</div>
+                  <div>
+                    <div class="author-name">Gabriel García Márquez</div>
+                    <div class="author-dates">1927 — 2014</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="nationality-cell">Colombiano</span></td>
+              <td style="font-size:.82rem;color:var(--arena);font-weight:300;">06/03/1927</td>
+              <td>
+                <span class="books-count has-books">
+                  <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  7 obras
+                </span>
+              </td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar-bloqueado').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="author-cell-wrap">
+                  <div class="author-avatar avatar-a3">CD</div>
+                  <div>
+                    <div class="author-name">Charles Darwin</div>
+                    <div class="author-dates">1809 — 1882</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="nationality-cell">Inglés</span></td>
+              <td style="font-size:.82rem;color:var(--arena);font-weight:300;">12/02/1809</td>
+              <td>
+                <span class="books-count has-books">
+                  <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  2 obras
+                </span>
+              </td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar-bloqueado').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="author-cell-wrap">
+                  <div class="author-avatar avatar-a4">Pl</div>
+                  <div>
+                    <div class="author-name">Platón</div>
+                    <div class="author-dates">ca. 428 a.C. — 348 a.C.</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="nationality-cell">Grecia antigua</span></td>
+              <td style="font-size:.82rem;color:var(--arena);font-weight:300;">ca. 428 a.C.</td>
+              <td>
+                <span class="books-count no-books">
+                  <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  0 obras
+                </span>
+              </td>
+              <td><span class="status-badge inactive"><span class="dot"></span>Inactivo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar-confirmar').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="author-cell-wrap">
+                  <div class="author-avatar avatar-a5">SH</div>
+                  <div>
+                    <div class="author-name">Stephen Hawking</div>
+                    <div class="author-dates">1942 — 2018</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="nationality-cell">Inglés</span></td>
+              <td style="font-size:.82rem;color:var(--arena);font-weight:300;">08/01/1942</td>
+              <td>
+                <span class="books-count has-books">
+                  <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  4 obras
+                </span>
+              </td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar-bloqueado').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="author-cell-wrap">
+                  <div class="author-avatar avatar-a6">MC</div>
+                  <div>
+                    <div class="author-name">Miguel de Cervantes</div>
+                    <div class="author-dates">1547 — 1616</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="nationality-cell">Español</span></td>
+              <td style="font-size:.82rem;color:var(--arena);font-weight:300;">29/09/1547</td>
+              <td>
+                <span class="books-count has-books">
+                  <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  5 obras
+                </span>
+              </td>
+              <td><span class="status-badge active"><span class="dot"></span>Activo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-btn view" onclick="document.getElementById('modal-ver').classList.add('active')" title="Ver detalle">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="action-btn edit" onclick="document.getElementById('modal-editar').classList.add('active')" title="Editar">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="action-btn delete" onclick="document.getElementById('modal-eliminar-bloqueado').classList.add('active')" title="Eliminar">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <span class="table-footer-info">Mostrando 6 de 84 registros</span>
+        <div class="pagination">
+          <button class="pag-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button class="pag-btn active">1</button>
+          <button class="pag-btn">2</button>
+          <button class="pag-btn">3</button>
+          <span style="display:grid;place-items:center;width:32px;font-size:.76rem;color:var(--arena);">…</span>
+          <button class="pag-btn">14</button>
+          <button class="pag-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══════════════════════════════════════
+       MODAL: REGISTRAR AUTOR
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-registro">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon register">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>Registrar Autor</h2>
+            <p>Complete los datos del autor para incluirlo en el catálogo y asociarlo a obras bibliográficas.</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-registro').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form autocomplete="off">
+
+          <div class="form-section">
+            <div class="form-section-title">Datos personales</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nombres <span class="required">*</span></label>
+                <input type="text" placeholder="Nombres del autor">
+              </div>
+              <div class="form-group">
+                <label>Apellidos <span class="required">*</span></label>
+                <input type="text" placeholder="Apellidos del autor">
+              </div>
+              <div class="form-group">
+                <label>Nacionalidad <span class="required">*</span></label>
+                <select>
+                  <option value="" disabled selected>Seleccionar</option>
+                  <option>Español</option>
+                  <option>Colombiano</option>
+                  <option>Inglés</option>
+                  <option>Francés</option>
+                  <option>Alemán</option>
+                  <option>Estadounidense</option>
+                  <option>Argentino</option>
+                  <option>Mexicano</option>
+                  <option>Otro</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Estado <span class="required">*</span></label>
+                <select>
+                  <option value="" disabled selected>Seleccionar</option>
+                  <option>Activo</option>
+                  <option>Inactivo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Fechas</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Fecha de nacimiento <span class="required">*</span></label>
+                <input type="text" placeholder="DD/MM/AAAA o año aprox.">
+              </div>
+              <div class="form-group">
+                <label>Fecha de fallecimiento <span class="optional">(si aplica)</span></label>
+                <input type="text" placeholder="DD/MM/AAAA o año">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom:0">
+            <div class="form-section-title">Información adicional</div>
+            <div class="form-group">
+              <label>Biografía <span class="optional">(opcional)</span></label>
+              <textarea placeholder="Breve reseña biográfica del autor…" rows="4"></textarea>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-registro').classList.remove('active')">Cancelar</button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Registrar Autor
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       MODAL: EDITAR AUTOR
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-editar">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon edit">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>Editar Autor</h2>
+            <p>Modifica la información del autor seleccionado.</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-editar').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form autocomplete="off">
+
+          <div class="form-section">
+            <div class="form-section-title">Datos personales</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nombres <span class="required">*</span></label>
+                <input type="text" value="Homero">
+              </div>
+              <div class="form-group">
+                <label>Apellidos <span class="required">*</span></label>
+                <input type="text" placeholder="Sin apellido registrado">
+              </div>
+              <div class="form-group">
+                <label>Nacionalidad <span class="required">*</span></label>
+                <select>
+                  <option>Español</option>
+                  <option>Colombiano</option>
+                  <option>Inglés</option>
+                  <option selected>Grecia antigua</option>
+                  <option>Otro</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Estado <span class="required">*</span></label>
+                <select>
+                  <option selected>Activo</option>
+                  <option>Inactivo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Fechas</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Fecha de nacimiento <span class="required">*</span></label>
+                <input type="text" value="ca. 800 a.C.">
+              </div>
+              <div class="form-group">
+                <label>Fecha de fallecimiento <span class="optional">(si aplica)</span></label>
+                <input type="text" placeholder="Desconocida">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom:0">
+            <div class="form-section-title">Información adicional</div>
+            <div class="form-group">
+              <label>Biografía <span class="optional">(opcional)</span></label>
+              <textarea rows="4">Poeta épico de la antigua Grecia, considerado el autor de la Ilíada y la Odisea, las dos grandes epopeyas fundacionales de la literatura occidental.</textarea>
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-editar').classList.remove('active')">Cancelar</button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       MODAL: VER DETALLE
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-ver">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon view">
+            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>Detalle del Autor</h2>
+            <p>Información completa del autor seleccionado y sus obras en el catálogo.</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-ver').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="detail-author-header">
+          <div class="detail-avatar">Ho</div>
+          <div class="detail-name-block">
+            <h3>Homero</h3>
+            <div class="detail-dates">ca. 800 a.C. — fecha de fallecimiento desconocida</div>
+            <div class="detail-tags">
+              <span class="detail-tag nationality">Grecia antigua</span>
+              <span class="detail-tag status">Activo</span>
+              <span class="detail-tag books">3 obras en catálogo</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-field">
+            <span class="detail-field-label">Fecha de nacimiento</span>
+            <span class="detail-field-value">ca. 800 a.C.</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Fecha de fallecimiento</span>
+            <span class="detail-field-value" style="color:var(--arena);font-style:italic;">Desconocida</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Nacionalidad</span>
+            <span class="detail-field-value">Grecia antigua</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Obras activas</span>
+            <span class="detail-field-value">3 registros en catálogo</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:1.4rem;">
+          <div class="detail-bio-label">Biografía</div>
+          <p class="detail-bio-text">Poeta épico de la antigua Grecia, considerado el autor de la Ilíada y la Odisea, las dos grandes epopeyas fundacionales de la literatura occidental.</p>
+        </div>
+
+        <!-- Obras asociadas -->
+        <div>
+          <div class="detail-bio-label" style="margin-bottom:.7rem;">Obras en el catálogo</div>
+          <div class="books-list-mini">
+            <div class="books-list-mini-header">
+              <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Obras registradas
+            </div>
+            <div class="books-list-mini-item">
+              <span>Ilíada</span>
+              <span class="book-active-dot">Activo</span>
+            </div>
+            <div class="books-list-mini-item">
+              <span>Odisea</span>
+              <span class="book-active-dot">Activo</span>
+            </div>
+            <div class="books-list-mini-item">
+              <span>Himnos homéricos</span>
+              <span class="book-active-dot">Activo</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-ver').classList.remove('active')">Cerrar</button>
+        <button class="btn btn-primary" onclick="document.getElementById('modal-ver').classList.remove('active');document.getElementById('modal-editar').classList.add('active')">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       MODAL: ELIMINAR — BLOQUEADO (tiene obras activas)
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-eliminar-bloqueado">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon blocked">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          </div>
+          <div class="modal-header-text">
+            <h2>No se puede eliminar</h2>
+            <p>El autor tiene obras activas asociadas en el catálogo.</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-eliminar-bloqueado').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="delete-body">
+        <div class="delete-blocked">
+
+          <div class="blocked-banner">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div class="blocked-banner-text">
+              <strong>Eliminación bloqueada</strong>
+              <span>Para eliminar este autor primero debes dar de baja o reasignar todas sus obras activas en el catálogo.</span>
+            </div>
+          </div>
+
+          <div class="blocked-author-info">
+            <div class="blocked-author-avatar">Ho</div>
+            <div>
+              <div class="blocked-author-name">Homero</div>
+              <div class="blocked-author-sub">Grecia antigua · 3 obras activas en catálogo</div>
+            </div>
+          </div>
+
+          <div class="books-list-mini">
+            <div class="books-list-mini-header">
+              <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Obras activas que impiden la eliminación
+            </div>
+            <div class="books-list-mini-item">
+              <span>Ilíada</span>
+              <span class="book-active-dot">Activo</span>
+            </div>
+            <div class="books-list-mini-item">
+              <span>Odisea</span>
+              <span class="book-active-dot">Activo</span>
+            </div>
+            <div class="books-list-mini-item">
+              <span>Himnos homéricos</span>
+              <span class="book-active-dot">Activo</span>
+            </div>
+          </div>
+
+          <div class="delete-resolution-note">
+            <strong style="font-weight:500;color:var(--oliva);">¿Cómo proceder?</strong> Ve a la gestión bibliográfica, da de baja las obras asociadas o reasígnalas a otro autor y regresa para eliminar este registro.
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:flex-end;">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-eliminar-bloqueado').classList.remove('active')">Cerrar</button>
+        <button class="btn btn-disabled" disabled>
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       MODAL: ELIMINAR — CONFIRMACIÓN (sin obras activas)
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-eliminar-confirmar">
+    <div class="modal">
+      <div class="modal-header" style="border-bottom:none;padding-bottom:.8rem;">
+        <div></div>
+        <button class="modal-close" onclick="document.getElementById('modal-eliminar-confirmar').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding-top:.5rem;">
+        <div class="delete-confirm">
+          <div class="delete-icon-wrap">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </div>
+          <h3>Eliminar autor</h3>
+          <p>¿Estás seguro de que deseas eliminar a <span class="delete-author-name">«Platón»</span> del sistema? Esta acción no se puede deshacer.</p>
+          <div class="alert-note">
+            Se ha verificado que este autor no tiene obras activas asociadas en el catálogo y puede ser eliminado de forma segura.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:center;gap:1rem;">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-eliminar-confirmar').classList.remove('active')" style="min-width:130px;">Cancelar</button>
+        <button class="btn btn-danger" style="min-width:130px;">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+  <script>
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+      });
+    });
+  </script>
+
+</body>
+</html>

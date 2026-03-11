@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro: #0a0908;
+      --borgona: #49111c;
+      --blanco: #f2f4f3;
+      --arena: #a9927d;
+      --oliva: #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body: 'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 60px,
+          rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px),
+        repeating-linear-gradient(90deg, transparent, transparent 60px,
+          rgba(94,80,63,.03) 60px, rgba(94,80,63,.03) 61px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+      flex-shrink: 0;
+    }
+
+    .nav-brand-icon {
+      width: 32px; height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700; font-size: 1rem;
+      color: var(--arena); flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem; font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-search {
+      flex: 1; max-width: 500px;
+      display: flex; align-items: center;
+      position: relative;
+    }
+
+    .nav-search input {
+      width: 100%; height: 40px;
+      padding: 0 3rem 0 1rem;
+      border: 1px solid rgba(169,146,125,.3);
+      border-radius: 4px;
+      font-family: var(--ff-body); font-size: .85rem;
+      color: var(--blanco);
+      background: rgba(242,244,243,.08);
+      transition: background .2s, border-color .2s;
+      outline: none;
+    }
+
+    .nav-search input::placeholder { color: var(--arena); opacity: .7; }
+    .nav-search input:focus { background: rgba(242,244,243,.12); border-color: var(--arena); }
+
+    .nav-search-icon {
+      position: absolute; right: 1rem;
+      width: 18px; height: 18px;
+      stroke: var(--arena); fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .nav-links { display: flex; gap: 1.8rem; list-style: none; }
+
+    .nav-links a {
+      color: var(--arena); text-decoration: none;
+      font-size: .8rem; font-weight: 400;
+      letter-spacing: .08em; text-transform: uppercase;
+      transition: color .2s; white-space: nowrap;
+    }
+
+    .nav-links a:hover { color: var(--blanco); }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1; position: relative; z-index: 1;
+      padding: 3rem 2rem 4rem;
+    }
+
+    .container { max-width: 1280px; margin: 0 auto; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .catalog-header {
+      text-align: center; margin-bottom: 3rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    .catalog-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 700; color: var(--borgona);
+      letter-spacing: .02em; line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+
+    .catalog-header .divider {
+      display: block; width: 80px; height: 3px;
+      background: var(--arena); margin: 1rem auto 1.2rem;
+      border-radius: 2px;
+    }
+
+    .catalog-header p {
+      font-size: .95rem; color: var(--oliva);
+      font-weight: 300; max-width: 620px;
+      margin: 0 auto; line-height: 1.7;
+    }
+
+    .section-title {
+      font-family: var(--ff-display);
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700; color: var(--oliva);
+      letter-spacing: .02em; margin-bottom: 1.8rem;
+      padding-bottom: .8rem;
+      border-bottom: 2px solid rgba(169,146,125,.2);
+      animation: fadeUp .6s .2s ease-out both;
+    }
+
+    .section-title .highlight { color: var(--borgona); }
+
+    .books-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 2rem;
+      animation: fadeUp .6s .3s ease-out both;
+    }
+
+    .book-card {
+      background: #fff;
+      border: 1px solid rgba(169,146,125,.25);
+      border-radius: 6px; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(10,9,8,.04), 0 8px 30px rgba(10,9,8,.06);
+      transition: transform .3s, box-shadow .3s;
+      cursor: pointer; display: flex; flex-direction: column;
+    }
+
+    .book-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 8px rgba(10,9,8,.08), 0 16px 40px rgba(10,9,8,.12);
+    }
+
+    .book-cover {
+      height: 200px; background: var(--arena);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+
+    .book-cover-placeholder {
+      font-family: var(--ff-display);
+      font-size: 3.5rem; font-weight: 700;
+      color: rgba(255,255,255,.3); text-align: center;
+    }
+
+    .book-badge {
+      position: absolute; top: 1rem; right: 1rem;
+      background: var(--borgona); color: var(--blanco);
+      padding: .3rem .7rem; border-radius: 20px;
+      font-size: .68rem; font-weight: 500;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+
+    .book-badge.available { background: var(--oliva); }
+
+    .book-info { padding: 1.2rem; flex: 1; display: flex; flex-direction: column; }
+
+    .book-date {
+      font-size: .68rem; color: var(--arena);
+      text-transform: uppercase; letter-spacing: .08em;
+      margin-bottom: .5rem; font-weight: 400;
+    }
+
+    .book-title {
+      font-family: var(--ff-display);
+      font-size: 1.25rem; font-weight: 700;
+      color: var(--borgona); line-height: 1.3;
+      margin-bottom: .4rem;
+    }
+
+    .book-author {
+      font-size: .82rem; color: var(--oliva);
+      font-weight: 400; margin-bottom: .5rem;
+    }
+
+    .book-price {
+      font-family: var(--ff-display);
+      font-size: 1.4rem; font-weight: 700;
+      color: var(--borgona); margin-top: auto;
+      padding-top: .7rem;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center; padding: 1.4rem 1.5rem;
+      font-size: .72rem; color: var(--arena);
+      letter-spacing: .04em; position: relative; z-index: 1;
+    }
+
+
+    /* ════════════════════════════════════════════
+       CHAT ASISTENTE — BOTÓN FLOTANTE + PANEL
+       ════════════════════════════════════════════ */
+
+    /* Botón flotante (siempre visible) */
+    .chat-fab {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 300;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--borgona);
+      box-shadow:
+        0 4px 16px rgba(73, 17, 28, .45),
+        0 2px 6px rgba(10, 9, 8, .3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: transform .2s, box-shadow .2s, background .2s;
+      border: 2px solid rgba(169, 146, 125, .35);
+    }
+
+    .chat-fab:hover {
+      background: var(--negro);
+      transform: scale(1.08) translateY(-2px);
+      box-shadow: 0 8px 24px rgba(73, 17, 28, .5), 0 3px 8px rgba(10, 9, 8, .35);
+    }
+
+    .chat-fab svg {
+      width: 28px; height: 28px;
+      stroke: var(--blanco); fill: none;
+      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* Pulso de notificación */
+    .chat-fab::after {
+      content: '';
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--arena);
+      border: 2px solid var(--borgona);
+      animation: pulse-dot 2.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.25); opacity: .75; }
+    }
+
+    /* Tooltip del FAB */
+    .chat-fab-tooltip {
+      position: fixed;
+      bottom: 2.9rem;
+      right: 5.2rem;
+      z-index: 299;
+      background: var(--negro);
+      color: var(--blanco);
+      font-size: .72rem;
+      font-weight: 400;
+      letter-spacing: .04em;
+      padding: .45rem .9rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(6px);
+      transition: opacity .2s, transform .2s;
+      box-shadow: 0 2px 8px rgba(10,9,8,.2);
+    }
+
+    .chat-fab-tooltip::after {
+      content: '';
+      position: absolute;
+      right: -6px; top: 50%;
+      transform: translateY(-50%);
+      border: 4px solid transparent;
+      border-left-color: var(--negro);
+    }
+
+    .chat-fab:hover ~ .chat-fab-tooltip {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* ── PANEL DEL CHAT ── */
+    .chat-panel {
+      display: none;
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 400;
+      width: 380px;
+      max-height: calc(100vh - 3rem);
+      flex-direction: column;
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid rgba(169, 146, 125, .25);
+      box-shadow:
+        0 20px 60px rgba(10, 9, 8, .22),
+        0 6px 18px rgba(10, 9, 8, .14);
+      overflow: hidden;
+      animation: chatSlideUp .35s cubic-bezier(.22, .61, .36, 1) both;
+    }
+
+    .chat-panel:target { display: flex; }
+
+    @keyframes chatSlideUp {
+      from { opacity: 0; transform: translateY(30px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ── HEADER DEL CHAT ── */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+      padding: 1rem 1.1rem;
+      background: var(--negro);
+      border-bottom: 2px solid var(--borgona);
+      flex-shrink: 0;
+    }
+
+    .chat-avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: var(--borgona);
+      border: 2px solid var(--arena);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .chat-avatar svg {
+      width: 22px; height: 22px;
+      stroke: var(--blanco); fill: none;
+      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* indicador online */
+    .chat-avatar::after {
+      content: '';
+      position: absolute;
+      bottom: 1px; right: 1px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #4caf74;
+      border: 2px solid var(--negro);
+    }
+
+    .chat-header-info { flex: 1; }
+
+    .chat-header-info .name {
+      font-family: var(--ff-display);
+      font-size: 1rem; font-weight: 700;
+      color: var(--blanco); letter-spacing: .03em;
+      line-height: 1.2;
+    }
+
+    .chat-header-info .status {
+      font-size: .65rem; font-weight: 300;
+      color: var(--arena); letter-spacing: .05em;
+      margin-top: .1rem;
+      display: flex; align-items: center; gap: .35rem;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%; background: #4caf74;
+      display: inline-block;
+    }
+
+    .chat-header-actions { display: flex; gap: .3rem; }
+
+    .chat-header-btn {
+      width: 30px; height: 30px;
+      border-radius: 50%; border: none;
+      background: rgba(169, 146, 125, .12);
+      display: grid; place-items: center;
+      cursor: pointer; transition: background .2s;
+      text-decoration: none;
+      color: var(--arena);
+    }
+
+    .chat-header-btn:hover { background: rgba(169, 146, 125, .25); }
+
+    .chat-header-btn svg {
+      width: 15px; height: 15px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ── DISCLAIMER SERVICIO ── */
+    .chat-disclaimer {
+      display: flex;
+      align-items: flex-start;
+      gap: .6rem;
+      padding: .65rem 1rem;
+      background: rgba(169, 146, 125, .08);
+      border-bottom: 1px solid rgba(169, 146, 125, .18);
+      flex-shrink: 0;
+    }
+
+    .chat-disclaimer svg {
+      width: 14px; height: 14px;
+      stroke: var(--arena); fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      flex-shrink: 0; margin-top: 1px;
+    }
+
+    .chat-disclaimer p {
+      font-size: .67rem; color: var(--arena);
+      font-weight: 300; line-height: 1.45;
+      letter-spacing: .02em;
+    }
+
+    /* ── MENSAJES ── */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.1rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: var(--blanco);
+      min-height: 0;
+      max-height: 380px;
+    }
+
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-track { background: transparent; }
+    .chat-messages::-webkit-scrollbar-thumb { background: rgba(169,146,125,.3); border-radius: 2px; }
+
+    /* Fecha separador */
+    .msg-date-sep {
+      text-align: center;
+      font-size: .62rem;
+      color: var(--arena);
+      font-weight: 300;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      position: relative;
+    }
+
+    .msg-date-sep::before, .msg-date-sep::after {
+      content: '';
+      position: absolute;
+      top: 50%; width: 30%;
+      height: 1px;
+      background: rgba(169, 146, 125, .2);
+    }
+
+    .msg-date-sep::before { left: 0; }
+    .msg-date-sep::after  { right: 0; }
+
+    /* Burbuja de mensaje */
+    .msg {
+      display: flex;
+      align-items: flex-end;
+      gap: .55rem;
+    }
+
+    .msg.bot  { flex-direction: row; }
+    .msg.user { flex-direction: row-reverse; }
+
+    .msg-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--borgona);
+      border: 1.5px solid var(--arena);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+
+    .msg-icon svg {
+      width: 14px; height: 14px;
+      stroke: var(--blanco); fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .msg-bubble {
+      max-width: 75%;
+      padding: .75rem 1rem;
+      border-radius: 12px;
+      font-size: .82rem;
+      line-height: 1.55;
+      position: relative;
+    }
+
+    .msg.bot .msg-bubble {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .22);
+      color: var(--negro);
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 4px rgba(10,9,8,.05);
+    }
+
+    .msg.user .msg-bubble {
+      background: var(--borgona);
+      color: var(--blanco);
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg-time {
+      font-size: .6rem;
+      color: var(--arena);
+      font-weight: 300;
+      margin-top: .35rem;
+      letter-spacing: .03em;
+    }
+
+    .msg.user .msg-time { text-align: right; }
+
+    /* Texto del bot */
+    .msg-bubble p { margin-bottom: .4rem; }
+    .msg-bubble p:last-child { margin-bottom: 0; }
+
+    /* Tarjetas de recomendación dentro del chat */
+    .rec-cards {
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      margin-top: .6rem;
+    }
+
+    .rec-card {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .6rem .75rem;
+      background: rgba(169, 146, 125, .07);
+      border: 1px solid rgba(169, 146, 125, .2);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+
+    .rec-card:hover {
+      background: rgba(169, 146, 125, .15);
+      border-color: var(--arena);
+    }
+
+    .rec-cover {
+      width: 32px; height: 44px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      display: grid; place-items: center;
+      font-size: 1.2rem;
+    }
+
+    .rec-info .rec-title {
+      font-size: .78rem;
+      font-weight: 500;
+      color: var(--negro);
+      line-height: 1.3;
+    }
+
+    .rec-info .rec-author {
+      font-size: .68rem;
+      color: var(--arena);
+      font-weight: 300;
+      margin-top: .1rem;
+    }
+
+    .rec-arrow {
+      margin-left: auto;
+      width: 14px; height: 14px;
+      stroke: var(--arena); fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: flex-end;
+      gap: .55rem;
+    }
+
+    .typing-bubble {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .22);
+      border-radius: 12px;
+      border-bottom-left-radius: 4px;
+      padding: .7rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      box-shadow: 0 1px 4px rgba(10,9,8,.05);
+    }
+
+    .typing-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--arena);
+      animation: typing-bounce 1.4s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: .2s; }
+    .typing-dot:nth-child(3) { animation-delay: .4s; }
+
+    @keyframes typing-bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+      30%            { transform: translateY(-5px); opacity: 1; }
+    }
+
+    /* ── CHIPS DE SUGERENCIAS ── */
+    .chat-suggestions {
+      padding: .7rem 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem;
+      border-top: 1px solid rgba(169, 146, 125, .15);
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .chip {
+      padding: .35rem .85rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 20px;
+      font-family: var(--ff-body);
+      font-size: .7rem;
+      color: var(--oliva);
+      background: var(--blanco);
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+
+    .chip:hover {
+      background: var(--borgona);
+      color: var(--blanco);
+      border-color: var(--borgona);
+    }
+
+    /* ── INPUT AREA ── */
+    .chat-input-area {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .8rem 1rem;
+      border-top: 1px solid rgba(169, 146, 125, .2);
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .chat-input {
+      flex: 1;
+      height: 40px;
+      padding: 0 .9rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 20px;
+      font-family: var(--ff-body);
+      font-size: .82rem;
+      color: var(--negro);
+      background: var(--blanco);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .chat-input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .07);
+    }
+
+    .chat-input::placeholder { color: var(--arena); opacity: .8; }
+
+    .chat-send {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--borgona);
+      border: none;
+      display: grid; place-items: center;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+      flex-shrink: 0;
+    }
+
+    .chat-send:hover { background: var(--negro); transform: scale(1.05); }
+
+    .chat-send svg {
+      width: 16px; height: 16px;
+      stroke: var(--blanco); fill: none;
+      stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ── POWERED BY ── */
+    .chat-powered {
+      text-align: center;
+      padding: .4rem 1rem .5rem;
+      font-size: .6rem;
+      color: rgba(169, 146, 125, .6);
+      letter-spacing: .04em;
+      background: #fff;
+      border-top: 1px solid rgba(169, 146, 125, .1);
+      flex-shrink: 0;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { padding: .8rem 1.2rem; flex-wrap: wrap; }
+
+      .nav-search {
+        order: 3; flex: 1 1 100%;
+        max-width: 100%; margin-top: .8rem;
+      }
+
+      .nav-links { display: none; }
+
+      main { padding: 2rem 1.2rem 3rem; }
+
+      .books-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+
+      /* Chat en mobile: ocupa más pantalla */
+      .chat-panel {
+        width: calc(100vw - 2rem);
+        right: 1rem;
+        bottom: 1rem;
+        max-height: calc(100vh - 5rem);
+      }
+
+      .chat-fab { bottom: 1.2rem; right: 1.2rem; }
+      .chat-fab-tooltip { display: none; }
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+      nav { padding: .9rem 1.5rem; }
+      .nav-search { max-width: 350px; }
+      .books-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-search">
+      <input type="text" placeholder="Buscar libros, autores, géneros…">
+      <svg class="nav-search-icon" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#">Catálogo</a></li>
+      <li><a href="#">Mis Reservas</a></li>
+      <li><a href="#">Cuenta</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+    <div class="container">
+
+      <div class="catalog-header">
+        <h1>Novedades Literarias</h1>
+        <span class="divider"></span>
+        <p>Descubre los títulos más recientes de nuestra colección y recibe recomendaciones personalizadas de nuestro asistente literario.</p>
+      </div>
+
+      <h2 class="section-title"><span class="highlight">★</span> Últimos Libros Agregados</h2>
+
+      <div class="books-grid">
+
+        <div class="book-card">
+          <div class="book-cover">
+            <div class="book-cover-placeholder">📚</div>
+            <span class="book-badge">Nuevo</span>
+          </div>
+          <div class="book-info">
+            <div class="book-date">4 Mar 2026</div>
+            <h3 class="book-title">Cien Años de Soledad</h3>
+            <p class="book-author">Gabriel García Márquez</p>
+            <div class="book-price">S/ 58.00</div>
+          </div>
+        </div>
+
+        <div class="book-card">
+          <div class="book-cover" style="background: var(--oliva)">
+            <div class="book-cover-placeholder">📖</div>
+            <span class="book-badge available">Disponible</span>
+          </div>
+          <div class="book-info">
+            <div class="book-date">2 Mar 2026</div>
+            <h3 class="book-title">Don Quijote de la Mancha</h3>
+            <p class="book-author">Miguel de Cervantes</p>
+            <div class="book-price">S/ 49.90</div>
+          </div>
+        </div>
+
+        <div class="book-card">
+          <div class="book-cover" style="background: var(--borgona)">
+            <div class="book-cover-placeholder">📕</div>
+            <span class="book-badge">Nuevo</span>
+          </div>
+          <div class="book-info">
+            <div class="book-date">28 Feb 2026</div>
+            <h3 class="book-title">1984</h3>
+            <p class="book-author">George Orwell</p>
+            <div class="book-price">S/ 42.00</div>
+          </div>
+        </div>
+
+        <div class="book-card">
+          <div class="book-cover" style="background: #7a6352">
+            <div class="book-cover-placeholder">📗</div>
+            <span class="book-badge available">Disponible</span>
+          </div>
+          <div class="book-info">
+            <div class="book-date">25 Feb 2026</div>
+            <h3 class="book-title">Sapiens</h3>
+            <p class="book-author">Yuval Noah Harari</p>
+            <div class="book-price">S/ 72.00</div>
+          </div>
+        </div>
+
+        <div class="book-card">
+          <div class="book-cover" style="background: var(--negro)">
+            <div class="book-cover-placeholder" style="color:rgba(169,146,125,.4)">📘</div>
+            <span class="book-badge">Nuevo</span>
+          </div>
+          <div class="book-info">
+            <div class="book-date">20 Feb 2026</div>
+            <h3 class="book-title">Crimen y Castigo</h3>
+            <p class="book-author">Fiódor Dostoyevski</p>
+            <div class="book-price">S/ 55.00</div>
+          </div>
+        </div>
+
+        <div class="book-card">
+          <div class="book-cover" style="background: linear-gradient(135deg,var(--arena),var(--oliva))">
+            <div class="book-cover-placeholder">📙</div>
+            <span class="book-badge available">Disponible</span>
+          </div>
+          <div class="book-info">
+            <div class="book-date">15 Feb 2026</div>
+            <h3 class="book-title">El Gran Gatsby</h3>
+            <p class="book-author">F. Scott Fitzgerald</p>
+            <div class="book-price">S/ 38.50</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados</footer>
+
+
+  <!-- ════════════════════════════════════════════
+       BOTÓN FLOTANTE DE CHAT
+       ════════════════════════════════════════════ -->
+  <a href="#chat-panel" class="chat-fab" aria-label="Abrir asistente virtual">
+    <!-- Ícono robot -->
+    <svg viewBox="0 0 24 24">
+      <!-- cabeza del robot -->
+      <rect x="4" y="7" width="16" height="12" rx="2"/>
+      <!-- ojos -->
+      <circle cx="9"  cy="12" r="1.5" fill="currentColor" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+      <circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+      <!-- boca -->
+      <path d="M9 16h6"/>
+      <!-- antena -->
+      <line x1="12" y1="7" x2="12" y2="4"/>
+      <circle cx="12" cy="3.5" r="1" stroke="none" style="fill:rgba(242,244,243,.8)"/>
+      <!-- orejas/conectores -->
+      <path d="M4 11H2M22 11h-2"/>
+    </svg>
+  </a>
+
+  <div class="chat-fab-tooltip">Asistente literario</div>
+
+
+  <!-- ════════════════════════════════════════════
+       PANEL DEL CHAT (CSS :target)
+       ════════════════════════════════════════════ -->
+  <div id="chat-panel" class="chat-panel">
+
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="chat-avatar">
+        <svg viewBox="0 0 24 24">
+          <rect x="4" y="7" width="16" height="12" rx="2"/>
+          <circle cx="9"  cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+          <circle cx="15" cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+          <path d="M9 16h6"/>
+          <line x1="12" y1="7" x2="12" y2="4"/>
+          <circle cx="12" cy="3.5" r="1" stroke="none" style="fill:rgba(242,244,243,.8)"/>
+          <path d="M4 11H2M22 11h-2"/>
+        </svg>
+      </div>
+      <div class="chat-header-info">
+        <div class="name">Alejandría IA</div>
+        <div class="status">
+          <span class="status-dot"></span>
+          En línea · Asistente literario
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <a href="#" class="chat-header-btn" aria-label="Cerrar chat">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Disclaimer del servicio -->
+    <div class="chat-disclaimer">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p>Servicio independiente integrado a la plataforma. Su disponibilidad depende del proveedor externo.</p>
+    </div>
+
+    <!-- Mensajes -->
+    <div class="chat-messages">
+
+      <div class="msg-date-sep">Hoy, 02:15 p.m.</div>
+
+      <!-- Bot: saludo -->
+      <div class="msg bot">
+        <div class="msg-icon">
+          <svg viewBox="0 0 24 24">
+            <rect x="4" y="7" width="16" height="12" rx="2"/>
+            <circle cx="9"  cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+            <circle cx="15" cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+            <path d="M9 16h6"/>
+            <line x1="12" y1="7" x2="12" y2="4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="msg-bubble">
+            <p>¡Hola, Carlos! 👋 Soy <strong>Alejandría</strong>, tu asistente literario personal.</p>
+            <p>Basándome en tu historial, sé que disfrutas el <strong>realismo mágico</strong> y la <strong>ciencia ficción</strong>. ¿En qué puedo ayudarte hoy?</p>
+          </div>
+          <div class="msg-time">02:15 p.m.</div>
+        </div>
+      </div>
+
+      <!-- Usuario -->
+      <div class="msg user">
+        <div>
+          <div class="msg-bubble">
+            Quiero algo parecido a Cien Años de Soledad, pero más corto.
+          </div>
+          <div class="msg-time">02:16 p.m.</div>
+        </div>
+      </div>
+
+      <!-- Bot: recomendaciones -->
+      <div class="msg bot">
+        <div class="msg-icon">
+          <svg viewBox="0 0 24 24">
+            <rect x="4" y="7" width="16" height="12" rx="2"/>
+            <circle cx="9"  cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+            <circle cx="15" cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+            <path d="M9 16h6"/>
+            <line x1="12" y1="7" x2="12" y2="4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="msg-bubble">
+            <p>¡Claro! Aquí mis recomendaciones según tu perfil:</p>
+            <div class="rec-cards">
+
+              <div class="rec-card">
+                <div class="rec-cover" style="background:rgba(169,146,125,.2)">📗</div>
+                <div class="rec-info">
+                  <div class="rec-title">Pedro Páramo</div>
+                  <div class="rec-author">Juan Rulfo · 124 págs.</div>
+                </div>
+                <svg class="rec-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+
+              <div class="rec-card">
+                <div class="rec-cover" style="background:rgba(73,17,28,.12)">📕</div>
+                <div class="rec-info">
+                  <div class="rec-title">El Reino de Este Mundo</div>
+                  <div class="rec-author">Alejo Carpentier · 192 págs.</div>
+                </div>
+                <svg class="rec-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+
+              <div class="rec-card">
+                <div class="rec-cover" style="background:rgba(94,80,63,.15)">📘</div>
+                <div class="rec-info">
+                  <div class="rec-title">La Casa de los Espíritus</div>
+                  <div class="rec-author">Isabel Allende · 368 págs.</div>
+                </div>
+                <svg class="rec-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+
+            </div>
+          </div>
+          <div class="msg-time">02:16 p.m.</div>
+        </div>
+      </div>
+
+      <!-- Usuario -->
+      <div class="msg user">
+        <div>
+          <div class="msg-bubble">
+            Pedro Páramo suena perfecto, ¿está disponible?
+          </div>
+          <div class="msg-time">02:17 p.m.</div>
+        </div>
+      </div>
+
+      <!-- Bot: disponibilidad -->
+      <div class="msg bot">
+        <div class="msg-icon">
+          <svg viewBox="0 0 24 24">
+            <rect x="4" y="7" width="16" height="12" rx="2"/>
+            <circle cx="9"  cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+            <circle cx="15" cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+            <path d="M9 16h6"/>
+            <line x1="12" y1="7" x2="12" y2="4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="msg-bubble">
+            <p>✅ <strong>Pedro Páramo</strong> está disponible en nuestra tienda <em>Lima Centro</em> a <strong>S/ 32.00</strong>.</p>
+            <p>¿Lo agrego a tu carrito o prefieres reservarlo para recojo en tienda?</p>
+          </div>
+          <div class="msg-time">02:17 p.m.</div>
+        </div>
+      </div>
+
+      <!-- Typing indicator (muestra que el bot "está escribiendo") -->
+      <div class="typing-indicator">
+        <div class="msg-icon">
+          <svg viewBox="0 0 24 24">
+            <rect x="4" y="7" width="16" height="12" rx="2"/>
+            <circle cx="9"  cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+            <circle cx="15" cy="12" r="1.5" stroke="none" style="fill:rgba(242,244,243,.9)"/>
+            <path d="M9 16h6"/>
+            <line x1="12" y1="7" x2="12" y2="4"/>
+          </svg>
+        </div>
+        <div class="typing-bubble">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sugerencias rápidas -->
+    <div class="chat-suggestions">
+      <button class="chip">Agregar al carrito</button>
+      <button class="chip">Reservar en tienda</button>
+      <button class="chip">Más recomendaciones</button>
+      <button class="chip">Ver mis compras</button>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-area">
+      <input class="chat-input" type="text" placeholder="Escribe un mensaje…" readonly>
+      <button class="chat-send" aria-label="Enviar">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+
+    <!-- Powered by -->
+    <div class="chat-powered">
+      Impulsado por IA · Servicio externo integrado
+    </div>
+
+  </div><!-- /chat-panel -->
+
+</body>
+</html>

@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editar Perfil — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro: #0a0908;
+      --borgona: #49111c;
+      --blanco: #f2f4f3;
+      --arena: #a9927d;
+      --oliva: #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body: 'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Textura de fondo sutil ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169, 146, 125, .15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--arena);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .profile-wrapper {
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── HEADER ── */
+    .profile-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .profile-avatar {
+      width: 90px;
+      height: 90px;
+      margin: 0 auto 1.2rem;
+      border: 3px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--blanco);
+      box-shadow: 0 4px 12px rgba(10, 9, 8, .1);
+    }
+
+    .profile-avatar svg {
+      width: 42px;
+      height: 42px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .profile-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.5rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+      margin-bottom: .5rem;
+    }
+
+    .profile-header .divider {
+      display: block;
+      width: 60px;
+      height: 3px;
+      background: var(--arena);
+      margin: .9rem auto 1rem;
+      border-radius: 2px;
+    }
+
+    .profile-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ── CARD ── */
+    .profile-card {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      padding: 2.5rem 2.8rem 2.2rem;
+      box-shadow:
+        0 1px 3px rgba(10, 9, 8, .04),
+        0 8px 30px rgba(10, 9, 8, .06);
+      margin-bottom: 1.5rem;
+    }
+
+    .section-label {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--oliva);
+      margin-bottom: 1.2rem;
+      padding-bottom: .45rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+      letter-spacing: .02em;
+    }
+
+    /* ── GRID ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.1rem 1.6rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: .72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .4rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    .form-group label .required {
+      color: var(--borgona);
+      margin-left: 2px;
+    }
+
+    .form-group label .lock-icon {
+      width: 12px;
+      height: 12px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 0 .9rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .88rem;
+      color: var(--negro);
+      background: var(--blanco);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .form-group input,
+    .form-group select {
+      height: 44px;
+    }
+
+    .form-group textarea {
+      min-height: 90px;
+      padding: .75rem .9rem;
+      resize: vertical;
+    }
+
+    .form-group select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235e503f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .9rem center;
+      padding-right: 2.2rem;
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { 
+      color: var(--arena); 
+      opacity: .6; 
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .08);
+    }
+
+    .form-group input:disabled {
+      background: rgba(169, 146, 125, .08);
+      color: var(--arena);
+      cursor: not-allowed;
+    }
+
+    .field-hint {
+      font-size: .7rem;
+      color: var(--arena);
+      margin-top: .35rem;
+      font-weight: 300;
+      font-style: italic;
+    }
+
+    /* ── BOTONES ── */
+    .form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      height: 48px;
+      padding: 0 2rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169, 146, 125, .35);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(94, 80, 63, .05);
+    }
+
+    /* ── SECCIÓN CLIENTE ADICIONAL ── */
+    .client-modules {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+      margin-top: 2rem;
+    }
+
+    .module-card {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 6px;
+      padding: 2rem;
+      box-shadow: 0 1px 3px rgba(10, 9, 8, .04);
+      transition: all .2s;
+      cursor: pointer;
+    }
+
+    .module-card:hover {
+      border-color: var(--borgona);
+      box-shadow: 0 4px 16px rgba(10, 9, 8, .08);
+      transform: translateY(-2px);
+    }
+
+    .module-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(169, 146, 125, .12);
+      display: grid;
+      place-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .module-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .module-card h3 {
+      font-family: var(--ff-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--borgona);
+      margin-bottom: .5rem;
+      letter-spacing: .02em;
+    }
+
+    .module-card p {
+      font-size: .82rem;
+      color: var(--oliva);
+      line-height: 1.5;
+      font-weight: 300;
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 9, 8, .6);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 650px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow:
+        0 10px 40px rgba(10, 9, 8, .2),
+        0 4px 12px rgba(10, 9, 8, .15);
+      transform: scale(.95);
+      transition: transform .3s;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+    }
+
+    .modal-header h2 {
+      font-family: var(--ff-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+
+    .modal-header h2 svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .modal-header p {
+      font-size: .82rem;
+      color: var(--oliva);
+      font-weight: 300;
+      margin-top: .5rem;
+      line-height: 1.5;
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    .modal-footer {
+      padding: 1.4rem 2rem 1.8rem;
+      border-top: 1px solid rgba(169, 146, 125, .2);
+      display: flex;
+      justify-content: flex-end;
+      gap: .9rem;
+    }
+
+    /* ── PREFERENCIAS LITERARIAS ── */
+    .preferences-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .preference-item {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      padding: .9rem 1.1rem;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 4px;
+      transition: all .2s;
+      cursor: pointer;
+    }
+
+    .preference-item:hover {
+      border-color: var(--borgona);
+      background: rgba(169, 146, 125, .04);
+    }
+
+    .preference-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--borgona);
+      cursor: pointer;
+    }
+
+    .preference-item label {
+      flex: 1;
+      font-size: .88rem;
+      color: var(--negro);
+      cursor: pointer;
+      font-weight: 400;
+    }
+
+    /* ── GESTIÓN FINANCIERA ── */
+    .finance-summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .finance-box {
+      padding: 1.2rem;
+      border: 1px solid rgba(169, 146, 125, .25);
+      border-radius: 4px;
+      background: rgba(169, 146, 125, .04);
+    }
+
+    .finance-box .label {
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+      margin-bottom: .4rem;
+    }
+
+    .finance-box .amount {
+      font-family: var(--ff-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--borgona);
+    }
+
+    .transaction-list {
+      display: flex;
+      flex-direction: column;
+      gap: .8rem;
+    }
+
+    .transaction-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .9rem 1.1rem;
+      border: 1px solid rgba(169, 146, 125, .2);
+      border-radius: 4px;
+      background: var(--blanco);
+    }
+
+    .transaction-info {
+      flex: 1;
+    }
+
+    .transaction-info .title {
+      font-size: .88rem;
+      color: var(--negro);
+      font-weight: 500;
+      margin-bottom: .2rem;
+    }
+
+    .transaction-info .date {
+      font-size: .72rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .transaction-amount {
+      font-family: var(--ff-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--borgona);
+    }
+
+    .transaction-amount.paid {
+      color: var(--oliva);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav {
+        padding: .8rem 1.2rem;
+        flex-direction: column;
+        gap: .7rem;
+      }
+
+      .nav-info {
+        width: 100%;
+        justify-content: center;
+      }
+
+      main {
+        padding: 2rem 1.2rem;
+      }
+
+      .profile-card {
+        padding: 1.6rem 1.3rem 1.4rem;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+        gap: .9rem;
+      }
+
+      .form-group.full {
+        grid-column: auto;
+      }
+
+      .form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .client-modules {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-footer {
+        flex-direction: column-reverse;
+      }
+
+      .finance-summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Cliente</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+    <div class="profile-wrapper">
+
+      <div class="profile-header">
+        <div class="profile-avatar">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <h1>Mi Perfil</h1>
+        <span class="divider"></span>
+        <p>Actualiza tu información personal y mantén tus datos al día para una mejor experiencia en la plataforma.</p>
+      </div>
+
+      <!-- Formulario Principal -->
+      <div class="profile-card">
+        <h2 class="section-label">Información Personal</h2>
+        
+        <form autocomplete="off">
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label>
+                DNI <span class="required">*</span>
+                <svg class="lock-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </label>
+              <input type="text" value="12345678" disabled>
+              <span class="field-hint">Este campo no puede ser modificado.</span>
+            </div>
+
+            <div class="form-group">
+              <label>Género <span class="required">*</span></label>
+              <select>
+                <option value="" disabled>Seleccionar</option>
+                <option selected>Masculino</option>
+                <option>Femenino</option>
+                <option>Otro</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Nombres <span class="required">*</span></label>
+              <input type="text" value="Carlos Alberto" placeholder="Ingrese sus nombres">
+            </div>
+
+            <div class="form-group">
+              <label>Apellidos <span class="required">*</span></label>
+              <input type="text" value="Pérez González" placeholder="Ingrese sus apellidos">
+            </div>
+
+            <div class="form-group">
+              <label>Fecha de Nacimiento <span class="required">*</span></label>
+              <input type="date" value="1995-04-15">
+            </div>
+
+            <div class="form-group">
+              <label>Lugar de Nacimiento <span class="required">*</span></label>
+              <input type="text" value="Lima, Perú" placeholder="Ciudad, País">
+            </div>
+
+            <div class="form-group">
+              <label>Teléfono <span class="required">*</span></label>
+              <input type="tel" value="+51 987 654 321" placeholder="+51 999 999 999">
+            </div>
+
+            <div class="form-group">
+              <label>
+                Correo Electrónico <span class="required">*</span>
+                <svg class="lock-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </label>
+              <input type="email" value="carlos.perez@correo.com" disabled>
+              <span class="field-hint">Este campo no puede ser modificado.</span>
+            </div>
+
+            <div class="form-group full">
+              <label>Dirección de Correspondencia <span class="required">*</span></label>
+              <input type="text" value="Av. Universitaria 1801, San Miguel, Lima" placeholder="Calle, número, ciudad, código postal">
+            </div>
+
+            <div class="form-group full">
+              <label>Biografía / Notas</label>
+              <textarea placeholder="Cuéntanos un poco sobre ti o tus intereses literarios...">Amante de la literatura clásica y la ciencia ficción. Actualmente explorando obras latinoamericanas contemporáneas.</textarea>
+            </div>
+
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+              Guardar Cambios
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Módulos Adicionales para Clientes -->
+      <div class="client-modules">
+        
+        <div class="module-card" onclick="document.getElementById('modalPreferencias').classList.add('active')">
+          <div class="module-icon">
+            <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </div>
+          <h3>Preferencias Literarias</h3>
+          <p>Administra tus géneros favoritos y recibe recomendaciones personalizadas de libros.</p>
+        </div>
+
+        <div class="module-card" onclick="document.getElementById('modalFinanciero').classList.add('active')">
+          <div class="module-icon">
+            <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+          </div>
+          <h3>Gestión Financiera</h3>
+          <p>Consulta tus multas pendientes, historial de pagos y detalles de transacciones.</p>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── MODAL PREFERENCIAS LITERARIAS ── -->
+  <div class="modal-overlay" id="modalPreferencias">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          Preferencias Literarias
+        </h2>
+        <p>Selecciona los géneros literarios de tu interés para recibir recomendaciones personalizadas.</p>
+      </div>
+      <div class="modal-body">
+        <div class="preferences-grid">
+          <div class="preference-item">
+            <input type="checkbox" id="pref1" checked>
+            <label for="pref1">Ficción Histórica</label>
+          </div>
+          <div class="preference-item">
+            <input type="checkbox" id="pref2" checked>
+            <label for="pref2">Ciencia Ficción</label>
+          </div>
+          <div class="preference-item">
+            <input type="checkbox" id="pref3">
+            <label for="pref3">Novela Romántica</label>
+          </div>
+          <div class="preference-item">
+            <input type="checkbox" id="pref4" checked>
+            <label for="pref4">Literatura Clásica</label>
+          </div>
+          <div class="preference-item">
+            <input type="checkbox" id="pref5">
+            <label for="pref5">Terror y Suspense</label>
+          </div>
+          <div class="preference-item">
+            <input type="checkbox" id="pref6" checked>
+            <label for="pref6">Biografías y Memorias</label>
+          </div>
+          <div class="preference-item">
+            <input type="checkbox" id="pref7">
+            <label for="pref7">Poesía</label>
+          </div>
+          <div class="preference-item">
+            <input type="checkbox" id="pref8">
+            <label for="pref8">Desarrollo Personal</label>
+          </div>
+          <div class="preference-item">
+            <input type="checkbox" id="pref9">
+            <label for="pref9">Ensayos y Filosofía</label>
+          </div>
+          <div class="preference-item">
+            <input type="checkbox" id="pref10">
+            <label for="pref10">Literatura Infantil</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('modalPreferencias').classList.remove('active')">
+          Cancelar
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+          Guardar Preferencias
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL GESTIÓN FINANCIERA ── -->
+  <div class="modal-overlay" id="modalFinanciero">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>
+          <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+          Gestión Financiera
+        </h2>
+        <p>Revisa tus multas, pagos realizados y transacciones pendientes.</p>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Resumen -->
+        <div class="finance-summary">
+          <div class="finance-box">
+            <div class="label">Multas Pendientes</div>
+            <div class="amount">S/. 15.00</div>
+          </div>
+          <div class="finance-box">
+            <div class="label">Total Pagado</div>
+            <div class="amount">S/. 45.00</div>
+          </div>
+        </div>
+
+        <!-- Transacciones -->
+        <h3 class="section-label" style="margin-bottom: 1rem;">Historial de Transacciones</h3>
+        <div class="transaction-list">
+          
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <div class="title">Multa por retraso - "Cien años de soledad"</div>
+              <div class="date">15 Feb 2026</div>
+            </div>
+            <div class="transaction-amount">S/. 10.00</div>
+          </div>
+
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <div class="title">Multa por retraso - "El Principito"</div>
+              <div class="date">22 Feb 2026</div>
+            </div>
+            <div class="transaction-amount">S/. 5.00</div>
+          </div>
+
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <div class="title">Pago realizado - Multas acumuladas</div>
+              <div class="date">01 Mar 2026</div>
+            </div>
+            <div class="transaction-amount paid">-S/. 45.00</div>
+          </div>
+
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <div class="title">Multa por daño menor - "1984"</div>
+              <div class="date">28 Feb 2026</div>
+            </div>
+            <div class="transaction-amount">S/. 15.00</div>
+          </div>
+
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('modalFinanciero').classList.remove('active')">
+          Cerrar
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Pagar Multas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+</body>
+</html>

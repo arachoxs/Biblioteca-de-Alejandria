@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Root — Biblioteca de Alejandría</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro:   #0a0908;
+      --borgona: #49111c;
+      --blanco:  #f2f4f3;
+      --arena:   #a9927d;
+      --oliva:   #5e503f;
+      --ff-display: 'Cormorant Garamond', Georgia, serif;
+      --ff-body:    'Libre Franklin', system-ui, sans-serif;
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--blanco);
+      color: var(--negro);
+      font-family: var(--ff-body);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Textura de fondo sutil ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 60px,
+          rgba(94, 80, 63, .03) 60px,
+          rgba(94, 80, 63, .03) 61px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 2.5rem;
+      background: var(--negro);
+      border-bottom: 3px solid var(--borgona);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      color: var(--blanco);
+    }
+
+    .nav-brand-icon {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--arena);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--ff-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--arena);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-family: var(--ff-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .nav-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: var(--arena);
+      font-size: .8rem;
+      font-weight: 300;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem .9rem;
+      background: rgba(169, 146, 125, .15);
+      border-radius: 20px;
+      font-weight: 400;
+      letter-spacing: .04em;
+    }
+
+    .user-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--borgona);
+      box-shadow: 0 0 0 2px rgba(73, 17, 28, .3);
+    }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 3.5rem 2.5rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      margin-bottom: 3rem;
+      animation: fadeUp .6s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header-top {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: .8rem;
+    }
+
+    .root-crown {
+      width: 44px;
+      height: 44px;
+      background: var(--borgona);
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .root-crown svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--blanco);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .page-header h1 {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+      line-height: 1.2;
+    }
+
+    .page-header p {
+      font-size: .88rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.7;
+      max-width: 620px;
+      padding-left: calc(44px + 1rem);
+    }
+
+    /* ── DIVIDER ── */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      animation: fadeUp .6s .1s ease-out both;
+    }
+
+    .section-divider span {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      color: var(--arena);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(169, 146, 125, .3);
+    }
+
+    /* ── ACTIONS GRID ── */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    /* ── ACTION CARD ── */
+    .action-card {
+      background: #fff;
+      border: 1px solid rgba(169, 146, 125, .22);
+      border-radius: 6px;
+      padding: 2.2rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      box-shadow:
+        0 1px 3px rgba(10, 9, 8, .04),
+        0 8px 30px rgba(10, 9, 8, .05);
+      transition: box-shadow .25s, transform .25s, border-color .25s;
+      animation: fadeUp .6s ease-out both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-card:nth-child(1) { animation-delay: .15s; }
+    .action-card:nth-child(2) { animation-delay: .25s; }
+    .action-card:nth-child(3) { animation-delay: .35s; }
+
+    .action-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--borgona);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .3s ease;
+    }
+
+    .action-card:hover {
+      box-shadow:
+        0 4px 16px rgba(10, 9, 8, .08),
+        0 20px 60px rgba(10, 9, 8, .10);
+      transform: translateY(-3px);
+      border-color: rgba(169, 146, 125, .4);
+    }
+
+    .action-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border: 1.5px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      background: rgba(242, 244, 243, .8);
+      flex-shrink: 0;
+    }
+
+    .card-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .card-content {
+      flex: 1;
+    }
+
+    .card-content h2 {
+      font-family: var(--ff-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--negro);
+      letter-spacing: .01em;
+      line-height: 1.25;
+      margin-bottom: .5rem;
+    }
+
+    .card-content p {
+      font-size: .8rem;
+      color: var(--oliva);
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(169, 146, 125, .15);
+    }
+
+    .card-tag {
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--arena);
+      font-weight: 500;
+    }
+
+    .card-arrow {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(169, 146, 125, .3);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      transition: background .2s, border-color .2s;
+    }
+
+    .card-arrow svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--borgona);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .action-card:hover .card-arrow {
+      background: var(--borgona);
+      border-color: var(--borgona);
+    }
+
+    .action-card:hover .card-arrow svg {
+      stroke: var(--blanco);
+    }
+
+    /* ── INFO STRIP ── */
+    .info-strip {
+      background: var(--negro);
+      border-radius: 6px;
+      padding: 1.4rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+      animation: fadeUp .6s .45s ease-out both;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+    }
+
+    .info-item svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .info-item-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .info-item-label {
+      font-size: .65rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--oliva);
+      font-weight: 500;
+    }
+
+    .info-item-value {
+      font-size: .82rem;
+      color: var(--blanco);
+      font-weight: 300;
+      margin-top: .1rem;
+    }
+
+    .info-strip .divider-v {
+      width: 1px;
+      height: 32px;
+      background: rgba(169, 146, 125, .2);
+      flex-shrink: 0;
+    }
+
+    /* ── MODALS ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 9, 8, .65);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow:
+        0 10px 40px rgba(10, 9, 8, .2),
+        0 4px 12px rgba(10, 9, 8, .15);
+      transform: scale(.95) translateY(8px);
+      transition: transform .3s;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1) translateY(0);
+    }
+
+    /* Modal: Cambiar contraseña */
+    #modal-password .modal { max-width: 480px; }
+
+    /* Modal: Auditoría */
+    #modal-auditoria .modal { max-width: 780px; }
+
+    .modal-header {
+      padding: 1.8rem 2rem 1.4rem;
+      border-bottom: 1px solid rgba(169, 146, 125, .2);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .modal-header-text h2 {
+      font-family: var(--ff-display);
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--borgona);
+      letter-spacing: .02em;
+    }
+
+    .modal-header-text p {
+      font-size: .82rem;
+      color: var(--oliva);
+      font-weight: 300;
+      margin-top: .45rem;
+      line-height: 1.55;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(169, 146, 125, .3);
+      border-radius: 50%;
+      background: transparent;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .2s, border-color .2s;
+    }
+
+    .modal-close:hover {
+      background: rgba(73, 17, 28, .07);
+      border-color: var(--borgona);
+    }
+
+    .modal-close svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--oliva);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    .modal-body { padding: 2rem; }
+
+    /* ── FORM ── */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1.3rem;
+    }
+
+    .form-group:last-child { margin-bottom: 0; }
+
+    .form-group label {
+      font-size: .72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--oliva);
+      margin-bottom: .45rem;
+    }
+
+    .form-group label .required { color: var(--borgona); margin-left: 2px; }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap svg {
+      position: absolute;
+      left: .9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      stroke: var(--arena);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .form-group input {
+      height: 44px;
+      padding: 0 .9rem 0 2.6rem;
+      border: 1px solid rgba(169, 146, 125, .35);
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .88rem;
+      color: var(--negro);
+      background: var(--blanco);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      width: 100%;
+    }
+
+    .form-group input::placeholder { color: var(--arena); opacity: .6; }
+
+    .form-group input:focus {
+      border-color: var(--borgona);
+      box-shadow: 0 0 0 3px rgba(73, 17, 28, .08);
+    }
+
+    .password-hint {
+      font-size: .72rem;
+      color: var(--arena);
+      margin-top: .4rem;
+      font-weight: 300;
+      line-height: 1.5;
+    }
+
+    .modal-footer {
+      padding: 1.4rem 2rem 1.8rem;
+      border-top: 1px solid rgba(169, 146, 125, .2);
+      display: flex;
+      justify-content: flex-end;
+      gap: .9rem;
+    }
+
+    /* ── BTN ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      height: 42px;
+      padding: 0 1.6rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--ff-body);
+      font-size: .78rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .btn svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn-primary {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .btn-primary:hover {
+      background: var(--negro);
+      transform: translateY(-1px);
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--oliva);
+      border: 1px solid rgba(169, 146, 125, .35);
+    }
+
+    .btn-cancel:hover { background: rgba(94, 80, 63, .05); }
+
+    /* ── AUDIT TABLE ── */
+    .audit-filters {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      margin-bottom: 1.4rem;
+      flex-wrap: wrap;
+    }
+
+    .audit-filter-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .3rem .75rem;
+      border-radius: 20px;
+      font-size: .7rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .audit-filter-badge.all {
+      background: var(--borgona);
+      color: var(--blanco);
+    }
+
+    .audit-filter-badge.info {
+      background: rgba(169, 146, 125, .1);
+      color: var(--oliva);
+      border-color: rgba(169, 146, 125, .25);
+    }
+
+    .audit-filter-badge.warning {
+      background: rgba(169, 146, 125, .12);
+      color: var(--arena);
+      border-color: rgba(169, 146, 125, .3);
+    }
+
+    .audit-filter-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .audit-filter-badge.all .dot   { background: var(--blanco); }
+    .audit-filter-badge.info .dot  { background: var(--oliva); }
+    .audit-filter-badge.warning .dot { background: var(--arena); }
+
+    .audit-table-wrap {
+      border: 1px solid rgba(169, 146, 125, .2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .audit-table thead {
+      background: var(--negro);
+      color: var(--blanco);
+    }
+
+    .audit-table thead th {
+      padding: .85rem 1.1rem;
+      text-align: left;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--borgona);
+    }
+
+    .audit-table tbody tr {
+      border-bottom: 1px solid rgba(169, 146, 125, .12);
+      transition: background .15s;
+    }
+
+    .audit-table tbody tr:last-child { border-bottom: none; }
+
+    .audit-table tbody tr:hover {
+      background: rgba(169, 146, 125, .04);
+    }
+
+    .audit-table tbody td {
+      padding: .95rem 1.1rem;
+      font-size: .8rem;
+      color: var(--negro);
+    }
+
+    .audit-table .timestamp {
+      font-size: .74rem;
+      color: var(--arena);
+      font-weight: 300;
+      white-space: nowrap;
+    }
+
+    .audit-table .event-type {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .25rem .65rem;
+      border-radius: 14px;
+      font-size: .68rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .event-type.auth {
+      background: rgba(73, 17, 28, .09);
+      color: var(--borgona);
+    }
+
+    .event-type.admin {
+      background: rgba(94, 80, 63, .1);
+      color: var(--oliva);
+    }
+
+    .event-type.security {
+      background: rgba(169, 146, 125, .15);
+      color: var(--arena);
+    }
+
+    .event-type .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .audit-table .user-col {
+      font-size: .78rem;
+      color: var(--oliva);
+    }
+
+    .audit-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 1.1rem;
+      border-top: 1px solid rgba(169, 146, 125, .15);
+      background: rgba(242, 244, 243, .6);
+    }
+
+    .audit-pagination-info {
+      font-size: .72rem;
+      color: var(--arena);
+      font-weight: 300;
+    }
+
+    .audit-pagination-btns {
+      display: flex;
+      gap: .4rem;
+    }
+
+    .audit-pagination-btns button {
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(169, 146, 125, .28);
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: background .2s;
+    }
+
+    .audit-pagination-btns button:hover {
+      background: rgba(73, 17, 28, .06);
+    }
+
+    .audit-pagination-btns button svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--oliva);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.4rem 1.5rem;
+      font-size: .72rem;
+      color: var(--arena);
+      letter-spacing: .04em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .actions-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: .8rem 1.2rem;
+        flex-direction: column;
+        gap: .7rem;
+      }
+
+      .nav-info { width: 100%; justify-content: center; }
+
+      main { padding: 2rem 1.2rem; }
+
+      .page-header p { padding-left: 0; }
+
+      .actions-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .info-strip {
+        gap: 1.5rem;
+        padding: 1.2rem 1.4rem;
+      }
+
+      .info-strip .divider-v { display: none; }
+
+      .modal-footer {
+        flex-direction: column-reverse;
+      }
+
+      .modal-footer .btn { width: 100%; justify-content: center; }
+
+      .audit-table-wrap { overflow-x: auto; }
+
+      .audit-table { min-width: 600px; }
+
+      .audit-filters { gap: .5rem; }
+    }
+
+    @media (max-width: 480px) {
+      .modal-body { padding: 1.4rem; }
+      .modal-header { padding: 1.4rem 1.4rem 1.1rem; }
+      .modal-footer { padding: 1rem 1.4rem 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="nav-brand-icon">A</div>
+      <span>Biblioteca de Alejandría</span>
+    </a>
+    <div class="nav-info">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Root Admin</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-top">
+        <div class="root-crown">
+          <svg viewBox="0 0 24 24">
+            <path d="M2 20h20M5 20V10l7-7 7 7v10"/>
+            <path d="M9 20v-5h6v5"/>
+          </svg>
+        </div>
+        <h1>Panel Root</h1>
+      </div>
+      <p>Acceso centralizado a las funcionalidades de administración del sistema. Gestiona administradores, actualiza tus credenciales y consulta el registro de actividad.</p>
+    </div>
+
+    <!-- Divider -->
+    <div class="section-divider">
+      <span>Funcionalidades disponibles</span>
+    </div>
+
+    <!-- Actions Grid -->
+    <div class="actions-grid">
+
+      <!-- Card 1: Gestionar Administradores -->
+      <a href="gestion-administradores.html" class="action-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <h2>Gestionar Administradores</h2>
+          <p>Crea, habilita o inhabilita cuentas de usuario con permisos de administrador en el sistema.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Redirección</span>
+          <div class="card-arrow">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+      </a>
+
+      <!-- Card 2: Cambiar Contraseña -->
+      <div class="action-card" onclick="document.getElementById('modal-password').classList.add('active')">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <h2>Cambiar Contraseña</h2>
+          <p>Actualiza la contraseña de acceso de tu cuenta root para mantener la seguridad del sistema.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Modal</span>
+          <div class="card-arrow">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Registro de Auditoría -->
+      <div class="action-card" onclick="document.getElementById('modal-auditoria').classList.add('active')">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <h2>Registro de Auditoría</h2>
+          <p>Consulta el historial completo de eventos, acciones e inicios de sesión registrados en el sistema.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag">Modal</span>
+          <div class="card-arrow">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Info Strip -->
+    <div class="info-strip">
+      <div class="info-item">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div class="info-item-text">
+          <span class="info-item-label">Última sesión</span>
+          <span class="info-item-value">Hoy, 09:14 a.m.</span>
+        </div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="info-item">
+        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <div class="info-item-text">
+          <span class="info-item-label">IP de acceso</span>
+          <span class="info-item-value">192.168.1.42</span>
+        </div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="info-item">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="info-item-text">
+          <span class="info-item-label">Administradores activos</span>
+          <span class="info-item-value">4 cuentas</span>
+        </div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="info-item">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <div class="info-item-text">
+          <span class="info-item-label">Eventos hoy</span>
+          <span class="info-item-value">12 registros</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── MODAL: CAMBIAR CONTRASEÑA ── -->
+  <div class="modal-overlay" id="modal-password">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <h2>Cambiar Contraseña</h2>
+          <p>Actualiza la contraseña de tu cuenta root. La nueva contraseña debe cumplir los requisitos de seguridad.</p>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-password').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form autocomplete="off">
+
+          <div class="form-group">
+            <label>Contraseña actual <span class="required">*</span></label>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input type="password" placeholder="••••••••">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Nueva contraseña <span class="required">*</span></label>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+              <input type="password" placeholder="Mínimo 8 caracteres">
+            </div>
+            <span class="password-hint">Debe contener al menos una mayúscula, un número y un carácter especial.</span>
+          </div>
+
+          <div class="form-group">
+            <label>Confirmar nueva contraseña <span class="required">*</span></label>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+              <input type="password" placeholder="Repite la nueva contraseña">
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-password').classList.remove('active')">
+          Cancelar
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Actualizar Contraseña
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: REGISTRO DE AUDITORÍA ── -->
+  <div class="modal-overlay" id="modal-auditoria">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <h2>Registro de Auditoría</h2>
+          <p>Historial de eventos y acciones realizadas en el sistema. Mostrando los registros más recientes.</p>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-auditoria').classList.remove('active')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Filtros -->
+        <div class="audit-filters">
+          <span class="audit-filter-badge all"><span class="dot"></span>Todos</span>
+          <span class="audit-filter-badge info"><span class="dot"></span>Autenticación</span>
+          <span class="audit-filter-badge info"><span class="dot"></span>Gestión</span>
+          <span class="audit-filter-badge warning"><span class="dot"></span>Seguridad</span>
+        </div>
+
+        <!-- Tabla -->
+        <div class="audit-table-wrap">
+          <table class="audit-table">
+            <thead>
+              <tr>
+                <th>Fecha / Hora</th>
+                <th>Evento</th>
+                <th>Descripción</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="timestamp">04/03/2026 09:14</td>
+                <td><span class="event-type auth"><span class="dot"></span>Autenticación</span></td>
+                <td>Inicio de sesión exitoso como Root</td>
+                <td class="user-col">root</td>
+              </tr>
+              <tr>
+                <td class="timestamp">04/03/2026 08:52</td>
+                <td><span class="event-type admin"><span class="dot"></span>Gestión</span></td>
+                <td>Administrador #005 creado: ltorres</td>
+                <td class="user-col">root</td>
+              </tr>
+              <tr>
+                <td class="timestamp">03/03/2026 17:30</td>
+                <td><span class="event-type security"><span class="dot"></span>Seguridad</span></td>
+                <td>Contraseña root actualizada</td>
+                <td class="user-col">root</td>
+              </tr>
+              <tr>
+                <td class="timestamp">03/03/2026 14:05</td>
+                <td><span class="event-type admin"><span class="dot"></span>Gestión</span></td>
+                <td>Administrador #004 inhabilitado: rfernandez</td>
+                <td class="user-col">root</td>
+              </tr>
+              <tr>
+                <td class="timestamp">03/03/2026 11:22</td>
+                <td><span class="event-type auth"><span class="dot"></span>Autenticación</span></td>
+                <td>Inicio de sesión exitoso como Root</td>
+                <td class="user-col">root</td>
+              </tr>
+              <tr>
+                <td class="timestamp">02/03/2026 16:48</td>
+                <td><span class="event-type admin"><span class="dot"></span>Gestión</span></td>
+                <td>Administrador #003 creado: asilva</td>
+                <td class="user-col">root</td>
+              </tr>
+              <tr>
+                <td class="timestamp">01/03/2026 10:00</td>
+                <td><span class="event-type auth"><span class="dot"></span>Autenticación</span></td>
+                <td>Inicio de sesión exitoso como Root</td>
+                <td class="user-col">root</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="audit-pagination">
+            <span class="audit-pagination-info">Mostrando 7 de 48 registros</span>
+            <div class="audit-pagination-btns">
+              <button>
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <button>
+                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="document.getElementById('modal-auditoria').classList.remove('active')">
+          Cerrar
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar Registro
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>© 2026 Biblioteca de Alejandría — Todos los derechos reservados.</footer>
+
+  <script>
+    // Cerrar modales al hacer clic fuera del contenido
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+      });
+    });
+  </script>
+
+</body>
+</html>
