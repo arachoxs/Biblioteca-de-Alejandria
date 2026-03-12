@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
 import Button from "../components/ui/Button";
@@ -12,13 +13,149 @@ const generoOptions = [
 ];
 
 const paisOptions = Country.getAllCountries().map((country) => ({
-    value: country.isoCode,
+    value: country.name,
     label: country.name,
 }));
 
+interface formData {
+    dni: string;
+    nombres: string;
+    apellidos: string;
+    fecha_nacimiento: string;
+    lugar_nacimiento: string;
+    genero: string;
+    direccion: string;
+    correo: string;
+    usuario: string;
+    contrasena: string;
+    confirmar_contrasena: string;
+}
+
 export default function RegistroForm() {
+    const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [success, setSuccess] = useState(false);
+
+
+
+    const checkData = (data: formData): Record<string,string> => {
+        const newErrors: Record<string, string> = {};
+
+        try {            
+
+            // Verificación de campos obligatorios
+            const requiredFields = [
+                "dni", "nombres", "apellidos", "fecha_nacimiento", 
+                "lugar_nacimiento", "genero", "direccion", 
+                "correo", "usuario", "contrasena", "confirmar_contrasena"
+            ];
+
+            const fechaSeleccionada = new Date(data.fecha_nacimiento);
+            const hoy = new Date();
+
+            for (const field of requiredFields) {
+                if (!data[field as keyof typeof data] || data[field as keyof typeof data].trim() === "") {
+                    newErrors[field] = "Este campo es obligatorio.";
+                }
+            }
+
+            // Validaciones específicas
+            if (!newErrors.dni && data.dni.length <= 7) {
+                newErrors.dni = "El DNI debe tener al menos 7 dígitos.";
+            }
+
+            if (fechaSeleccionada > hoy) {
+                newErrors.fecha_nacimiento = "No puedes haber nacido en el futuro.";
+            }
+
+            if (!newErrors.contrasena && data.contrasena.length < 6) {
+                newErrors.contrasena = "La contraseña debe tener al menos 6 caracteres.";
+            }
+
+            if (!newErrors.confirmar_contrasena && data.contrasena !== data.confirmar_contrasena) {
+                newErrors.confirmar_contrasena = "Las contraseñas no coinciden.";
+            }
+
+        } catch (err: unknown) {
+            console.error(err);
+            setErrors({ form: "Ocurrió un error inesperado." });
+        }
+
+        return newErrors;
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading(true);
+        setErrors({});
+        setSuccess(false);
+
+        try {
+            
+            const formData = new FormData(e.currentTarget);
+
+            const data = {
+                dni: formData.get("dni") as string,
+                nombres: formData.get("nombres") as string,
+                apellidos: formData.get("apellidos") as string,
+                fecha_nacimiento: formData.get("fecha_nacimiento") as string,
+                lugar_nacimiento: formData.get("lugar_nacimiento") as string,
+                genero: formData.get("genero") as string,
+                direccion: formData.get("direccion") as string,
+                correo: formData.get("correo") as string,
+                usuario: formData.get("usuario") as string,
+                contrasena: formData.get("contrasena") as string,
+                confirmar_contrasena: formData.get("confirmar_contrasena") as string,
+            };
+
+            const newErrors = checkData(data);
+            if (Object.keys(newErrors).length > 0) {
+                setErrors(newErrors);
+                setLoading(false);
+                return;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // TODO: Agregar lógica de subida al servidor aquí
+            /*
+            const response = await fetch('/api/registro', {
+                method: 'POST',
+                body: formData // o JSON.stringify(data)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Error al registrar usuario');
+            }
+            */
+            
+            console.log("siguio")
+            setSuccess(true);
+            // e.currentTarget.reset(); 
+
+        } catch (err: unknown) {
+            console.error(err);
+            setErrors({ form: "Ocurrió un error inesperado." });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <form className="space-y-10">
+        <form onSubmit={handleSubmit} className="space-y-10">
+
+            {/* Mensajes de estado globales */}
+            {errors.form && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                    {errors.form}
+                </div>
+            )}
+            
+            {success && (
+                <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm">
+                    Registro exitoso. ¡Bienvenido!
+                </div>
+            )}
 
             {/* Datos personales */}
             <fieldset className="space-y-5">
@@ -26,42 +163,50 @@ export default function RegistroForm() {
                     Datos personales
                 </legend>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <Input
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div className="col-span-1 sm:col-span-3 grid grid-cols-2 gap-5">
+                        <Input
                         id="dni"
                         name="dni"
                         label="DNI"
-                        placeholder="12345678"
-                        maxLength={8}
+                        placeholder="1234567890"
                         required
-                    />
-                    <Input
-                        id="nombres"
-                        name="nombres"
-                        label="Nombres"
-                        placeholder="Juan Carlos"
-                        required
-                    />
-                    <Input
+                        error={errors.dni}
+                        />
+                        <Input
+                            id="nombres"
+                            name="nombres"
+                            label="Nombres"
+                            placeholder="Juan Carlos"
+                            required
+                            error={errors.nombres}
+                        />
+
+                        <Input
                         id="apellidos"
                         name="apellidos"
                         label="Apellidos"
                         placeholder="García López"
                         required
-                    />
-                    <Input
-                        id="fecha_nacimiento"
-                        name="fecha_nacimiento"
-                        label="Fecha de nacimiento"
-                        type="date"
-                        required
-                    />
+                        error={errors.apellidos}
+                        />
+                        <Input
+                            id="fecha_nacimiento"
+                            name="fecha_nacimiento"
+                            label="Fecha de nacimiento"
+                            type="date"
+                            required
+                            error={errors.fecha_nacimiento}
+                        />
+                    </div>
+            
                     <Select
                         id="lugar_nacimiento"
                         name="lugar_nacimiento"
                         label="Lugar de nacimiento"
                         options={paisOptions}
                         required
+                        error={errors.lugar_nacimiento}
                     />
                     <Select
                         id="genero"
@@ -69,16 +214,16 @@ export default function RegistroForm() {
                         label="Género"
                         options={generoOptions}
                         required
+                        error={errors.genero}
                     />
-                    <div className="sm:col-span-2">
-                        <Input
-                            id="direccion"
-                            name="direccion"
-                            label="Dirección de correspondencia"
-                            placeholder="Av. Principal 123, Lima"
-                            required
-                        />
-                    </div>
+                    <Input
+                        id="direccion"
+                        name="direccion"
+                        label="Dirección de correspondencia"
+                        placeholder="Av. Principal 123, Lima"
+                        required
+                        error={errors.direccion}
+                    />
                 </div>
             </fieldset>
 
@@ -96,6 +241,7 @@ export default function RegistroForm() {
                         type="email"
                         placeholder="juan@ejemplo.com"
                         required
+                        error={errors.correo}
                     />
                     <Input
                         id="usuario"
@@ -103,6 +249,7 @@ export default function RegistroForm() {
                         label="Nombre de usuario"
                         placeholder="juangarcia"
                         required
+                        error={errors.usuario}
                     />
                     <Input
                         id="contrasena"
@@ -111,6 +258,7 @@ export default function RegistroForm() {
                         type="password"
                         placeholder="••••••••"
                         required
+                        error={errors.contrasena}
                     />
                     <Input
                         id="confirmar_contrasena"
@@ -119,12 +267,18 @@ export default function RegistroForm() {
                         type="password"
                         placeholder="••••••••"
                         required
+                        error={errors.confirmar_contrasena}
                     />
                 </div>
             </fieldset>
 
-            <Button type="submit">
-                Crear cuenta
+            <Button type="submit" className="flex flex-row items-center justify-center gap-5" disabled={loading}>
+                {loading ? (
+                    <>
+                        <svg className="text-brand-text size-5 animate-spin" viewBox="0 0 24 24"></svg>
+                        Procesando
+                    </>
+                ) : "Crear cuenta"}
             </Button>
 
         </form>

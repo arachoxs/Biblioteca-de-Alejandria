@@ -1,12 +1,18 @@
-import { InputHTMLAttributes } from "react";
+import { SelectHTMLAttributes } from "react";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   id: string;
+  options: SelectOption[];
   error?: string | boolean;
 }
 
-export default function Input({ label, id, className, required, error = false, ...props }: InputProps) {
+export default function Select({ label, id, options, className, required, error = false, ...props }: SelectProps) {
   const hasError = Boolean(error);
   const errorMessage = typeof error === "string" ? error : undefined;
 
@@ -19,24 +25,31 @@ export default function Input({ label, id, className, required, error = false, .
         {label}
         {required && <span className="text-brand-primary ml-1">*</span>}
       </label>
-      <input
+      <select
         id={id}
         required={required}
         aria-invalid={hasError}
         aria-describedby={errorMessage ? `${id}-error` : undefined}
-        className={`w-full px-4 py-2.5 rounded-lg border relative transition-all duration-150 shadow-sm
+        className={`w-full px-4 py-2.5 rounded-lg border
           bg-brand-bg text-brand-text
-          placeholder:text-brand-accent
           focus:outline-none focus:ring-2
+          transition-all duration-150 shadow-sm cursor-pointer
           ${hasError
             ? "border-red-500 focus:ring-red-400/60 focus:border-red-500"
             : "border-brand-secondary focus:ring-brand-accent/60 focus:border-brand-primary"
           }
           ${className ?? ""}`}
         {...props}
-      />
+      >
+        <option value="">Seleccionar...</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
       {errorMessage && (
-        <p id={`${id}-error`} className="text-xs absolute mt-18 text-red-500 mt-0.5">
+        <p id={`${id}-error`} className="text-xs text-red-500 mt-0.5">
           {errorMessage}
         </p>
       )}
