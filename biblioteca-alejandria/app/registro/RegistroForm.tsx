@@ -49,7 +49,7 @@ export default function RegistroForm() {
             const requiredFields = [
                 "dni", "nombres", "apellidos", "fecha_nacimiento", 
                 "lugar_nacimiento", "genero", "direccion", 
-                "correo", "usuario", "contrasena", "confirmar_contrasena"
+                "correo", "usuario", "contrasena", "confirmar_contrasena","direccion_place_id",
             ];
 
             const fechaSeleccionada = new Date(data.fecha_nacimiento);
@@ -67,8 +67,28 @@ export default function RegistroForm() {
                 newErrors.dni = "El DNI debe tener al menos 7 dígitos.";
             }
 
-            if (fechaSeleccionada > hoy) {
-                newErrors.fecha_nacimiento = "No puedes haber nacido en el futuro.";
+            if (!newErrors.fecha_nacimiento && Number.isNaN(fechaSeleccionada.getTime())) {
+                newErrors.fecha_nacimiento = "La fecha de nacimiento no es valida.";
+            }
+
+            if (!newErrors.fecha_nacimiento) {
+                let edad = hoy.getFullYear() - fechaSeleccionada.getFullYear();
+                const diferenciaMeses = hoy.getMonth() - fechaSeleccionada.getMonth();
+
+                if (
+                    diferenciaMeses < 0 ||
+                    (diferenciaMeses === 0 && hoy.getDate() < fechaSeleccionada.getDate())
+                ) {
+                    edad--;
+                }
+
+                if (fechaSeleccionada > hoy) {
+                    newErrors.fecha_nacimiento = "No puedes haber nacido en el futuro.";
+                } else if (edad < 18) {
+                    newErrors.fecha_nacimiento = "Debes tener al menos 18 años.";
+                } else if (edad > 80) {
+                    newErrors.fecha_nacimiento = "La edad máxima permitida es 80 años.";
+                }
             }
 
             if (!newErrors.contrasena && data.contrasena.length < 6) {
@@ -176,49 +196,46 @@ export default function RegistroForm() {
                     Datos personales
                 </legend>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <Input
-                        id="dni"
-                        name="dni"
-                        label="DNI"
-                        placeholder="1234567890"
-                        required
-                        error={errors.dni}
-                        />
-                        <Input
-                            id="nombres"
-                            name="nombres"
-                            label="Nombres"
-                            placeholder="Juan Carlos"
-                            required
-                            error={errors.nombres}
-                        />
-
-                        <Input
-                        id="apellidos"
-                        name="apellidos"
-                        label="Apellidos"
-                        placeholder="García López"
-                        required
-                        error={errors.apellidos}
-                        />
-                        <Input
-                            id="fecha_nacimiento"
-                            name="fecha_nacimiento"
-                            label="Fecha de nacimiento"
-                            type="date"
-                            required
-                            error={errors.fecha_nacimiento}
-                        />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Input
+                    id="dni"
+                    name="dni"
+                    label="DNI"
+                    placeholder="1234567890"
+                    //required
+                    error={errors.dni}
+                    />
+                    <Input
+                        id="nombres"
+                        name="nombres"
+                        label="Nombres"
+                        placeholder="Juan Carlos"
+                        //required
+                        error={errors.nombres}
+                    />
+                    <Input
+                    id="apellidos"
+                    name="apellidos"
+                    label="Apellidos"
+                    placeholder="García López"
+                    //required
+                    error={errors.apellidos}
+                    />
+                    <Input
+                        id="fecha_nacimiento"
+                        name="fecha_nacimiento"
+                        label="Fecha de nacimiento"
+                        type="date"
+                        //required
+                        error={errors.fecha_nacimiento}
+                    />
             
                     <Select
                         id="lugar_nacimiento"
                         name="lugar_nacimiento"
                         label="Lugar de nacimiento"
                         options={paisOptions}
-                        required
+                        //required
                         error={errors.lugar_nacimiento}
                     />
                     <Select
@@ -226,21 +243,32 @@ export default function RegistroForm() {
                         name="genero"
                         label="Género"
                         options={generoOptions}
-                        required
+                        //required
                         error={errors.genero}
                     />
+
                     <GoogleAutocomplete
                         id="direccion_autocomplete"
                         name="direccion_autocomplete"
                         label="Direccion de correspondencia"
                         placeholder="cra 12 #34-56, Bogotá"
-                        required
+                        //required
                         onPlaceSelect={(selectedPlaceId) => setPlaceId(selectedPlaceId)}
                         onFormattedAddressSelect={(addressText) => setFormattedAddress(addressText)}
                         error={errors.direccion}
                     />
-                    <input type="hidden" name="direccion" value={formattedAddress} />
-                    <input type="hidden" name="direccion_place_id" value={placeId} />
+
+                    <Input
+                        id="direccion_detalle"
+                        name="direccion_detalle"
+                        label="Detalle de la dirección"
+                        placeholder="Apto 101, Piso 2"
+                        //required
+                        error={errors.direccion_detalle}
+                    />
+
+                    <input type="hidden" id="direccion" name="direccion" value={formattedAddress} />
+                    <input type="hidden" id="direccion_place_id" name="direccion_place_id" value={placeId} />
                 </div>
             </fieldset>
 
@@ -257,7 +285,7 @@ export default function RegistroForm() {
                         label="Correo electrónico"
                         type="email"
                         placeholder="juan@ejemplo.com"
-                        required
+                        //required
                         error={errors.correo}
                     />
                     <Input
@@ -265,7 +293,7 @@ export default function RegistroForm() {
                         name="usuario"
                         label="Nombre de usuario"
                         placeholder="juangarcia"
-                        required
+                        //required
                         error={errors.usuario}
                     />
                     <Input
@@ -274,7 +302,7 @@ export default function RegistroForm() {
                         label="Contraseña"
                         type="password"
                         placeholder="••••••••"
-                        required
+                        //required
                         error={errors.contrasena}
                     />
                     <Input
@@ -283,7 +311,7 @@ export default function RegistroForm() {
                         label="Confirmar contraseña"
                         type="password"
                         placeholder="••••••••"
-                        required
+                        //required
                         error={errors.confirmar_contrasena}
                     />
                 </div>
