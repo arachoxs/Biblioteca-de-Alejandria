@@ -30,7 +30,7 @@ export default function Select({ label, id, options, className, required, error 
         required={required}
         aria-invalid={hasError}
         aria-describedby={errorMessage ? `${id}-error` : undefined}
-        className={`w-full px-4 py-2.5 rounded-lg border
+        className={`w-full px-4 py-3 rounded-lg border
           bg-brand-bg text-brand-text
           focus:outline-none focus:ring-2
           transition-all duration-150 shadow-sm cursor-pointer

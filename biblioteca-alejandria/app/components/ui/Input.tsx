@@ -6,7 +6,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string | boolean;
 }
 
-export default function Input({ label, id, className, required, error = false, ...props }: InputProps) {
+export default function Input({ label, id, className, required, error = false, onChange, ...props }: InputProps) {
   const hasError = Boolean(error);
   const errorMessage = typeof error === "string" ? error : undefined;
 
@@ -23,6 +23,7 @@ export default function Input({ label, id, className, required, error = false, .
         id={id}
         required={required}
         aria-invalid={hasError}
+        onChange={onChange}
         aria-describedby={errorMessage ? `${id}-error` : undefined}
         className={`w-full px-4 py-2.5 rounded-lg border relative transition-all duration-150 shadow-sm
           bg-brand-bg text-brand-text
@@ -37,7 +38,7 @@ export default function Input({ label, id, className, required, error = false, .
       />
       {errorMessage && (
         <p id={`${id}-error`} className="text-xs absolute mt-18 text-red-500 mt-0.5">
-          {errorMessage}
+          {errorMessage? errorMessage : "Error desconocido"}
         </p>
       )}
     </div>

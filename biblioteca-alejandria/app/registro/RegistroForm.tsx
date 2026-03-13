@@ -4,6 +4,7 @@ import { useState } from "react";
 import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
 import Button from "../components/ui/Button";
+import GoogleAutocomplete from "../components/GoogleAutocomplete";
 import { Country } from "country-state-city";
 
 const generoOptions = [
@@ -17,7 +18,7 @@ const paisOptions = Country.getAllCountries().map((country) => ({
     label: country.name,
 }));
 
-interface formData {
+interface FormDataValues {
     dni: string;
     nombres: string;
     apellidos: string;
@@ -25,6 +26,7 @@ interface formData {
     lugar_nacimiento: string;
     genero: string;
     direccion: string;
+    direccion_place_id: string;
     correo: string;
     usuario: string;
     contrasena: string;
@@ -35,10 +37,10 @@ export default function RegistroForm() {
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [success, setSuccess] = useState(false);
+    const [formattedAddress, setFormattedAddress] = useState("");
+    const [placeId, setPlaceId] = useState("");
 
-
-
-    const checkData = (data: formData): Record<string,string> => {
+    const checkData = (data: FormDataValues): Record<string,string> => {
         const newErrors: Record<string, string> = {};
 
         try {            
@@ -54,7 +56,8 @@ export default function RegistroForm() {
             const hoy = new Date();
 
             for (const field of requiredFields) {
-                if (!data[field as keyof typeof data] || data[field as keyof typeof data].trim() === "") {
+                const value = data[field as keyof FormDataValues];
+                if (typeof value !== "string" || value.trim() === "") {
                     newErrors[field] = "Este campo es obligatorio.";
                 }
             }
@@ -74,6 +77,10 @@ export default function RegistroForm() {
 
             if (!newErrors.confirmar_contrasena && data.contrasena !== data.confirmar_contrasena) {
                 newErrors.confirmar_contrasena = "Las contraseñas no coinciden.";
+            }
+
+            if(!newErrors.direccion_place_id && !data.direccion_place_id) {
+                newErrors.direccion = "Por favor selecciona una dirección válida de las sugerencias.";
             }
 
         } catch (err: unknown) {
@@ -101,12 +108,15 @@ export default function RegistroForm() {
                 fecha_nacimiento: formData.get("fecha_nacimiento") as string,
                 lugar_nacimiento: formData.get("lugar_nacimiento") as string,
                 genero: formData.get("genero") as string,
-                direccion: formData.get("direccion") as string,
+                direccion: formattedAddress,
+                direccion_place_id: placeId,
                 correo: formData.get("correo") as string,
                 usuario: formData.get("usuario") as string,
                 contrasena: formData.get("contrasena") as string,
                 confirmar_contrasena: formData.get("confirmar_contrasena") as string,
             };
+
+            console.log(data)
 
             const newErrors = checkData(data);
             if (Object.keys(newErrors).length > 0) {
@@ -129,8 +139,11 @@ export default function RegistroForm() {
             }
             */
             
-            console.log("siguio")
+            console.log(data);
             setSuccess(true);
+            //reset Formulario
+            //setFormattedAddress("");
+            //setPlaceId("");
             // e.currentTarget.reset(); 
 
         } catch (err: unknown) {
@@ -142,7 +155,7 @@ export default function RegistroForm() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-10">
+        <form onSubmit={handleSubmit} className="space-y-10 relative">
 
             {/* Mensajes de estado globales */}
             {errors.form && (
@@ -152,7 +165,7 @@ export default function RegistroForm() {
             )}
             
             {success && (
-                <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-green-50 border absolute left-1/2 -translate-x-1/2 border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm">
                     Registro exitoso. ¡Bienvenido!
                 </div>
             )}
@@ -163,8 +176,8 @@ export default function RegistroForm() {
                     Datos personales
                 </legend>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="col-span-1 md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5">
                         <Input
                         id="dni"
                         name="dni"
@@ -216,14 +229,18 @@ export default function RegistroForm() {
                         required
                         error={errors.genero}
                     />
-                    <Input
-                        id="direccion"
-                        name="direccion"
-                        label="Dirección de correspondencia"
-                        placeholder="Av. Principal 123, Lima"
+                    <GoogleAutocomplete
+                        id="direccion_autocomplete"
+                        name="direccion_autocomplete"
+                        label="Direccion de correspondencia"
+                        placeholder="cra 12 #34-56, Bogotá"
                         required
+                        onPlaceSelect={(selectedPlaceId) => setPlaceId(selectedPlaceId)}
+                        onFormattedAddressSelect={(addressText) => setFormattedAddress(addressText)}
                         error={errors.direccion}
                     />
+                    <input type="hidden" name="direccion" value={formattedAddress} />
+                    <input type="hidden" name="direccion_place_id" value={placeId} />
                 </div>
             </fieldset>
 
