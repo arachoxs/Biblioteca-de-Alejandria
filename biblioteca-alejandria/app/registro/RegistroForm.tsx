@@ -129,14 +129,11 @@ export default function RegistroForm() {
 
             // TODO: Agregar lógica de subida al servidor aquí
             /*
-            const response = await fetch('/api/registro', {
-                method: 'POST',
-                body: formData // o JSON.stringify(data)
-            });
-            
-            if (!response.ok) {
-                throw new Error('Error al registrar usuario');
-            }
+            Flujo:
+                1. Validar datos del formulario.
+                2. Crear usuario Auth con role CLIENTE.
+                3. Insertar en Usuario con id = auth_user.id.
+                4. Guardar solo datos de perfil (sin correo/password en Usuario).
             */
             
             console.log(data);
