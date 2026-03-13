@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Input from "../components/ui/Input";
-import Select from "../components/ui/Select";
-import Button from "../components/ui/Button";
-import GoogleAutocomplete from "../components/GoogleAutocomplete";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import Button from "@/components/ui/Button";
+import GoogleAutocomplete from "@/components/GoogleAutocomplete";
 import { Country } from "country-state-city";
 
 const generoOptions = [
