@@ -4,7 +4,7 @@ import Input from "./ui/Input";
 import {
   PlaceSuggestion,
   searchGooglePlacesAutocomplete,
-} from "../services/googlePlacesService";
+} from "../lib/services/googlePlacesService";
 
 function createSessionToken(): string {
   return crypto.randomUUID();
