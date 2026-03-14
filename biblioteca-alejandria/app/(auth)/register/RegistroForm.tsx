@@ -41,16 +41,16 @@ export default function RegistroForm() {
     const [formattedAddress, setFormattedAddress] = useState("");
     const [placeId, setPlaceId] = useState("");
 
-    const checkData = (data: FormDataValues): Record<string,string> => {
+    const checkData = (data: FormDataValues): Record<string, string> => {
         const newErrors: Record<string, string> = {};
 
-        try {            
+        try {
 
             // Verificación de campos obligatorios
             const requiredFields = [
-                "dni", "nombres", "apellidos", "fecha_nacimiento", 
-                "lugar_nacimiento", "genero", "direccion", 
-                "correo", "usuario", "contrasena", "confirmar_contrasena","direccion_place_id",
+                "dni", "nombres", "apellidos", "fecha_nacimiento",
+                "lugar_nacimiento", "genero", "direccion",
+                "correo", "usuario", "contrasena", "confirmar_contrasena", "direccion_place_id",
             ];
 
             const fechaSeleccionada = new Date(data.fecha_nacimiento);
@@ -64,7 +64,7 @@ export default function RegistroForm() {
             }
 
             // Validaciones específicas
-            if (!newErrors.dni && data.dni.length <= 7) {
+            if (!newErrors.dni && data.dni.length < 7) {
                 newErrors.dni = "El DNI debe tener al menos 7 dígitos.";
             }
 
@@ -100,7 +100,7 @@ export default function RegistroForm() {
                 newErrors.confirmar_contrasena = "Las contraseñas no coinciden.";
             }
 
-            if(!newErrors.direccion_place_id && !data.direccion_place_id) {
+            if (!newErrors.direccion_place_id && !data.direccion_place_id) {
                 newErrors.direccion = "Por favor selecciona una dirección válida de las sugerencias.";
             }
 
@@ -119,7 +119,7 @@ export default function RegistroForm() {
         setSuccess(false);
 
         try {
-            
+
             const formData = new FormData(e.currentTarget);
 
             const data = {
@@ -129,7 +129,9 @@ export default function RegistroForm() {
                 fecha_nacimiento: formData.get("fecha_nacimiento") as string,
                 lugar_nacimiento: formData.get("lugar_nacimiento") as string,
                 genero: formData.get("genero") as string,
-                direccion: formattedAddress,
+                direccion: formData.get("direccion_detalle")
+                    ? `${formattedAddress}, ${formData.get("direccion_detalle")}`
+                    : formattedAddress,
                 direccion_place_id: placeId,
                 correo: formData.get("correo") as string,
                 usuario: formData.get("usuario") as string,
@@ -137,14 +139,13 @@ export default function RegistroForm() {
                 confirmar_contrasena: formData.get("confirmar_contrasena") as string,
             };
 
-
             const newErrors = checkData(data);
             if (Object.keys(newErrors).length > 0) {
                 setErrors(newErrors);
                 setLoading(false);
                 return;
             }
-            
+
             await new Promise(resolve => setTimeout(resolve, 2000));
 
 
@@ -178,7 +179,7 @@ export default function RegistroForm() {
                 3. Insertar en Usuario con id = auth_user.id.
                 4. Guardar solo datos de perfil (sin correo/password en Usuario).
             */
-            
+
             setSuccess(true);
             //reset Formulario
             //setFormattedAddress("");
@@ -202,7 +203,7 @@ export default function RegistroForm() {
                     {errors.form}
                 </div>
             )}
-            
+
             {success && (
                 <div className="bg-green-50 border absolute left-1/2 -translate-x-1/2 border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm">
                     Registro exitoso. ¡Bienvenido!
@@ -217,44 +218,44 @@ export default function RegistroForm() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <Input
-                    id="dni"
-                    name="dni"
-                    label="DNI"
-                    placeholder="1234567890"
-                    //required
-                    error={errors.dni}
+                        id="dni"
+                        name="dni"
+                        label="DNI"
+                        placeholder="1234567890"
+                        required
+                        error={errors.dni}
                     />
                     <Input
                         id="nombres"
                         name="nombres"
                         label="Nombres"
                         placeholder="Juan Carlos"
-                        //required
+                        required
                         error={errors.nombres}
                     />
                     <Input
-                    id="apellidos"
-                    name="apellidos"
-                    label="Apellidos"
-                    placeholder="García López"
-                    //required
-                    error={errors.apellidos}
+                        id="apellidos"
+                        name="apellidos"
+                        label="Apellidos"
+                        placeholder="García López"
+                        required
+                        error={errors.apellidos}
                     />
                     <Input
                         id="fecha_nacimiento"
                         name="fecha_nacimiento"
                         label="Fecha de nacimiento"
                         type="date"
-                        //required
+                        required
                         error={errors.fecha_nacimiento}
                     />
-            
+
                     <Select
                         id="lugar_nacimiento"
                         name="lugar_nacimiento"
                         label="Lugar de nacimiento"
                         options={paisOptions}
-                        //required
+                        required
                         error={errors.lugar_nacimiento}
                     />
                     <Select
@@ -262,7 +263,7 @@ export default function RegistroForm() {
                         name="genero"
                         label="Género"
                         options={generoOptions}
-                        //required
+                        required
                         error={errors.genero}
                     />
 
@@ -270,8 +271,8 @@ export default function RegistroForm() {
                         id="direccion_autocomplete"
                         name="direccion_autocomplete"
                         label="Direccion de correspondencia"
-                        placeholder="cra 12 #34-56, Bogotá"
-                        //required
+                        placeholder="Cra 12 #34-56, Bogotá"
+                        required
                         onPlaceSelect={(selectedPlaceId) => setPlaceId(selectedPlaceId)}
                         onFormattedAddressSelect={(addressText) => setFormattedAddress(addressText)}
                         error={errors.direccion}
@@ -282,7 +283,6 @@ export default function RegistroForm() {
                         name="direccion_detalle"
                         label="Detalle de la dirección"
                         placeholder="Apto 101, Piso 2"
-                        //required
                         error={errors.direccion_detalle}
                     />
 
@@ -304,7 +304,7 @@ export default function RegistroForm() {
                         label="Correo electrónico"
                         type="email"
                         placeholder="juan@ejemplo.com"
-                        //required
+                        required
                         error={errors.correo}
                     />
                     <Input
@@ -312,7 +312,7 @@ export default function RegistroForm() {
                         name="usuario"
                         label="Nombre de usuario"
                         placeholder="juangarcia"
-                        //required
+                        required
                         error={errors.usuario}
                     />
                     <Input
@@ -321,7 +321,7 @@ export default function RegistroForm() {
                         label="Contraseña"
                         type="password"
                         placeholder="••••••••"
-                        //required
+                        required
                         error={errors.contrasena}
                     />
                     <Input
@@ -330,7 +330,7 @@ export default function RegistroForm() {
                         label="Confirmar contraseña"
                         type="password"
                         placeholder="••••••••"
-                        //required
+                        required
                         error={errors.confirmar_contrasena}
                     />
                 </div>

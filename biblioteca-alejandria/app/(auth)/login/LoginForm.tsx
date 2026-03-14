@@ -107,7 +107,7 @@ export default function LoginForm() {
                 {/* Enlace a registro */}
                 <p className="text-center text-sm text-brand-secondary font-light">
                     ¿No tienes cuenta?{" "}
-                    <Link href="/registro" className="text-brand-primary font-semibold hover:underline underline-offset-2 transition-all">
+                    <Link href="/register" className="text-brand-primary font-semibold hover:underline underline-offset-2 transition-all">
                         Regístrate aquí
                     </Link>
                 </p>

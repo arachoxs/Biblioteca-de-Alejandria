@@ -1,7 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import {ROLES} from "@/lib/auth/roles";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { ROLES } from "@/lib/auth/roles";
 
 export enum Genero {
   Masculino = "masculino",
@@ -30,11 +30,11 @@ export async function registerUser(
   credentialData: CredentialData,
   personalData: PersonalData
 ) {
-  
+
   const supabase = await createClient();
-  
+
   // Registrar el usuario en Supabase Auth
-  const { data , error: authError } = await supabase.auth.signUp({
+  const { data, error: authError } = await supabase.auth.signUp({
     email: credentialData.correo,
     password: credentialData.contrasena,
     options: {
@@ -47,15 +47,49 @@ export async function registerUser(
 
   if (authError) {
     console.error("Error al registrar el usuario en Supabase Auth:", authError);
-    throw new Error("Error al registrar el usuario");
+    throw new Error(`Error al registrar el usuario: ${authError.message}`);
   }
 
-  console.log(data.user);
+  if (!data.user) {
+    throw new Error("No se pudo obtener el usuario después del registro");
+  }
 
-}
+  // Cliente admin para inserciones (bypasea RLS — usuario aún no tiene sesión activa)
+  const adminClient = createAdminClient();
 
-async function registerAddress(address: string) {
-  // Lógica para registrar la dirección usando la API de Google Places
-  // y devolver el place_id correspondiente.
-  return "mock_place_id";
+  // Insertar la dirección
+  const { data: direccionData, error: dirError } = await adminClient
+    .from('direccion')
+    .insert({
+      direccion_formateada: personalData.direccion,
+      place_id: personalData.direccion_place_id
+    })
+    .select('id')
+    .single();
+
+  if (dirError) {
+    console.error("Error al registrar la dirección:", dirError);
+    throw new Error(`Error al registrar la dirección del usuario: ${dirError.message}`);
+  }
+
+  // Insertar el perfil del usuario
+  const { error: dbError } = await adminClient
+    .from('usuario')
+    .insert({
+      id: data.user.id,
+      dni: personalData.dni,
+      nombres: personalData.nombres,
+      apellidos: personalData.apellidos,
+      fecha_nacimiento: personalData.fecha_nacimiento,
+      lugar_nacimiento: personalData.lugar_nacimiento,
+      genero: personalData.genero,
+      id_direccion: direccionData.id
+    });
+
+  if (dbError) {
+    console.error("Error al registrar el perfil del usuario:", dbError);
+    throw new Error(`Error al registrar el perfil del usuario: ${dbError.message}`);
+  }
+
+  console.log("Usuario registrado exitosamente:", data.user.id);
 }

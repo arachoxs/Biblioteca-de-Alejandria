@@ -1,4 +1,5 @@
 import RegistroForm from "./RegistroForm";
+import Link from "next/link";
 
 export default function Registro() {
     return (
@@ -15,6 +16,12 @@ export default function Registro() {
                     </h1>
                     <p className="relative z-10 text-2xs md:text-lg text-white/85 leading-relaxed max-w-md mx-auto">
                         Crea una cuenta para poder acceder a todas las funcionalidades de la Biblioteca de Alejandría
+                        <br />
+                        <br />
+                        ¿Ya tienes cuenta?{" "}
+                        <Link href="/login" className="text-white font-semibold hover:underline underline-offset-2 transition-all">
+                            Inicia sesión aquí
+                        </Link>
                     </p>
                     <div className="relative z-10 mt-6 h-px bg-linear-to-r from-transparent via-brand-accent to-transparent" />
                 </header>
