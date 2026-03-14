@@ -35,7 +35,7 @@ export const createClient = async () => {
 /**
  * Cliente admin que usa la service_role key para operaciones privilegiadas
  * del lado del servidor (ej: inserciones durante el registro).
- * Bypasea RLS.
+ * Bypasea RLS — usar SOLO en Server Actions seguros, nunca exponer al cliente.
  */
 export const createAdminClient = () => {
   if (!supabaseServiceRoleKey) {

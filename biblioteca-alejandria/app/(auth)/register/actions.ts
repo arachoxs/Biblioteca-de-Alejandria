@@ -54,7 +54,7 @@ export async function registerUser(
     throw new Error("No se pudo obtener el usuario después del registro");
   }
 
-  // Cliente admin para inserciones (bypasea RLS)
+  // Cliente admin para inserciones (bypasea RLS — usuario aún no tiene sesión activa)
   const adminClient = createAdminClient();
 
   // Insertar la dirección
