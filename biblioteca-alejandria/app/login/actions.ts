@@ -25,8 +25,7 @@ export async function loginAction(
     return { error: "La contraseña es obligatoria." };
   }
 
-  const cookieStore = await cookies();
-  const supabase = await createClient(cookieStore);
+  const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email: email.trim(),

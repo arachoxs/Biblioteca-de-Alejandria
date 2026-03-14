@@ -6,6 +6,7 @@ import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import GoogleAutocomplete from "@/components/GoogleAutocomplete";
 import { Country } from "country-state-city";
+import { CredentialData, PersonalData, registerUser, Genero } from "./actions"
 
 const generoOptions = [
     { value: "masculino", label: "Masculino" },
@@ -136,7 +137,6 @@ export default function RegistroForm() {
                 confirmar_contrasena: formData.get("confirmar_contrasena") as string,
             };
 
-            console.log(data)
 
             const newErrors = checkData(data);
             if (Object.keys(newErrors).length > 0) {
@@ -147,6 +147,29 @@ export default function RegistroForm() {
             
             await new Promise(resolve => setTimeout(resolve, 2000));
 
+
+            //separamos los datos de perfil de los de autenticación
+            const PersonalData: PersonalData = {
+                dni: data.dni,
+                nombres: data.nombres,
+                apellidos: data.apellidos,
+                fecha_nacimiento: data.fecha_nacimiento,
+                lugar_nacimiento: data.lugar_nacimiento,
+                genero: data.genero as Genero,
+                direccion: data.direccion,
+                direccion_place_id: data.direccion_place_id,
+                usuario: data.usuario,
+            };
+
+            const credentialData: CredentialData = {
+                correo: data.correo,
+                contrasena: data.contrasena,
+            };
+
+            console.log("antes")
+            await registerUser(credentialData, PersonalData);
+            console.log("despues")
+
             // TODO: Agregar lógica de subida al servidor aquí
             /*
             Flujo:
@@ -156,7 +179,6 @@ export default function RegistroForm() {
                 4. Guardar solo datos de perfil (sin correo/password en Usuario).
             */
             
-            console.log(data);
             setSuccess(true);
             //reset Formulario
             //setFormattedAddress("");
