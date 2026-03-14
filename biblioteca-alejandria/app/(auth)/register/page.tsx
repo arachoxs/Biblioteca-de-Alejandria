@@ -1,5 +1,6 @@
 import RegistroForm from "./RegistroForm";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Registro() {
     return (
@@ -11,6 +12,15 @@ export default function Registro() {
                     <div className="absolute inset-0 bg-cover bg-center bg-[url(/libros_banner.jpeg)] blur-sm scale-110" />
                     {/* Overlay oscuro para legibilidad del texto */}
                     <div className="absolute inset-0 bg-black-primary/60" />
+                    <div className="relative z-10 mb-5">
+                        <Image
+                            src="/logo-fondo-oscuro.png"
+                            alt="Biblioteca de Alejandría"
+                            width={80}
+                            height={80}
+                            className="mx-auto drop-shadow-lg"
+                        />
+                    </div>
                     <h1 className="relative z-10 text-4xl font-bold text-white mb-3 tracking-tight">
                         Crear una cuenta
                     </h1>
