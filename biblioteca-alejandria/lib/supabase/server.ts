@@ -1,9 +1,11 @@
 
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export const createClient = async () => {
   const cookieStore = await cookies();
@@ -28,4 +30,16 @@ export const createClient = async () => {
       },
     },
   );
+};
+
+/**
+ * Cliente admin que usa la service_role key para operaciones privilegiadas
+ * del lado del servidor (ej: inserciones durante el registro).
+ * Bypasea RLS.
+ */
+export const createAdminClient = () => {
+  if (!supabaseServiceRoleKey) {
+    throw new Error("Falta la variable de entorno SUPABASE_SERVICE_ROLE_KEY");
+  }
+  return createSupabaseClient(supabaseUrl!, supabaseServiceRoleKey);
 };
