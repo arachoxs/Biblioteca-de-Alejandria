@@ -4,6 +4,7 @@ import { useState } from "react";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
+import Alert from "@/components/ui/Alert";
 import GoogleAutocomplete from "@/components/GoogleAutocomplete";
 import { Country } from "country-state-city";
 import { CredentialData, PersonalData, registerUser, Genero } from "./actions"
@@ -28,6 +29,7 @@ interface FormDataValues {
     genero: string;
     direccion: string;
     direccion_place_id: string;
+    direccion_detalle?: string;
     correo: string;
     usuario: string;
     contrasena: string;
@@ -133,6 +135,7 @@ export default function RegistroForm() {
                     ? `${formattedAddress}, ${formData.get("direccion_detalle")}`
                     : formattedAddress,
                 direccion_place_id: placeId,
+                direccion_detalle: formData.get("direccion_detalle") as string,
                 correo: formData.get("correo") as string,
                 usuario: formData.get("usuario") as string,
                 contrasena: formData.get("contrasena") as string,
@@ -159,6 +162,7 @@ export default function RegistroForm() {
                 genero: data.genero as Genero,
                 direccion: data.direccion,
                 direccion_place_id: data.direccion_place_id,
+                direccion_detalle: data.direccion_detalle? data.direccion_detalle : undefined,
                 usuario: data.usuario,
             };
 
@@ -168,19 +172,16 @@ export default function RegistroForm() {
             };
 
             console.log("antes")
-            await registerUser(credentialData, PersonalData);
-            console.log("despues")
+            const response = await registerUser(credentialData, PersonalData);
+            console.log("despues", response);
 
-            // TODO: Agregar lógica de subida al servidor aquí
-            /*
-            Flujo:
-                1. Validar datos del formulario.
-                2. Crear usuario Auth con role CLIENTE.
-                3. Insertar en Usuario con id = auth_user.id.
-                4. Guardar solo datos de perfil (sin correo/password en Usuario).
-            */
-
-            setSuccess(true);
+            if (response.success) {
+                setSuccess(true);
+                //logica para hacer despues de registrar el usuario
+            } else {
+                setErrors(response.errors || { form: response.message || "Error desconocido" });
+            }
+            
             //reset Formulario
             //setFormattedAddress("");
             //setPlaceId("");
@@ -199,15 +200,15 @@ export default function RegistroForm() {
 
             {/* Mensajes de estado globales */}
             {errors.form && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                <Alert variant="error">
                     {errors.form}
-                </div>
+                </Alert>
             )}
 
             {success && (
-                <div className="bg-green-50 border absolute left-1/2 -translate-x-1/2 border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm">
+                <Alert variant="success" className="absolute left-1/2 -translate-x-1/2 z-50">
                     Registro exitoso. ¡Bienvenido!
-                </div>
+                </Alert>
             )}
 
             {/* Datos personales */}
