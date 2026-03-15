@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { User, LogOut, KeyRound, Crown, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -31,9 +32,13 @@ export default function RootNavbar() {
     <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-10 py-4 bg-brand-text border-b-4 border-brand-primary">
       {/* Brand */}
       <Link href="/panel-root" className="flex items-center gap-3 text-brand-bg hover:opacity-90 transition-opacity">
-        <div className="w-9 h-9 border-2 border-brand-accent rounded-full flex items-center justify-center font-display font-bold text-lg text-brand-accent shrink-0">
-          BA
-        </div>
+        <Image
+          src="/logo-fondo-oscuro.png"
+          alt="Biblioteca de Alejandría"
+          width={40}
+          height={40}
+          className="shrink-0 drop-shadow-sm"
+        />
         <span className="font-display text-xl font-semibold tracking-wide hidden sm:block">
           Biblioteca de Alejandría
         </span>
