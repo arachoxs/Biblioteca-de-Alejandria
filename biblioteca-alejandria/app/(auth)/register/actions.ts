@@ -1,174 +1,100 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { ROLES } from "@/lib/auth/roles";
+import { CredentialData, PersonalData, RegisterResponse , Rol} from "@/lib/types/auth";
+import { registerUser as registerUserModel} from "@/models/userModel";
 
-export enum Genero {
-  Masculino = "masculino",
-  Femenino = "femenino",
-  Otro = "otro",
+
+/**
+ * Valida los datos personales y de credenciales antes del registro.
+ */
+function validateRegistrationData(
+  credentialData: CredentialData,
+  personalData: PersonalData
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  // Validar campos obligatorios de datos personales
+  for (const [key, value] of Object.entries(personalData)) {
+    if (key !== 'direccion_detalle' && (value === null || value === undefined || value.toString().trim() === '')) {
+      errors[key] = "Este campo es obligatorio.";
+    }
+  }
+
+  // Validar campos obligatorios de credenciales
+  for (const [key, value] of Object.entries(credentialData)) {
+    if (value === null || value === undefined || value.toString().trim() === '') {
+      errors[key] = "Este campo es obligatorio.";
+    }
+  }
+
+  // Validaciones específicas
+  if (!errors.dni && personalData.dni.length < 7) {
+    errors.dni = "El DNI debe tener al menos 7 dígitos.";
+  }
+
+  if (!errors.fecha_nacimiento) {
+    const fechaSeleccionada = new Date(personalData.fecha_nacimiento);
+    const hoy = new Date();
+    if (Number.isNaN(fechaSeleccionada.getTime())) {
+      errors.fecha_nacimiento = "La fecha de nacimiento no es válida.";
+    } else {
+      let edad = hoy.getFullYear() - fechaSeleccionada.getFullYear();
+      const diferenciaMeses = hoy.getMonth() - fechaSeleccionada.getMonth();
+      if (diferenciaMeses < 0 || (diferenciaMeses === 0 && hoy.getDate() < fechaSeleccionada.getDate())) {
+        edad--;
+      }
+      if (fechaSeleccionada > hoy) {
+        errors.fecha_nacimiento = "No puedes haber nacido en el futuro.";
+      } else if (edad < 18) {
+        errors.fecha_nacimiento = "Debes tener al menos 18 años.";
+      } else if (edad > 80) {
+        errors.fecha_nacimiento = "La edad máxima permitida es 80 años.";
+      }
+    }
+  }
+
+  if (!errors.contrasena && credentialData.contrasena.length < 7) {
+    errors.contrasena = "La contraseña debe tener al menos 7 caracteres.";
+  }
+
+  if (!errors.confirmar_contrasena && credentialData.contrasena !== credentialData.confirmar_contrasena) {
+    errors.confirmar_contrasena = "Las contraseñas no coinciden.";
+  }
+
+  if (!errors.direccion_place_id && !personalData.direccion_place_id) {
+    errors.direccion = "Por favor selecciona una dirección válida de las sugerencias.";
+  }
+
+  return errors;
 }
 
-export interface CredentialData {
-  correo: string;
-  contrasena: string;
-}
-
-export interface PersonalData {
-  dni: string;
-  nombres: string;
-  apellidos: string;
-  fecha_nacimiento: string;
-  lugar_nacimiento: string;
-  genero: Genero;
-  direccion: string;
-  direccion_place_id: string;
-  direccion_detalle?: string;
-  usuario: string;
-}
-
-export interface RegisterResponse { //respuesta que se envia al frontend
-  success: boolean;
-  errors?: Record<string, string>;
-  message?: string;
-}
 
 export async function registerUser(
   credentialData: CredentialData,
   personalData: PersonalData
 ): Promise<RegisterResponse> {
 
-  const supabase = await createClient();
-  const adminClient = createAdminClient();
-
-  try {
-    // Verificar si el nombre de usuario ya existe
-    const { data: usernameExists, error: rpcError } = await adminClient.rpc('check_username_exists', { 
-      username_check: personalData.usuario 
-    });
-
-    if (rpcError) {
-      console.error("Error al verificar username:", rpcError);
-      return { 
-        success: false, 
-        errors: { form: `Error verificando usuario: ${rpcError.message}` } 
-      };
-    }
-
-    if (usernameExists) {
-      return { 
-        success: false, 
-        errors: { usuario: "El nombre de usuario ya está en uso." } 
-      };
-    }
-
-    // Registrar el usuario en Supabase Auth
-    const { data, error: authError } = await supabase.auth.signUp({
-      email: credentialData.correo,
-      password: credentialData.contrasena,
-      options: {
-        data: {
-          rol: ROLES.CLIENTE,
-          username: personalData.usuario
-        }
-      }
-    });
-
-    if (authError) {
-      console.error("Error al registrar el usuario en Supabase Auth:", authError);
-      
-      // Mapear error de usuario ya registrado (dependiendo de configuración de Supabase)
-      if (authError.message.toLowerCase().includes("already registered") || authError.status === 422) {
-          return {
-            success: false,
-            errors: { correo: "Este correo electrónico ya está registrado." }
-          };
-      }
-
-      return { 
-        success: false, 
-        errors: { form: `Error en autenticación: ${authError.message}` } 
-      };
-    }
-
-    if (!data.user) {
-      return { 
-        success: false, 
-        errors: { form: "No se pudo obtener el usuario después del registro" } 
-      };
-    }
-
-    // Insertar la dirección
-    const { data: direccionData, error: dirError } = await adminClient
-      .from('direccion')
-      .insert({
-        direccion_formateada: personalData.direccion,
-        place_id: personalData.direccion_place_id,
-        detalle_direccion: personalData.direccion_detalle? personalData.direccion_detalle : null
-      })
-      .select('id')
-      .single();
-
-    if (dirError) {
-      console.error("Error al registrar la dirección:", dirError);
-      // Rollback: Eliminar el usuario creado en Auth
-      await adminClient.auth.admin.deleteUser(data.user.id);
-      
-      return { 
-        success: false, 
-        errors: { direccion: `Error al registrar dirección: ${dirError.message}` } 
-      };
-    }
-
-    // Insertar el perfil del usuario utilizando upsert para manejar tanto la creación
-    // como la actualización si un trigger ya creó el registro base.
-    const { error: dbError } = await adminClient
-      .from('usuario')
-      .upsert({
-        id: data.user.id,
-        dni: personalData.dni,
-        nombres: personalData.nombres,
-        apellidos: personalData.apellidos,
-        fecha_nacimiento: personalData.fecha_nacimiento,
-        lugar_nacimiento: personalData.lugar_nacimiento,
-        genero: personalData.genero,
-        id_direccion: direccionData.id
-      });
-
-    if (dbError) {
-      console.error("Error al registrar el perfil del usuario:", dbError);
-      
-      // Rollback completo: Eliminar usuario Auth y la dirección creada
-      await adminClient.auth.admin.deleteUser(data.user.id);
-      await adminClient.from('direccion').delete().eq('id', direccionData.id);
-
-      // Error de unicidad (PostgreSQL code 23505)
-      if (dbError.code === '23505') {
-        if (dbError.message.includes("dni") || dbError.details?.includes("dni")) {
-          return { 
-            success: false, 
-            errors: { dni: "Este DNI ya se encuentra registrado." } 
-          };
-        }
-      }
-
-      return { 
-        success: false, 
-        errors: { form: `Error al crear perfil: ${dbError.message}` } 
-      };
-    }
-
-    console.log("Usuario registrado exitosamente:", data.user.id);
-    return { success: true, message: "Registro exitoso. ¡Bienvenido!" };
-
-  } catch (error: unknown) {
-    console.error("Error inesperado en registro:", error);
-    // Verificamos si es un objeto Error estándar
-    const errorMessage = error instanceof Error ? error.message : "Desconocido";
-
-    return { 
-      success: false, 
-      errors: { form: `Error inesperado: ${errorMessage}` } 
+  // 1. Validar los datos de entrada
+  const validationErrors = validateRegistrationData(credentialData, personalData);
+  
+  if (Object.keys(validationErrors).length > 0) {
+    return {
+      success: false,
+      errors: validationErrors,
     };
   }
+
+  // 2. Intentar registrar el usuario
+  try {
+    const response = await registerUserModel(credentialData, personalData, Rol.CLIENTE);
+    return response;
+  } catch (error: unknown) {
+    console.error("Error inesperado en registerUser:", error);
+    const errorMessage = error instanceof Error ? error.message : "Desconocido";
+    return {
+      success: false,
+      errors: { form: `Error inesperado: ${errorMessage}` },
+    };
+  }
+  
 }
