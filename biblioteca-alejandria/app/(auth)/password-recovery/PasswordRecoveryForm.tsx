@@ -265,12 +265,12 @@ export default function PasswordRecoveryForm() {
         </h1>
         <div className="w-15 h-0.5 bg-brand-accent mx-auto rounded-full" />
       </div>
-
+    
       {/* Mensajes de error/éxito */}
       {error ? (
-        <Alert variant="error">{error}</Alert>
+        <Alert variant="error" className="top-1">{error}</Alert>
       ) : successMessage && currentStep < 3 ? (
-        <Alert variant="success">{successMessage}</Alert>
+        <Alert variant="success" className="top-1">{successMessage}</Alert>
       ) : null}
 
       {/* ─── Step 1: Email ─── */}

@@ -9,8 +9,8 @@ export const metadata = {
 
 export default function PasswordRecoveryPage() {
   return (
-    <div className="min-h-screen bg-brand-bg flex items-center justify-center w-full">
-      <div className="lg:max-w-10/12 md:mx-4 flex lg:flex-row flex-col w-full md:rounded-2xl mx-auto grainy-glass">
+    <div className="min-h-screen bg-brand-bg flex relative items-center justify-center w-full">
+      <div className="lg:max-w-8/12 md:mx-4 flex lg:flex-row flex-col w-full md:rounded-2xl mx-auto grainy-glass">
 
         <header className="text-center flex flex-1 rounded-b-2xl md:rounded-2xl flex-col items-center justify-center px-10 py-12 relative overflow-hidden">
           {/* Imagen de fondo desenfocada */}
