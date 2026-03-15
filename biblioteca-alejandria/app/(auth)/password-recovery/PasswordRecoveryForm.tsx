@@ -49,12 +49,11 @@ export default function PasswordRecoveryForm() {
   };
 
   return (
-    <div className="w-full max-w-[440px] mx-auto animate-[fadeUp_0.6s_ease-out_both]">
+    <div className="w-full max-w-md mx-auto space-y-8">
 
-      {/* Header */}
-      <div className="text-center mb-10">
-        {/* Mail icon */}
-        <div className="w-14 h-14 mx-auto mb-5 border-2 border-brand-accent rounded-full grid place-items-center">
+      {/* Encabezado */}
+      <div className="text-center space-y-3">
+        <div className="w-14 h-14 mx-auto border-2 border-brand-accent rounded-full grid place-items-center">
           <svg
             className="w-6 h-6 text-brand-primary"
             viewBox="0 0 24 24"
@@ -69,15 +68,12 @@ export default function PasswordRecoveryForm() {
           </svg>
         </div>
         <h1
-          className="text-4xl md:text-5xl font-bold text-brand-primary tracking-tight leading-tight"
+          className="text-4xl font-bold text-brand-primary tracking-tight"
           style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
         >
           Recuperar Contraseña
         </h1>
-        <span className="block w-15 h-[3px] bg-brand-accent mx-auto my-4 rounded-sm" />
-        <p className="text-sm text-brand-secondary font-light max-w-[360px] mx-auto leading-relaxed">
-          Sigue los pasos para restablecer tu contraseña mediante un código enviado a tu correo.
-        </p>
+        <div className="w-15 h-0.5 bg-brand-accent mx-auto rounded-full" />
       </div>
 
       {/* ─── Step 1: Email ─── */}
@@ -85,18 +81,9 @@ export default function PasswordRecoveryForm() {
         <form
           onSubmit={handleStepOne}
           autoComplete="off"
-          className="bg-white border border-brand-accent/25 rounded-md
-            px-7 py-8 md:px-10 md:py-10
-            shadow-[0_1px_3px_rgba(10,9,8,0.04),0_8px_30px_rgba(10,9,8,0.06)]"
+          className="space-y-6"
         >
           <Stepper steps={STEPS} currentStep={1} />
-
-          <h2
-            className="text-lg font-semibold text-brand-secondary mb-5 pb-2 border-b border-brand-accent/20 tracking-wide"
-            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-          >
-            Ingresa tu correo electrónico
-          </h2>
 
           <InfoBox>
             Te enviaremos un código de 6 dígitos a tu correo registrado para verificar tu identidad.
@@ -112,25 +99,23 @@ export default function PasswordRecoveryForm() {
             defaultValue={email}
           />
 
-          <div className="mt-6">
-            <Button type="submit" className="flex items-center justify-center gap-2">
-              Enviar código
-              <svg
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            </Button>
-          </div>
+          <Button type="submit" className="flex items-center justify-center gap-2">
+            Enviar código
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </Button>
 
-          <p className="text-center text-sm text-brand-secondary font-light mt-5">
+          <p className="text-center text-sm text-brand-secondary font-light">
             <Link
               href="/login"
               className="text-brand-primary font-medium hover:underline underline-offset-2 transition-all"
@@ -146,18 +131,9 @@ export default function PasswordRecoveryForm() {
         <form
           onSubmit={handleStepTwo}
           autoComplete="off"
-          className="bg-white border border-brand-accent/25 rounded-md
-            px-7 py-8 md:px-10 md:py-10
-            shadow-[0_1px_3px_rgba(10,9,8,0.04),0_8px_30px_rgba(10,9,8,0.06)]"
+          className="space-y-6"
         >
           <Stepper steps={STEPS} currentStep={2} />
-
-          <h2
-            className="text-lg font-semibold text-brand-secondary mb-5 pb-2 border-b border-brand-accent/20 tracking-wide"
-            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-          >
-            Ingresa el código de verificación
-          </h2>
 
           <InfoBox
             icon={
@@ -180,7 +156,7 @@ export default function PasswordRecoveryForm() {
 
           <CodeInput value={code} onChange={setCode} />
 
-          <p className="text-center text-[0.78rem] text-brand-secondary font-light mb-6">
+          <p className="text-center text-sm text-brand-secondary font-light">
             ¿No recibiste el código?{" "}
             <button
               type="button"
@@ -206,7 +182,7 @@ export default function PasswordRecoveryForm() {
             </svg>
           </Button>
 
-          <p className="text-center text-sm text-brand-secondary font-light mt-5">
+          <p className="text-center text-sm text-brand-secondary font-light">
             <Link
               href="/login"
               className="text-brand-primary font-medium hover:underline underline-offset-2 transition-all"
@@ -222,20 +198,11 @@ export default function PasswordRecoveryForm() {
         <form
           onSubmit={handleStepThree}
           autoComplete="off"
-          className="bg-white border border-brand-accent/25 rounded-md
-            px-7 py-8 md:px-10 md:py-10
-            shadow-[0_1px_3px_rgba(10,9,8,0.04),0_8px_30px_rgba(10,9,8,0.06)]"
+          className="space-y-6"
         >
           <Stepper steps={STEPS} currentStep={3} />
 
-          <h2
-            className="text-lg font-semibold text-brand-secondary mb-5 pb-2 border-b border-brand-accent/20 tracking-wide"
-            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-          >
-            Crea tu nueva contraseña
-          </h2>
-
-          <div className="flex flex-col gap-5 mb-6">
+          <div className="space-y-5">
             <div>
               <Input
                 id="new-password"
@@ -245,7 +212,7 @@ export default function PasswordRecoveryForm() {
                 placeholder="••••••••"
                 required
               />
-              <span className="text-[0.7rem] text-brand-accent font-light mt-1 block">
+              <span className="text-xs text-brand-accent font-light mt-1 block">
                 Mínimo 8 caracteres, incluir mayúsculas y números.
               </span>
             </div>
@@ -276,7 +243,7 @@ export default function PasswordRecoveryForm() {
             </svg>
           </Button>
 
-          <p className="text-center text-sm text-brand-secondary font-light mt-5">
+          <p className="text-center text-sm text-brand-secondary font-light">
             <Link
               href="/login"
               className="text-brand-primary font-medium hover:underline underline-offset-2 transition-all"

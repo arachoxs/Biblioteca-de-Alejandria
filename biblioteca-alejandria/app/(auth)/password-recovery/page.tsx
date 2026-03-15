@@ -1,4 +1,5 @@
 import PasswordRecoveryForm from "./PasswordRecoveryForm";
+import Image from "next/image";
 
 export const metadata = {
   title: "Recuperar Contraseña — Biblioteca de Alejandría",
@@ -8,21 +9,37 @@ export const metadata = {
 
 export default function PasswordRecoveryPage() {
   return (
-    <div className="min-h-screen bg-brand-bg flex items-center justify-center w-full relative overflow-hidden">
-      {/* Subtle grid background */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0"
-        style={{
-          background: `
-            repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(94,80,63,0.03) 60px, rgba(94,80,63,0.03) 61px),
-            repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(94,80,63,0.03) 60px, rgba(94,80,63,0.03) 61px)
-          `,
-        }}
-      />
+    <div className="min-h-screen bg-brand-bg flex items-center justify-center w-full">
+      <div className="lg:max-w-10/12 md:mx-4 flex lg:flex-row flex-col w-full md:rounded-2xl mx-auto grainy-glass">
 
-      <main className="relative z-[1] px-4 py-12 w-full">
-        <PasswordRecoveryForm />
-      </main>
+        <header className="text-center flex flex-1 rounded-b-2xl md:rounded-2xl flex-col items-center justify-center px-10 py-12 relative overflow-hidden">
+          {/* Imagen de fondo desenfocada */}
+          <div className="absolute inset-0 bg-cover bg-center bg-[url(/libros_banner.jpeg)] blur-sm scale-110" />
+          {/* Overlay oscuro para legibilidad del texto */}
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative z-10 mb-5">
+            <Image
+              src="/logo-fondo-oscuro.png"
+              alt="Biblioteca de Alejandría"
+              width={80}
+              height={80}
+              className="mx-auto drop-shadow-lg"
+            />
+          </div>
+          <h2 className="relative z-10 text-4xl font-bold text-white mb-3 tracking-tight">
+            Recuperar Contraseña
+          </h2>
+          <p className="relative z-10 text-2xs md:text-lg text-white/85 leading-relaxed max-w-md mx-auto">
+            Sigue los pasos para restablecer tu contraseña de forma segura
+          </p>
+          <div className="relative z-10 mt-6 h-px bg-linear-to-r from-transparent via-brand-accent to-transparent" />
+        </header>
+
+        <main className="flex-2 px-4 md:px-10 py-10">
+          <PasswordRecoveryForm />
+        </main>
+
+      </div>
     </div>
   );
 }
