@@ -73,7 +73,7 @@ export default function LoginForm() {
                         <span className="text-sm text-brand-secondary font-light">Recordarme</span>
                     </label>
                     <Link
-                        href="/recuperar-contrasena"
+                        href="/password-recovery"
                         className="text-sm text-brand-primary font-medium hover:underline underline-offset-2 transition-all"
                     >
                         ¿Olvidaste tu contraseña?
