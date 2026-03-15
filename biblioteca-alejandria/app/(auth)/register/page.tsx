@@ -1,42 +1,46 @@
 import RegistroForm from "./RegistroForm";
-import Link from "next/link";
 import Image from "next/image";
+
+export const metadata = {
+    title: "Crear cuenta — Biblioteca de Alejandría",
+    description: "Regístrate en la Biblioteca de Alejandría para acceder al catálogo, gestionar préstamos y más.",
+};
 
 export default function Registro() {
     return (
         <div className="min-h-screen bg-brand-bg flex items-center justify-center w-full">
             <div className="lg:max-w-10/12 md:mx-4 flex lg:flex-row flex-col w-full md:rounded-2xl mx-auto grainy-glass">
 
-                <header className="text-center flex flex-1 rounded-b-2xl md:rounded-2xl flex-col items-center justify-center px-10 py-6 relative overflow-hidden">
-                    {/* Imagen de fondo desenfocada */}
+                {/* ── Banner lateral ── */}
+                <header className="text-center flex flex-1 rounded-b-2xl md:rounded-2xl flex-col items-center justify-center px-10 py-12 relative overflow-hidden">
+                    {/* Fondo desenfocado */}
                     <div className="absolute inset-0 bg-cover bg-center bg-[url(/libros_banner.jpeg)] blur-sm scale-110" />
-                    {/* Overlay oscuro para legibilidad del texto */}
-                    <div className="absolute inset-0 bg-black-primary/60" />
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-black/70" />
+
                     <div className="relative z-10 mb-5">
                         <Image
                             src="/logo-fondo-oscuro.png"
                             alt="Biblioteca de Alejandría"
                             width={80}
                             height={80}
-                            className="mx-auto drop-shadow-lg"
+                            className="mx-auto"
                         />
                     </div>
-                    <h1 className="relative z-10 text-4xl font-bold text-white mb-3 tracking-tight">
+                    <h1
+                        className="relative z-10 text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight leading-tight"
+                        style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                    >
                         Crear una cuenta
                     </h1>
-                    <p className="relative z-10 text-2xs md:text-lg text-white/85 leading-relaxed max-w-md mx-auto">
-                        Crea una cuenta para poder acceder a todas las funcionalidades de la Biblioteca de Alejandría
-                        <br />
-                        <br />
-                        ¿Ya tienes cuenta?{" "}
-                        <Link href="/login" className="text-white font-semibold hover:underline underline-offset-2 transition-all">
-                            Inicia sesión aquí
-                        </Link>
+                    <p className="relative z-10 text-sm md:text-base text-white/80 leading-relaxed max-w-xs mx-auto font-light">
+                        Únete a la Biblioteca de Alejandría y accede al catálogo, préstamos y mucho más
                     </p>
-                    <div className="relative z-10 mt-6 h-px bg-linear-to-r from-transparent via-brand-accent to-transparent" />
+                    <div className="relative z-10 mt-6 h-px w-16 bg-brand-accent mx-auto rounded-full" />
                 </header>
 
-                <main className="flex-2 px-4 md:px-10 py-6">
+                {/* ── Formulario ── */}
+                <main className="flex-2 px-4 md:px-10 py-10">
                     <RegistroForm />
                 </main>
 
