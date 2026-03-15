@@ -1,4 +1,5 @@
 import RootNavbar from "@/components/RootNavbar";
+import ActionCard from "@/components/ActionCard";
 import { ShieldCheck, Users, FileClock, Settings, Activity, Clock, Database } from "lucide-react";
 import Link from "next/link";
 
@@ -43,95 +44,34 @@ export default function PanelRootPage() {
         {/* Actions Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
 
-          {/* Card 1 */}
-          <Link
-            href="/panel-root#gestionar-admins" // Usar hash para demo, o crear sub-rutas después
-            className="group relative bg-white border border-brand-accent/20 rounded-xl p-8 flex flex-col gap-5 text-brand-text hover:border-brand-accent/40 shadow-sm hover:shadow-xl hover:shadow-brand-text/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-8 delay-150 fill-mode-both overflow-hidden hover:-translate-y-1"
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-brand-primary origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out" />
+          {/* Cards */}
+          <ActionCard
+            href="/panel-root#gestionar-admins"
+            title="Gestionar Administradores"
+            description="Crea nuevos administradores y gestiona los existentes."
+            category="Personal"
+            icon={Users}
+            categoryIcon={ShieldCheck}
+            delayClass="delay-150"
+          />
 
-            <div className="w-12 h-12 border-2 border-brand-accent/30 rounded-lg flex items-center justify-center bg-brand-bg/80 shrink-0 group-hover:bg-brand-primary/5 transition-colors">
-              <Users className="w-5 h-5 text-brand-primary" strokeWidth={1.5} />
-            </div>
-
-            <div className="flex-1">
-              <h2 className="font-display text-xl font-bold text-brand-text tracking-wide mb-2">
-                Gestionar Administradores
-              </h2>
-              <p className="text-sm text-brand-secondary leading-relaxed">
-                Crea nuevos administradores y gestiona los existentes.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t border-brand-accent/15 mt-auto">
-              <span className="text-xs uppercase tracking-widest text-brand-accent font-medium">
-                Personal
-              </span>
-              <div className="w-7 h-7 rounded-full border border-brand-accent/30 flex items-center justify-center group-hover:bg-brand-primary group-hover:border-brand-primary transition-colors">
-                <ShieldCheck className="w-3 h-3 text-brand-primary group-hover:text-white transition-colors" />
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 2 */}
-          <Link
+          <ActionCard
             href="/panel-root#auditoria"
-            className="group text-left relative bg-white border border-brand-accent/20 rounded-xl p-8 flex flex-col gap-5 text-brand-text hover:border-brand-accent/40 shadow-sm hover:shadow-xl hover:shadow-brand-text/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-8 delay-200 fill-mode-both overflow-hidden hover:-translate-y-1"
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-brand-primary origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out" />
+            title="Registro de Auditoría"
+            description="Revisa el historial de acciones realizadas en el panel administrativo."
+            category="Seguridad"
+            icon={FileClock}
+            delayClass="delay-200"
+          />
 
-            <div className="w-12 h-12 border-2 border-brand-accent/30 rounded-lg flex items-center justify-center bg-brand-bg/80 shrink-0 group-hover:bg-brand-primary/5 transition-colors">
-              <FileClock className="w-5 h-5 text-brand-primary" strokeWidth={1.5} />
-            </div>
-
-            <div className="flex-1">
-              <h2 className="font-display text-xl font-bold text-brand-text tracking-wide mb-2">
-                Registro de Auditoría
-              </h2>
-              <p className="text-sm text-brand-secondary leading-relaxed">
-                Revisa el historial de acciones realizadas en el panel administrativo.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t border-brand-accent/15 mt-auto">
-              <span className="text-xs uppercase tracking-widest text-brand-accent font-medium">
-                Seguridad
-              </span>
-              <div className="w-7 h-7 rounded-full border border-brand-accent/30 flex items-center justify-center group-hover:bg-brand-primary group-hover:border-brand-primary transition-colors">
-                <FileClock className="w-3 h-3 text-brand-primary group-hover:text-white transition-colors" />
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 3 (Placeholder for structural balance as per mockup styles) */}
-          <Link
+          <ActionCard
             href="/panel-root#configuracion"
-            className="group relative bg-white border border-brand-accent/20 rounded-xl p-8 flex flex-col gap-5 text-brand-text hover:border-brand-accent/40 shadow-sm hover:shadow-xl hover:shadow-brand-text/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-8 delay-300 fill-mode-both overflow-hidden hover:-translate-y-1"
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-brand-primary origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out" />
-
-            <div className="w-12 h-12 border-2 border-brand-accent/30 rounded-lg flex items-center justify-center bg-brand-bg/80 shrink-0 group-hover:bg-brand-primary/5 transition-colors">
-              <Settings className="w-5 h-5 text-brand-primary" strokeWidth={1.5} />
-            </div>
-
-            <div className="flex-1">
-              <h2 className="font-display text-xl font-bold text-brand-text tracking-wide mb-2">
-                Configuración Global
-              </h2>
-              <p className="text-sm text-brand-secondary leading-relaxed">
-                Gestiona variables de entorno, reglas globales de acceso y mantenimiento del sistema.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t border-brand-accent/15 mt-auto">
-              <span className="text-xs uppercase tracking-widest text-brand-accent font-medium">
-                Sistema
-              </span>
-              <div className="w-7 h-7 rounded-full border border-brand-accent/30 flex items-center justify-center group-hover:bg-brand-primary group-hover:border-brand-primary transition-colors">
-                <Settings className="w-3 h-3 text-brand-primary group-hover:text-white transition-colors" />
-              </div>
-            </div>
-          </Link>
+            title="Configuración Global"
+            description="Gestiona variables de entorno, reglas globales de acceso y mantenimiento del sistema."
+            category="Sistema"
+            icon={Settings}
+            delayClass="delay-300"
+          />
         </div>
 
         {/* Info Strip */}
