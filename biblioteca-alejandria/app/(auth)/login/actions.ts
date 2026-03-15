@@ -42,11 +42,11 @@ export async function loginAction(
   // Redirigir según el rol
   switch (role) {
     case "ROOT":
-      redirect("/panel/root");
+      redirect("/panel-root");
     case "ADMIN":
-      redirect("/panel/admin");
+      redirect("/panel-admin");
     case "CLIENTE":
     default:
-      redirect("/panel/cliente");
+      redirect("/");
   }
 }
