@@ -6,7 +6,7 @@ Este documento detalla el funcionamiento interno de las funciones de registro de
 
 ## 1. Función: `registerAuthUser`
 
-Esta función es la encargada de gestionar la creación de iden---
+Esta función es la encargada de gestionar la creación de identidades en el servicio de autenticación de Supabase.
 
 ## 3. Guía de Uso para Desarrolladores
 
@@ -27,7 +27,8 @@ export async function actionRegistro(formData: FormData) {
   }
   
   return result; // Contiene los errores para mostrar en los inputs
-}tidades en el servicio de autenticación de Supabase.
+}
+```
 
 ### Descripción
 Registra las credenciales en la tabla de autenticación (`auth.users`) y asigna metadatos críticos como el rol y el nombre de usuario.
