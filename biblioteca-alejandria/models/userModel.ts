@@ -17,7 +17,7 @@ export async function registerAuthUser(
   
   const isRoot = requester?.user_metadata?.rol === RolEnum.ROOT;
 
-  if (rol != RolEnum.CLIENTE && !isRoot ) {
+  if (rol !== RolEnum.CLIENTE && !isRoot ) {
     return {
       success: false,
       errors: { form: "No tienes permisos para registrar nuevos usuarios." },
