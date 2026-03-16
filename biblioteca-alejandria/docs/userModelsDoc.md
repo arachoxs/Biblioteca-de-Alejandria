@@ -8,7 +8,7 @@ Este documento detalla el funcionamiento interno de las funciones de registro de
 
 Esta función es la encargada de gestionar la creación de identidades en el servicio de autenticación de Supabase.
 
-## 3. Guía de Uso para Desarrolladores
+## 2. Guía de Uso para Desarrolladores
 
 ### Cómo llamar a la función desde un Server Action
 Los desarrolladores **no deben** manejar la lógica de base de datos en el Action. Solo deben invocar al modelo:
@@ -46,7 +46,7 @@ Devuelve un tipo `InternalAuthResponse`, el cual es una intersección que incluy
 - Creacion de administradores sin informacion personal
 ---
 
-## 2. Función: `registerUser`
+## 3. Función: `registerUser`
 
 Es la función **Orquestadora** y el punto de entrada principal para los procesos de registro desde los Server Actions.
 
