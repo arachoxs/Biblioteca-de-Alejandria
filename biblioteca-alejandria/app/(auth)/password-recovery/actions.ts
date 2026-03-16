@@ -85,7 +85,7 @@ export async function verifyRecoveryCode(
 
     // Código expirado (Excepción E1 del CU-04)
     if (error.message.toLowerCase().includes("expired")) {
-      return { error: "El código ha expirado. Solicita uno nuevo." };
+      return { error: "No se pudo validar el código ingresado." };
     }
 
     // Código incorrecto (Flujo alternativo 7a/8a del CU-04)
