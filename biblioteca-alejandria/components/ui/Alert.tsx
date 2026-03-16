@@ -14,11 +14,11 @@ export default function Alert({ variant = "info", className = "", children, ...p
         info: "bg-blue-50 border-blue-200 text-blue-600",
     };
 
-    const baseStyles = "border px-4 py-3 rounded-lg text-sm";
+    const baseStyles = "border px-4 py-3 rounded-lg text-sm z-100";
     
     return (
         <div 
-            className={`${baseStyles} absolute left-1/2 -translate-x-1/2  ${variants[variant]} ${className}`}
+            className={`${baseStyles} absolute left-1/2 -translate-x-1/2 ${variants[variant]} ${className}`}
             role="alert"
             {...props}
         >
