@@ -15,7 +15,7 @@ export async function registerAuthUser(
 
   const { data: { user: requester } } = await supabase.auth.getUser(); //obtiene la informacion del usuario actual, que es el que esta haciendo la peticion, en este caso el admin o root
   
-  const isRoot = requester?.user_metadata?.rol === RolEnum.ROOT;
+  const isRoot = requester?.app_metadata?.role === RolEnum.ROOT;
 
   if (rol !== RolEnum.CLIENTE && !isRoot ) {
     return {
@@ -31,7 +31,7 @@ export async function registerAuthUser(
     password: credentialData.contrasena,
     options: {
       data: {
-        rol: rol,
+        role: rol,
         username: usuario
       }
     }
@@ -60,7 +60,7 @@ export async function registerAuthUser(
 export async function registerUser(
   credentialData: CredentialData,
   personalData: PersonalData,
-  Rol: RolEnum
+  rol: RolEnum
 ): Promise<RegisterResponse> {
   const adminClient = createAdminClient();
 

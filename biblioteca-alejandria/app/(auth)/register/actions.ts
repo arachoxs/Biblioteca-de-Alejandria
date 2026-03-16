@@ -15,7 +15,11 @@ function validateRegistrationData(
 
   // Validar campos obligatorios de datos personales
   for (const [key, value] of Object.entries(personalData)) {
-    if (key !== 'direccion_detalle' && (value === null || value === undefined || value.toString().trim() === '')) {
+    if (
+      key !== 'direccion_detalle' &&
+      key !== 'direccion_place_id' &&
+      (value === null || value === undefined || value.toString().trim() === '')
+    ) {
       errors[key] = "Este campo es obligatorio.";
     }
   }
@@ -61,7 +65,7 @@ function validateRegistrationData(
     errors.confirmar_contrasena = "Las contraseñas no coinciden.";
   }
 
-  if (!errors.direccion_place_id && !personalData.direccion_place_id) {
+  if (!errors.direccion && !personalData.direccion_place_id) {
     errors.direccion = "Por favor selecciona una dirección válida de las sugerencias.";
   }
 
