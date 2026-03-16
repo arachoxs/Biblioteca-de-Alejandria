@@ -8,7 +8,8 @@ import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
 import GoogleAutocomplete from "@/components/GoogleAutocomplete";
 import { Country } from "country-state-city";
-import { CredentialData, PersonalData, registerUser, Genero } from "./actions"
+import { CredentialData, PersonalData, Genero } from "@/lib/types/auth";
+import { registerUser } from "./actions";
 
 const generoOptions = [
     { value: "masculino", label: "Masculino" },
@@ -21,99 +22,12 @@ const paisOptions = Country.getAllCountries().map((country) => ({
     label: country.name,
 }));
 
-interface FormDataValues {
-    dni: string;
-    nombres: string;
-    apellidos: string;
-    fecha_nacimiento: string;
-    lugar_nacimiento: string;
-    genero: string;
-    direccion: string;
-    direccion_place_id: string;
-    direccion_detalle?: string;
-    correo: string;
-    usuario: string;
-    contrasena: string;
-    confirmar_contrasena: string;
-}
-
 export default function RegistroForm() {
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [success, setSuccess] = useState(false);
     const [formattedAddress, setFormattedAddress] = useState("");
     const [placeId, setPlaceId] = useState("");
-
-    const checkData = (data: FormDataValues): Record<string, string> => {
-        const newErrors: Record<string, string> = {};
-
-        try {
-
-            // Verificación de campos obligatorios
-            const requiredFields = [
-                "dni", "nombres", "apellidos", "fecha_nacimiento",
-                "lugar_nacimiento", "genero", "direccion",
-                "correo", "usuario", "contrasena", "confirmar_contrasena", "direccion_place_id",
-            ];
-
-            const fechaSeleccionada = new Date(data.fecha_nacimiento);
-            const hoy = new Date();
-
-            for (const field of requiredFields) {
-                const value = data[field as keyof FormDataValues];
-                if (typeof value !== "string" || value.trim() === "") {
-                    newErrors[field] = "Este campo es obligatorio.";
-                }
-            }
-
-            // Validaciones específicas
-            if (!newErrors.dni && data.dni.length < 7) {
-                newErrors.dni = "El DNI debe tener al menos 7 dígitos.";
-            }
-
-            if (!newErrors.fecha_nacimiento && Number.isNaN(fechaSeleccionada.getTime())) {
-                newErrors.fecha_nacimiento = "La fecha de nacimiento no es valida.";
-            }
-
-            if (!newErrors.fecha_nacimiento) {
-                let edad = hoy.getFullYear() - fechaSeleccionada.getFullYear();
-                const diferenciaMeses = hoy.getMonth() - fechaSeleccionada.getMonth();
-
-                if (
-                    diferenciaMeses < 0 ||
-                    (diferenciaMeses === 0 && hoy.getDate() < fechaSeleccionada.getDate())
-                ) {
-                    edad--;
-                }
-
-                if (fechaSeleccionada > hoy) {
-                    newErrors.fecha_nacimiento = "No puedes haber nacido en el futuro.";
-                } else if (edad < 18) {
-                    newErrors.fecha_nacimiento = "Debes tener al menos 18 años.";
-                } else if (edad > 80) {
-                    newErrors.fecha_nacimiento = "La edad máxima permitida es 80 años.";
-                }
-            }
-
-            if (!newErrors.contrasena && data.contrasena.length < 6) {
-                newErrors.contrasena = "La contraseña debe tener al menos 6 caracteres.";
-            }
-
-            if (!newErrors.confirmar_contrasena && data.contrasena !== data.confirmar_contrasena) {
-                newErrors.confirmar_contrasena = "Las contraseñas no coinciden.";
-            }
-
-            if (!newErrors.direccion_place_id && !data.direccion_place_id) {
-                newErrors.direccion = "Por favor selecciona una dirección válida de las sugerencias.";
-            }
-
-        } catch (err: unknown) {
-            console.error(err);
-            setErrors({ form: "Ocurrió un error inesperado." });
-        }
-
-        return newErrors;
-    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -122,71 +36,39 @@ export default function RegistroForm() {
         setSuccess(false);
 
         try {
-
             const formData = new FormData(e.currentTarget);
 
-            const data = {
+            const personalData: PersonalData = {
                 dni: formData.get("dni") as string,
                 nombres: formData.get("nombres") as string,
                 apellidos: formData.get("apellidos") as string,
                 fecha_nacimiento: formData.get("fecha_nacimiento") as string,
                 lugar_nacimiento: formData.get("lugar_nacimiento") as string,
-                genero: formData.get("genero") as string,
-                direccion: formData.get("direccion_detalle")
-                    ? `${formattedAddress}, ${formData.get("direccion_detalle")}`
-                    : formattedAddress,
+                genero: formData.get("genero") as Genero,
+                direccion: formattedAddress,
                 direccion_place_id: placeId,
                 direccion_detalle: formData.get("direccion_detalle") as string,
-                correo: formData.get("correo") as string,
                 usuario: formData.get("usuario") as string,
+            };
+
+            const credentialData: CredentialData = {
+                correo: formData.get("correo") as string,
                 contrasena: formData.get("contrasena") as string,
                 confirmar_contrasena: formData.get("confirmar_contrasena") as string,
             };
 
-            const newErrors = checkData(data);
-            if (Object.keys(newErrors).length > 0) {
-                setErrors(newErrors);
-                setLoading(false);
-                return;
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-
-            //separamos los datos de perfil de los de autenticación
-            const PersonalData: PersonalData = {
-                dni: data.dni,
-                nombres: data.nombres,
-                apellidos: data.apellidos,
-                fecha_nacimiento: data.fecha_nacimiento,
-                lugar_nacimiento: data.lugar_nacimiento,
-                genero: data.genero as Genero,
-                direccion: data.direccion,
-                direccion_place_id: data.direccion_place_id,
-                direccion_detalle: data.direccion_detalle? data.direccion_detalle : undefined,
-                usuario: data.usuario,
-            };
-
-            const credentialData: CredentialData = {
-                correo: data.correo,
-                contrasena: data.contrasena,
-            };
-
-            console.log("antes")
-            const response = await registerUser(credentialData, PersonalData);
-            console.log("despues", response);
+            const response = await registerUser(credentialData, personalData);
 
             if (response.success) {
                 setSuccess(true);
-                //logica para hacer despues de registrar el usuario
+                setErrors({});
+                // Opcional: resetear el formulario
+                // e.currentTarget.reset();
+                // setFormattedAddress("");
+                // setPlaceId("");
             } else {
                 setErrors(response.errors || { form: response.message || "Error desconocido" });
             }
-            
-            //reset Formulario
-            //setFormattedAddress("");
-            //setPlaceId("");
-            // e.currentTarget.reset(); 
 
         } catch (err: unknown) {
             console.error(err);
@@ -287,9 +169,6 @@ export default function RegistroForm() {
                         placeholder="Apto 101, Piso 2"
                         error={errors.direccion_detalle}
                     />
-
-                    <input type="hidden" id="direccion" name="direccion" value={formattedAddress} />
-                    <input type="hidden" id="direccion_place_id" name="direccion_place_id" value={placeId} />
                 </div>
             </fieldset>
 
