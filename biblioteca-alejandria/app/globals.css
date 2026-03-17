@@ -6,6 +6,10 @@
   --color-brand-accent: #a9927d;
   --color-brand-bg: #f2f4f3;
   --color-brand-text: #0a0908;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-cormorant-garamond), ui-serif, Georgia, serif;
 }
 
 @keyframes fadeUp {

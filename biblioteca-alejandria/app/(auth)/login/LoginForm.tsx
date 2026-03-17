@@ -23,7 +23,7 @@ export default function LoginForm() {
                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
                 </div>
-                <h1 className="text-4xl font-bold text-brand-primary tracking-tight" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+                <h1 className="text-4xl font-bold text-brand-primary tracking-tight font-display">
                     Iniciar Sesión
                 </h1>
                 <div className="w-15 h-0.5 bg-brand-accent mx-auto rounded-full" />

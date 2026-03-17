@@ -28,8 +28,7 @@ export default function Registro() {
                         />
                     </div>
                     <h1
-                        className="relative z-10 text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight leading-tight"
-                        style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                        className="relative z-10 text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight leading-tight font-display"
                     >
                         Crear una cuenta
                     </h1>
