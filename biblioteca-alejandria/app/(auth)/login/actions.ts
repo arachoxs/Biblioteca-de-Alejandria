@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { LoginState } from "@/lib/types/auth";
 import { signIn } from "@/models/authModel";
+import { Rol } from "@/lib/auth/roles";
 
 export async function loginAction(
   _prevState: LoginState,
@@ -27,15 +28,15 @@ export async function loginAction(
   }
 
   // Obtener el rol del usuario desde app_metadata
-  const role = data.user?.app_metadata?.role as string | undefined;
+  const role = data.user?.app_metadata?.role as Rol | undefined;
 
   // Redirigir según el rol
   switch (role) {
-    case "ROOT":
+    case Rol.ROOT:
       redirect("/panel-root");
-    case "ADMIN":
+    case Rol.ADMINISTRADOR:
       redirect("/panel-admin");
-    case "CLIENTE":
+    case Rol.CLIENTE:
     default:
       redirect("/");
   }

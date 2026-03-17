@@ -16,11 +16,16 @@ interface ModelResult {
 export async function checkDniExists(dni: string): Promise<boolean> {
   const adminClient = createAdminClient();
 
-  const { data } = await adminClient
+  const { data, error } = await adminClient
     .from("usuario")
     .select("dni")
     .eq("dni", dni)
     .maybeSingle();
+
+  if (error) {
+    console.error("Error al verificar DNI:", error);
+    throw error;
+  }
 
   return !!data;
 }
