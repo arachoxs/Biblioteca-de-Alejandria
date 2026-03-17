@@ -2,10 +2,10 @@
 
 import { RecoveryState } from "@/lib/types/auth";
 import {
-  sendRecoveryCodeModel,
-  verifyRecoveryCodeModel,
-  resetPasswordModel,
-} from "@/models/authModel";
+  sendRecoveryCode as sendRecoveryCodeService,
+  verifyRecoveryCode as verifyRecoveryCodeService,
+  resetPassword as resetPasswordService,
+} from "@/services/auth/recoveryService";
 
 // ─── Constantes de validación ──────────────────────────────────────
 
@@ -29,14 +29,16 @@ const PASSWORD_RULES = [
 
 // ─── Paso 1: Enviar código de recuperación ─────────────────────────
 
-export async function sendRecoveryCode(email: string): Promise<RecoveryState> {
+export async function sendRecoveryCode(
+  email: string
+): Promise<RecoveryState> {
   const trimmedEmail = email?.trim();
 
   if (!trimmedEmail) {
     return { error: "El correo electrónico es obligatorio." };
   }
 
-  return sendRecoveryCodeModel(trimmedEmail);
+  return sendRecoveryCodeService(trimmedEmail);
 }
 
 // ─── Paso 2: Verificar código OTP ──────────────────────────────────
@@ -56,7 +58,7 @@ export async function verifyRecoveryCode(
     return { error: "El código debe ser de 8 dígitos numéricos." };
   }
 
-  return verifyRecoveryCodeModel(trimmedEmail, trimmedCode);
+  return verifyRecoveryCodeService(trimmedEmail, trimmedCode);
 }
 
 // ─── Paso 3: Establecer nueva contraseña ───────────────────────────
@@ -81,5 +83,5 @@ export async function resetPassword(
     }
   }
 
-  return resetPasswordModel(newPassword);
+  return resetPasswordService(newPassword);
 }

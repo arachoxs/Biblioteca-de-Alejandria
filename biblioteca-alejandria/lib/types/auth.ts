@@ -40,3 +40,8 @@ export interface RecoveryState {
     success?: boolean;
     message?: string;
 }
+
+export interface LoginState {
+    error?: string;
+    success?: boolean;
+}

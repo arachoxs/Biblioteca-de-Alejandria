@@ -1,13 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-
-export interface LoginState {
-  error?: string;
-  success?: boolean;
-}
+import { LoginState } from "@/lib/types/auth";
+import { signIn } from "@/models/authModel";
 
 export async function loginAction(
   _prevState: LoginState,
@@ -25,14 +20,9 @@ export async function loginAction(
     return { error: "La contraseña es obligatoria." };
   }
 
-  const supabase = await createClient();
+  const data = await signIn(email.trim(), password);
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim(),
-    password,
-  });
-
-  if (error) {
+  if (!data) {
     return { error: "Usuario o contraseña incorrectos." };
   }
 
