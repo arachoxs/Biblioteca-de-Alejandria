@@ -1,14 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-
-// ─── Tipos de respuesta ────────────────────────────────────────────
-
-export interface RecoveryState {
-  error?: string;
-  success?: boolean;
-  message?: string;
-}
+import { RecoveryState } from "@/lib/types/auth";
+import {
+  sendRecoveryCodeModel,
+  verifyRecoveryCodeModel,
+  resetPasswordModel,
+} from "@/models/authModel";
 
 // ─── Constantes de validación ──────────────────────────────────────
 
@@ -39,20 +36,7 @@ export async function sendRecoveryCode(email: string): Promise<RecoveryState> {
     return { error: "El correo electrónico es obligatorio." };
   }
 
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail);
-
-  if (error) {
-    console.error("Error en resetPasswordForEmail:", error.message);
-  }
-
-  // Seguridad (CU-04, flujo alternativo 4a): siempre responder igual
-  // para no revelar si el correo existe o no en la base de datos.
-  return {
-    success: true,
-    message: "Si el correo está registrado, recibirás un código de recuperación.",
-  };
+  return sendRecoveryCodeModel(trimmedEmail);
 }
 
 // ─── Paso 2: Verificar código OTP ──────────────────────────────────
@@ -72,30 +56,7 @@ export async function verifyRecoveryCode(
     return { error: "El código debe ser de 8 dígitos numéricos." };
   }
 
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.verifyOtp({
-    email: trimmedEmail,
-    token: trimmedCode,
-    type: "recovery",
-  });
-
-  if (error) {
-    console.error("Error en verifyOtp:", error.message);
-
-    // Código expirado (Excepción E1 del CU-04)
-    if (error.message.toLowerCase().includes("expired")) {
-      return { error: "No se pudo validar el código ingresado." };
-    }
-
-    // Código incorrecto (Flujo alternativo 7a/8a del CU-04)
-    return { error: "El código ingresado es incorrecto." };
-  }
-
-  return {
-    success: true,
-    message: "Código verificado correctamente.",
-  };
+  return verifyRecoveryCodeModel(trimmedEmail, trimmedCode);
 }
 
 // ─── Paso 3: Establecer nueva contraseña ───────────────────────────
@@ -120,31 +81,5 @@ export async function resetPassword(
     }
   }
 
-  const supabase = await createClient();
-
-  // Verificar que la sesión de recovery esté activa
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Tu sesión ha expirado. Por favor, solicita un nuevo código." };
-  }
-
-  const { error } = await supabase.auth.updateUser({
-    password: newPassword,
-  });
-
-  if (error) {
-    console.error("Error en updateUser:", error.message);
-    return { error: "No se pudo actualizar la contraseña. Intenta de nuevo." };
-  }
-
-  // Cerrar la sesión de recovery para forzar re-login con la nueva contraseña
-  await supabase.auth.signOut();
-
-  return {
-    success: true,
-    message: "Contraseña actualizada exitosamente. Ya puedes iniciar sesión.",
-  };
+  return resetPasswordModel(newPassword);
 }
