@@ -258,7 +258,7 @@ export default function PasswordRecoveryForm() {
           {emailIcon}
         </div>
         <h1
-          className="text-4xl font-bold text-brand-primary tracking-tight font-cormorant"
+          className="text-4xl font-bold text-brand-primary tracking-tight font-display"
         >
           Recuperar Contraseña
         </h1>

@@ -62,7 +62,7 @@ export default function CodeInput({ length = 6, value, onChange }: CodeInputProp
           className="w-12 h-14 text-center text-2xl font-bold text-brand-text
             border border-brand-accent/35 rounded bg-brand-bg outline-none
             transition-all duration-200
-            focus:border-brand-primary focus:shadow-[0_0_0_3px_rgba(73,17,28,0.08)] font-cormorant"
+            focus:border-brand-primary focus:shadow-[0_0_0_3px_rgba(73,17,28,0.08)] font-display"
           aria-label={`Dígito ${index + 1}`}
         />
       ))}

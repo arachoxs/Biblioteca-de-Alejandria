@@ -9,7 +9,7 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-cormorant: var(--font-cormorant), ui-serif, Georgia, serif;
+  --font-display: var(--font-cormorant-garamond), ui-serif, Georgia, serif;
 }
 
 @keyframes fadeUp {

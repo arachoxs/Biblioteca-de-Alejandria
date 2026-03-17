@@ -20,7 +20,7 @@ export default function Stepper({ steps, currentStep }: StepperProps) {
             {/* Step circle + label */}
             <div className="flex flex-col items-center gap-1.5 relative z-[1]">
               <div
-                className={`w-9 h-9 rounded-full grid place-items-center text-sm font-bold border-2 transition-all duration-300 font-cormorant
+                className={`w-9 h-9 rounded-full grid place-items-center text-sm font-bold border-2 transition-all duration-300 font-display
                   ${isDone
                     ? "bg-brand-secondary border-brand-secondary text-brand-bg"
                     : isActive

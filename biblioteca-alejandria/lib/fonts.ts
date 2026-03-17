@@ -11,7 +11,7 @@ export const geistMono = Geist_Mono({
 });
 
 export const cormorantGaramond = Cormorant_Garamond({
-  variable: "--font-cormorant",
+  variable: "--font-cormorant-garamond",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"], // Adjust weights as needed
   style: ["normal", "italic"]
