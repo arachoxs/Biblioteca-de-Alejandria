@@ -1,13 +1,9 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-
-export interface LoginState {
-  error?: string;
-  success?: boolean;
-}
+import { LoginState } from "@/lib/types/auth";
+import { signIn } from "@/models/authModel";
+import { Rol } from "@/lib/auth/roles";
 
 export async function loginAction(
   _prevState: LoginState,
@@ -25,27 +21,22 @@ export async function loginAction(
     return { error: "La contraseña es obligatoria." };
   }
 
-  const supabase = await createClient();
+  const data = await signIn(email.trim(), password);
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim(),
-    password,
-  });
-
-  if (error) {
+  if (!data) {
     return { error: "Usuario o contraseña incorrectos." };
   }
 
   // Obtener el rol del usuario desde app_metadata
-  const role = data.user?.app_metadata?.role as string | undefined;
+  const role = data.user?.app_metadata?.role as Rol | undefined;
 
   // Redirigir según el rol
   switch (role) {
-    case "ROOT":
+    case Rol.ROOT:
       redirect("/panel-root");
-    case "ADMIN":
+    case Rol.ADMINISTRADOR:
       redirect("/panel-admin");
-    case "CLIENTE":
+    case Rol.CLIENTE:
     default:
       redirect("/");
   }
