@@ -20,14 +20,13 @@ export default function Stepper({ steps, currentStep }: StepperProps) {
             {/* Step circle + label */}
             <div className="flex flex-col items-center gap-1.5 relative z-[1]">
               <div
-                className={`w-9 h-9 rounded-full grid place-items-center text-sm font-bold border-2 transition-all duration-300
+                className={`w-9 h-9 rounded-full grid place-items-center text-sm font-bold border-2 transition-all duration-300 font-cormorant
                   ${isDone
                     ? "bg-brand-secondary border-brand-secondary text-brand-bg"
                     : isActive
                       ? "bg-brand-primary border-brand-primary text-brand-bg"
                       : "bg-brand-bg border-brand-accent/30 text-brand-accent"
                   }`}
-                style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
               >
                 {isDone ? "✓" : stepNumber}
               </div>

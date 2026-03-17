@@ -258,8 +258,7 @@ export default function PasswordRecoveryForm() {
           {emailIcon}
         </div>
         <h1
-          className="text-4xl font-bold text-brand-primary tracking-tight"
-          style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          className="text-4xl font-bold text-brand-primary tracking-tight font-cormorant"
         >
           Recuperar Contraseña
         </h1>
