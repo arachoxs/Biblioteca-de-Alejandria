@@ -34,3 +34,9 @@ export interface RegisterResponse { //respuesta que se envia al frontend
     errors?: Record<string, string>;
     message?: string;
 }
+
+export interface RecoveryState {
+    error?: string;
+    success?: boolean;
+    message?: string;
+}

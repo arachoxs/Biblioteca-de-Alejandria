@@ -13,8 +13,8 @@ import {
   sendRecoveryCode,
   verifyRecoveryCode,
   resetPassword,
-  type RecoveryState,
 } from "./actions";
+import type { RecoveryState } from "@/lib/types/auth";
 
 // ─── Constantes ────────────────────────────────────────────────────
 
