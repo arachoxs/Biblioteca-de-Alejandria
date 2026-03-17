@@ -9,9 +9,11 @@ import { redirect } from "next/navigation";
 
 export default function AdminNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userEmail] = useState("admin@baja.com");
-  const [userName] = useState("Administrador");
+  const userEmail = "admin@baja.com";
+  const userName = "Administrador";
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const firstMenuItemRef = useRef<HTMLButtonElement | null>(null);
 
   // Close menu on click outside
   useEffect(() => {
@@ -23,6 +25,36 @@ export default function AdminNavbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Close menu on Escape key and return focus to the trigger button
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        if (buttonRef.current) {
+          buttonRef.current.focus();
+        }
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
+
+  // When the menu opens, move focus to the first menu item
+  useEffect(() => {
+    if (menuOpen && firstMenuItemRef.current) {
+      // Timeout ensures the element is present in the DOM before focusing
+      setTimeout(() => {
+        firstMenuItemRef.current && firstMenuItemRef.current.focus();
+      }, 0);
+    }
+  }, [menuOpen]);
 
   const handleLogout = async () => {
     // Here would be the actual supabase logout logic in a real app
@@ -59,9 +91,15 @@ export default function AdminNavbar() {
         {/* Dropdown Menu */}
         <div className="relative" ref={menuRef}>
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
+            id="user-menu-button"
+            type="button"
+            ref={buttonRef}
+            onClick={() => setMenuOpen((open) => !open)}
             className="flex items-center gap-2 p-2 rounded-lg bg-brand-bg/5 hover:bg-brand-bg/10 border border-transparent hover:border-brand-accent/30 transition-all text-brand-accent"
             aria-label="Menú de usuario"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-controls="user-menu"
           >
             <User className="w-5 h-5" />
             <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`} />
@@ -69,13 +107,21 @@ export default function AdminNavbar() {
 
           {/* Menu Dropdown */}
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white border border-brand-accent/20 shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div
+              id="user-menu"
+              role="menu"
+              aria-labelledby="user-menu-button"
+              tabIndex={-1}
+              className="absolute right-0 mt-2 w-56 rounded-xl bg-white border border-brand-accent/20 shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+            >
               <div className="px-4 py-3 bg-brand-bg/50 border-b border-brand-accent/10">
                 <p className="text-sm font-semibold text-brand-text">{userEmail}</p>
                 <p className="text-xs text-brand-secondary">{userName}</p>
               </div>
               <div className="p-2 flex flex-col gap-1">
                 <button
+                  ref={firstMenuItemRef}
+                  role="menuitem"
                   className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-secondary hover:text-brand-text hover:bg-brand-accent/10 rounded-md transition-colors text-left"
                   onClick={() => alert("Abrir modal de cambiar contraseña")}
                 >
@@ -83,6 +129,7 @@ export default function AdminNavbar() {
                   Cambiar contraseña
                 </button>
                 <button
+                  role="menuitem"
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-primary hover:bg-brand-primary/10 rounded-md transition-colors text-left"
                 >
