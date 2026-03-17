@@ -39,7 +39,7 @@ Playwright commands unless they are first added to `package.json`.
 
 ## Tech stack
 
-- **Next.js 16** (App Router) · **React 19** · **TypeScript 5** (strict)
+- **Next.js 15+** (App Router) · **React 19** · **TypeScript 5** (strict)
 - **Tailwind CSS v4** with PostCSS
 - **Supabase** (`@supabase/ssr` + `@supabase/supabase-js`) for auth and DB
 - **lucide-react** for icons
@@ -174,8 +174,13 @@ Business rules to preserve:
 
 ## Language
 
-- User-facing copy, comments in domain logic, and new documentation files:
-  **Spanish**.
+- User-facing copy (UI text, validation messages, emails) and comments in
+  domain logic: **Spanish**.
+- New **product / user-facing documentation files** (e.g. PRD, Requirements,
+  use cases, `/docs` content): **Spanish**.
+- Internal technical guides and meta-documentation (e.g. `AGENTS.md`) may be
+  written in **English**, as long as user-facing behavior and docs remain in
+  Spanish.
 - Technical identifiers (variable names, file names, function names): **English**
   unless an established domain term is already in Spanish in the codebase.
 - Requirement IDs and use case references stay in their original form (`RF-*`,
