@@ -25,13 +25,14 @@ export async function registerAuthUser(
     }
   }
 
-  // Registrar el usuario en Supabase Auth si es un cliente o si es un admin/root registrando otro admin/root
+  // Registrar el usuario en Supabase Auth.
+  // El rol NO se envía en options.data (user_metadata) para evitar que el usuario pueda editarlo.
+  // El trigger handle_new_user_role asigna 'CLIENTE' por defecto en app_metadata.
   const { data, error: authError } = await supabase.auth.signUp({
     email: credentialData.correo,
     password: credentialData.contrasena,
     options: {
       data: {
-        role: rol,
         username: usuario
       }
     }
@@ -51,6 +52,27 @@ export async function registerAuthUser(
       success: false, 
       errors: { form: `Error en autenticación: ${authError.message}` } 
     };
+  }
+
+  // Si el rol solicitado NO es CLIENTE (ej. ADMINISTRADOR), actualizamos app_metadata
+  // de forma segura usando el adminClient (service_role key), ya que el trigger solo
+  // asigna CLIENTE por defecto.
+  if (rol !== RolEnum.CLIENTE && data?.user) {
+    const adminClient = createAdminClient();
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(
+      data.user.id,
+      { app_metadata: { role: rol } }
+    );
+
+    if (updateError) {
+      console.error("Error al asignar rol en app_metadata:", updateError);
+      // Rollback: eliminar el usuario creado
+      await adminClient.auth.admin.deleteUser(data.user.id);
+      return {
+        success: false,
+        errors: { form: `Error al asignar rol: ${updateError.message}` }
+      };
+    }
   }
 
   return { success: true, data: data };
@@ -106,7 +128,7 @@ export async function registerUser(
       };
     }
 
-    const authResult = await registerAuthUser(credentialData, Rol, personalData.usuario);
+    const authResult = await registerAuthUser(credentialData, rol, personalData.usuario);
 
     if (!authResult.success) {
       return authResult; // Propagar errores de autenticación
