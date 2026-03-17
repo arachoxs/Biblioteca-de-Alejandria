@@ -2,6 +2,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { Database } from "@/lib/types/supabase";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -10,7 +11,7 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export const createClient = async () => {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient <Database>(
     supabaseUrl!,
     supabaseKey!,
     {
@@ -41,5 +42,5 @@ export const createAdminClient = () => {
   if (!supabaseServiceRoleKey) {
     throw new Error("Falta la variable de entorno SUPABASE_SERVICE_ROLE_KEY");
   }
-  return createSupabaseClient(supabaseUrl!, supabaseServiceRoleKey);
+  return createSupabaseClient   <Database>(supabaseUrl!, supabaseServiceRoleKey);
 };
