@@ -1,4 +1,4 @@
-import RootNavbar from "@/components/RootNavbar";
+import Navbar from "@/components/Navbar";
 import ActionCard from "@/components/ActionCard";
 import { ShieldCheck, Users, FileClock, Settings } from "lucide-react";
 
@@ -10,7 +10,7 @@ export const metadata = {
 export default function PanelRootPage() {
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
-      <RootNavbar />
+      <Navbar />
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 md:px-10 lg:py-16">
         <div className="w-full max-w-4xl">
