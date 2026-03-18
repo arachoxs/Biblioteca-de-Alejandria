@@ -12,6 +12,23 @@ const PROTECTED_ROUTES: Record<string, Rol> = {
 };
 
 /**
+ * Create a redirect response that preserves any cookies
+ * that were set on the Supabase response (e.g. refreshed tokens).
+ */
+function redirectWithSupabaseCookies(
+  url: URL,
+  supabaseResponse: NextResponse,
+): NextResponse {
+  const response = NextResponse.redirect(url);
+
+  supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+    response.cookies.set(name, value, options);
+  });
+
+  return response;
+}
+
+/**
  * Refreshes the Supabase session and enforces role-based access
  * on protected panel routes.
  */
@@ -51,7 +68,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       if (!user) {
         const loginUrl = request.nextUrl.clone();
         loginUrl.pathname = "/login";
-        return NextResponse.redirect(loginUrl);
+        return redirectWithSupabaseCookies(loginUrl, supabaseResponse);
       }
 
       // Logged in but wrong role → redirect to home.
@@ -59,7 +76,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       if (userRole !== requiredRole) {
         const homeUrl = request.nextUrl.clone();
         homeUrl.pathname = "/";
-        return NextResponse.redirect(homeUrl);
+        return redirectWithSupabaseCookies(homeUrl, supabaseResponse);
       }
 
       // Authorized — fall through.

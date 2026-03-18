@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { loginAction } from "./actions";
-import { LoginState } from "@/lib/types/auth";
+import type { LoginState } from "@/lib/types/auth";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
