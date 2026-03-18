@@ -1,9 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { LoginState } from "@/lib/types/auth";
+import { Rol, type LoginState } from "@/lib/types/auth";
 import { signIn } from "@/models/authModel";
-import { Rol } from "@/lib/auth/roles";
 
 export async function loginAction(
   _prevState: LoginState,
