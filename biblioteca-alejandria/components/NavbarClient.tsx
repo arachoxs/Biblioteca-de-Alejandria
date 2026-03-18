@@ -47,6 +47,11 @@ export default function NavbarClient({
     searchParams.get("q") ?? ""
   );
 
+  useEffect(() => {
+    const currentQuery = searchParams.get("q") ?? "";
+    setSearchValue((prev) => (prev !== currentQuery ? currentQuery : prev));
+  }, [searchParams]);
+
   const isVisitor = role === "VISITANTE";
 
   // ── Close menu on outside click ───────────────────────────────────
