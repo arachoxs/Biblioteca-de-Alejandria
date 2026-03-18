@@ -130,7 +130,6 @@ export default function NavbarClient({
         )}
 
         <button
-          ref={role === Rol.ROOT ? undefined : undefined}
           role="menuitem"
           onClick={() => globalSignOutAction()}
           className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-primary hover:bg-brand-primary/10 rounded-md transition-colors text-left cursor-pointer"
