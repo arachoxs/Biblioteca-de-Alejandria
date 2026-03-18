@@ -1,4 +1,4 @@
-import AdminNavbar from "@/components/AdminNavbar";
+import Navbar from "@/components/Navbar";
 import ActionCard from "@/components/ActionCard";
 import {
   Library,
@@ -19,7 +19,7 @@ export const metadata = {
 export default function PanelAdminPage() {
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
-      <AdminNavbar />
+      <Navbar />
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 md:px-10 lg:py-16">
         <div className="w-full max-w-5xl">

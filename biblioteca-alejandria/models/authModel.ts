@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { RecoveryState, Rol } from "@/lib/types/auth";
+import { redirect } from "next/navigation";
 import type { AuthResponse } from "@supabase/supabase-js";
 
 // ─── Tipos internos ────────────────────────────────────────────────
@@ -241,4 +242,54 @@ export async function resetPassword(
     success: true,
     message: "Contraseña actualizada exitosamente. Ya puedes iniciar sesión.",
   };
+}
+
+// ─── Rol del usuario actual ────────────────────────────────────────
+
+/** Valor centinela para usuarios no autenticados. */
+export const VISITANTE = "VISITANTE" as const;
+
+/**
+ * Obtiene el rol del usuario actual desde `app_metadata`.
+ * Si no hay sesión activa, retorna `VISITANTE`.
+ */
+export async function getCurrentUserRole(): Promise<Rol | typeof VISITANTE> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return VISITANTE;
+
+  const role = (user.app_metadata as Record<string, unknown>)?.role;
+
+  if (role === Rol.ROOT || role === Rol.ADMINISTRADOR || role === Rol.CLIENTE) {
+    return role;
+  }
+
+  return VISITANTE;
+}
+
+/**
+ * Obtiene el email del usuario actual, o `null` si no hay sesión.
+ */
+export async function getCurrentUserEmail(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user?.email ?? null;
+}
+
+// ─── Cierre de sesión global ───────────────────────────────────────
+
+/**
+ * Cierra la sesión del usuario en **todos** los dispositivos
+ * y redirige a la página principal.
+ */
+export async function globalSignOutModel(): Promise<void> {
+  const supabase = await createClient();
+  await supabase.auth.signOut({ scope: "global" });
+  redirect("/");
 }
