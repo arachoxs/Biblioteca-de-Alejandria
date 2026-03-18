@@ -1,6 +1,5 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { RecoveryState, Rol } from "@/lib/types/auth";
-import { redirect } from "next/navigation";
 import type { AuthResponse } from "@supabase/supabase-js";
 
 // ─── Tipos internos ────────────────────────────────────────────────
@@ -242,67 +241,4 @@ export async function resetPassword(
     success: true,
     message: "Contraseña actualizada exitosamente. Ya puedes iniciar sesión.",
   };
-}
-
-// ─── Rol del usuario actual ────────────────────────────────────────
-
-/** Valor centinela para usuarios no autenticados. */
-export const VISITANTE = "VISITANTE" as const;
-
-/**
- * Obtiene el usuario actual desde Supabase Auth.
- * Retorna `null` si no hay sesión activa.
- */
-export async function getCurrentUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return user ?? null;
-}
-
-/**
- * Obtiene el rol del usuario actual desde `app_metadata`.
- * Si no hay sesión activa, retorna `VISITANTE`.
- */
-export async function getCurrentUserRole(): Promise<Rol | typeof VISITANTE> {
-  const user = await getCurrentUser();
-
-  if (!user) return VISITANTE;
-
-  const role = (user.app_metadata as Record<string, unknown>)?.role;
-
-  if (role === Rol.ROOT || role === Rol.ADMINISTRADOR || role === Rol.CLIENTE) {
-    return role;
-  }
-
-  return VISITANTE;
-}
-
-/**
- * Obtiene el email del usuario actual, o `null` si no hay sesión.
- */
-export async function getCurrentUserEmail(): Promise<string | null> {
-  const user = await getCurrentUser();
-
-  return user?.email ?? null;
-}
-
-// ─── Cierre de sesión global ───────────────────────────────────────
-
-/**
- * Cierra la sesión del usuario en **todos** los dispositivos
- * y redirige a la página principal.
- */
-export async function globalSignOutModel(): Promise<void> {
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signOut({ scope: "global" });
-
-  if (error) {
-    console.error("Error al cerrar sesión globalmente:", error);
-    throw error;
-  }
-
-  redirect("/");
 }
