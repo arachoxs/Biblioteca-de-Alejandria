@@ -290,6 +290,12 @@ export async function getCurrentUserEmail(): Promise<string | null> {
  */
 export async function globalSignOutModel(): Promise<void> {
   const supabase = await createClient();
-  await supabase.auth.signOut({ scope: "global" });
+  const { error } = await supabase.auth.signOut({ scope: "global" });
+
+  if (error) {
+    console.error("Error al cerrar sesión globalmente:", error);
+    throw error;
+  }
+
   redirect("/");
 }
