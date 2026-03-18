@@ -2,7 +2,8 @@
 
 import RootNavbar from "@/components/RootNavbar";
 import Button from "@/components/ui/Button";
-import Table, { Column } from "@/components/ui/Table";
+import Table from "@/components/ui/Table";
+import type { Column } from "@/components/ui/Table";
 import { Plus, Search, CheckCircle, XCircle, UserX } from "lucide-react";
 import { useState } from "react";
 
@@ -133,7 +134,7 @@ export default function GestionAdministradoresPage() {
                 <div className="flex gap-2 w-full md:w-auto animate-in fade-in slide-in-from-right-4 duration-300">
                     <Button 
                         onClick={handleEnable}
-                        className="flex items-center h gap-2 px-4 py-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded-lg text-sm font-medium transition-colors cursor-pointer"
                     >
                         <CheckCircle className="w-4 h-4" />
                         <span className="inline">Habilitar</span>
@@ -170,6 +171,7 @@ export default function GestionAdministradoresPage() {
                 onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1); // Reset to first page on search
+                    setSelectedIds([]); // Clear selection when filters change
                 }}
                 className="w-full pl-10 pr-4 py-2.5 text-sm bg-brand-bg/50 border border-transparent rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-brand-primary/10 transition-all text-brand-text placeholder:text-brand-secondary/60 hover:bg-brand-bg"
               />

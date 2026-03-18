@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { type ChangeEvent, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface Column<T> {
@@ -36,10 +36,22 @@ export default function Table<T>({
   selection, //donde se van a almacenar las selecciones que se realicen
 }: TableProps<T>) {
   const getKey = (item: T, index: number) => {
-    return keyExtractor ? keyExtractor(item) : (item as any).id ?? index;
+    const explicitKey = keyExtractor ? keyExtractor(item) : (item as any).id;
+    if (explicitKey !== undefined && explicitKey !== null) {
+      return explicitKey;
+    }
+
+    if (selection) {
+      throw new Error(
+        "Table: when 'selection' is enabled, you must provide a 'keyExtractor' or ensure items have a stable 'id' (string | number)."
+      );
+    }
+
+    // For non-selection tables, fall back to the index as a last resort.
+    return index;
   };
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelectAll = (e: ChangeEvent<HTMLInputElement>) => {
     if (!selection) return;
     if (e.target.checked) {
       // Select all visible items
@@ -93,6 +105,7 @@ export default function Table<T>({
                         if (input) input.indeterminate = !!isIndeterminate;
                       }}
                       onChange={handleSelectAll}
+                      aria-label="Seleccionar todas las filas"
                     />
                   </div>
                 </th>
@@ -128,6 +141,7 @@ export default function Table<T>({
                             className="w-4 h-4 rounded border-brand-secondary/40 text-brand-primary focus:ring-brand-primary/20 cursor-pointer accent-brand-primary"
                             checked={isSelected}
                             onChange={() => handleSelectRow(key)}
+                            aria-label={`Seleccionar fila ${key}`}
                           />
                         </div>
                       </td>
@@ -166,7 +180,7 @@ export default function Table<T>({
         <div className="flex items-center justify-between px-6 py-4 border-t border-brand-accent/10 bg-brand-bg/50">
           <p className="text-xs text-brand-secondary font-medium">
             Página <span className="text-brand-primary">{pagination.currentPage}</span> de <span className="text-brand-primary">{pagination.totalPages}</span>
-            {pagination.totalItems && (
+            {pagination.totalItems !== undefined && pagination.totalItems !== null && (
               <span className="hidden sm:inline"> • <span className="text-brand-primary">{pagination.totalItems}</span> resultados</span>
             )}
           </p>
