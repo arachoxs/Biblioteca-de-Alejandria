@@ -250,14 +250,24 @@ export async function resetPassword(
 export const VISITANTE = "VISITANTE" as const;
 
 /**
- * Obtiene el rol del usuario actual desde `app_metadata`.
- * Si no hay sesión activa, retorna `VISITANTE`.
+ * Obtiene el usuario actual desde Supabase Auth.
+ * Retorna `null` si no hay sesión activa.
  */
-export async function getCurrentUserRole(): Promise<Rol | typeof VISITANTE> {
+export async function getCurrentUser() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  return user ?? null;
+}
+
+/**
+ * Obtiene el rol del usuario actual desde `app_metadata`.
+ * Si no hay sesión activa, retorna `VISITANTE`.
+ */
+export async function getCurrentUserRole(): Promise<Rol | typeof VISITANTE> {
+  const user = await getCurrentUser();
 
   if (!user) return VISITANTE;
 
@@ -274,10 +284,7 @@ export async function getCurrentUserRole(): Promise<Rol | typeof VISITANTE> {
  * Obtiene el email del usuario actual, o `null` si no hay sesión.
  */
 export async function getCurrentUserEmail(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   return user?.email ?? null;
 }
