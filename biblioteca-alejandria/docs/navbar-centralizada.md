@@ -35,10 +35,10 @@ Componente cliente (`"use client"`) que renderiza la interfaz según el rol reci
 
 | Rol | Logo lleva a | Botón de panel | Menú desplegable | Acción adicional |
 |---|---|---|---|---|
-| `ROOT` | `/panel-root` | "Panel Root" | "Cambiar contraseña" + "Cerrar sesión en todos" | — |
-| `ADMINISTRADOR` | `/panel-admin` | "Panel Administración" | "Ver perfil" + "Cerrar sesión en todos" | — |
-| `CLIENTE` | `/` | — | "Ver perfil" + "Cerrar sesión en todos" | — |
-| `VISITANTE` | `/` | — | No hay menú | Botón "Iniciar sesión" |
+| `ROOT` | `/panel-root` | "Panel Root" | "Cambiar contraseña" + "Cerrar sesión" | — |
+| `ADMINISTRADOR` | `/panel-admin` | "Panel Administración" | "Ver perfil" + "Cerrar sesión" | — |
+| `CLIENTE` | `/` | — | "Ver perfil" + "Cerrar sesión" | — |
+| `VISITANTE` | `/` | — | No hay menú | Botones "Registrarse" e "Iniciar sesión" |
 
 **Barra de búsqueda global**: Visible centrada para todos los roles (con visibilidad optimizada en móviles). Actualiza los query params (`?q=...`) y navega a la página principal. Se ha ensanchado (`max-w-xl`) para una mejor UX en escritorio.
 
