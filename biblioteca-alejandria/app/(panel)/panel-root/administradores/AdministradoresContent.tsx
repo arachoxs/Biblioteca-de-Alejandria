@@ -163,6 +163,7 @@ export default function AdministradoresContent() {
               <input
                 type="text"
                 placeholder="Buscar por nombre o email..."
+                aria-label="Buscar administradores por nombre o email"
                 value={searchTerm}
                 onChange={(e) => {
                     setSearchTerm(e.target.value);
