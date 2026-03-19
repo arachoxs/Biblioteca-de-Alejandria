@@ -1,11 +1,106 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { PersonalData } from "@/lib/types/auth";
+import { PersonalData, Genero } from "@/lib/types/auth";
 
 // ─── Tipos internos ────────────────────────────────────────────────
 
 interface ModelResult {
   success: boolean;
   error?: string;
+}
+
+/** Datos crudos del perfil obtenidos por join usuario + dirección. */
+export interface RawUserProfile {
+  dni: string;
+  nombres: string;
+  apellidos: string;
+  fecha_nacimiento: string;
+  lugar_nacimiento: string;
+  genero: Genero;
+  id_direccion: number;
+  direccion: {
+    direccion_formateada: string;
+    place_id: string;
+    detalle_direccion: string | null;
+  } | null;
+}
+
+// ─── Consultas de perfil ───────────────────────────────────────────
+
+/**
+ * Obtiene el perfil del usuario con la dirección asociada (join).
+ * Retorna `null` si el usuario no existe.
+ */
+export async function getUserProfileById(
+  userId: string
+): Promise<RawUserProfile | null> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("usuario")
+    .select(
+      `
+      dni,
+      nombres,
+      apellidos,
+      fecha_nacimiento,
+      lugar_nacimiento,
+      genero,
+      id_direccion,
+      direccion (
+        direccion_formateada,
+        place_id,
+        detalle_direccion
+      )
+    `
+    )
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error al obtener perfil del usuario:", error);
+    throw error;
+  }
+
+  return data as RawUserProfile | null;
+}
+
+/**
+ * Actualiza los campos editables del perfil en la tabla `usuario`.
+ * Nunca modifica `dni` ni `id` por diseño.
+ */
+export async function updateUserProfile(
+  userId: string,
+  data: {
+    nombres: string;
+    apellidos: string;
+    fecha_nacimiento: string;
+    lugar_nacimiento: string;
+    genero: Genero;
+    id_direccion?: number;
+  }
+): Promise<ModelResult> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("usuario")
+    .update({
+      nombres: data.nombres,
+      apellidos: data.apellidos,
+      fecha_nacimiento: data.fecha_nacimiento,
+      lugar_nacimiento: data.lugar_nacimiento,
+      genero: data.genero,
+      ...(data.id_direccion !== undefined && {
+        id_direccion: data.id_direccion,
+      }),
+    })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("Error al actualizar perfil del usuario:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
 }
 
 // ─── Validaciones de unicidad ──────────────────────────────────────
