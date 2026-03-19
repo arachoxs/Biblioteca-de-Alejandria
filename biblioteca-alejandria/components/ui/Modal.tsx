@@ -2,13 +2,14 @@
 
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
