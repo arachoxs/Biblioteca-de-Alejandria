@@ -1,6 +1,6 @@
 "use client";
 
-import RootNavbar from "@/components/RootNavbar";
+import Navbar from "@/components/Navbar";
 import Button from "@/components/ui/Button";
 import Table from "@/components/ui/Table";
 import type { Column } from "@/components/ui/Table";
@@ -115,7 +115,7 @@ export default function GestionAdministradoresPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col font-sans">
-      <RootNavbar /> {/* Navbar específico para panel-root, si es necesario */}
+      <Navbar /> {/* Navbar específico para panel-root, si es necesario */}
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
         {/* Header Section */}
