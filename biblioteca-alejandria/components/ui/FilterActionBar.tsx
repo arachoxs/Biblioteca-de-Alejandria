@@ -1,11 +1,13 @@
+"use client";
+
 import { Search } from "lucide-react";
-import React from "react";
+import type { ReactNode } from "react";
 
 interface FilterActionBarProps {
   placeholder?: string;
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export default function FilterActionBar({
