@@ -1,6 +1,9 @@
 "use client";
 
 import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Modal from "@/components/ui/Modal";
+import FilterActionBar from "@/components/ui/FilterActionBar";
 import Table from "@/components/ui/Table";
 import type { Column } from "@/components/ui/Table";
 import { Plus, Search, CheckCircle, XCircle, UserX } from "lucide-react";
@@ -20,6 +23,8 @@ export default function AdministradoresContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
   const itemsPerPage = 7;
 
   // Filter data based on search term
@@ -47,7 +52,7 @@ export default function AdministradoresContent() {
     console.log("Habilitando usuarios:", selectedIds);
     alert(`Habilitando ${selectedIds.length} administrador(es)`);
     // Lógica para habilitar
-    setSelectedIds([]); // Limpiar selección o mantener según requerimiento
+    setSelectedIds([]); 
   };
 
   const handleDisable = () => { //logica para desactivar administradores
@@ -55,6 +60,21 @@ export default function AdministradoresContent() {
     alert(`Deshabilitando ${selectedIds.length} administrador(es)`);
     // Lógica para deshabilitar
     setSelectedIds([]);
+  };
+
+  const handleCreateAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Creando administrador con email:", newAdminEmail);
+    alert(`Creando administrador: ${newAdminEmail}`);
+    // Aquí iría la lógica real de creación
+    setNewAdminEmail("");
+    setIsModalOpen(false);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
+    setSelectedIds([]); // Clear selection when filters change
   };
 
   const columns: Column<AdminUser>[] = [
@@ -145,9 +165,10 @@ export default function AdministradoresContent() {
                     <div className="h-8 w-px bg-brand-accent/20 mx-1 hidden md:block"></div>
                 </div>
             )}
+
             <Button
               className="flex items-center gap-2 w-full flex-2 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30 transition-shadow"
-              onClick={() => alert("Funcionalidad de crear no implementada")}
+              onClick={() => setIsModalOpen(true)}
             >
               <Plus className="w-4 h-4" />
               Nuevo Administrador
@@ -155,28 +176,54 @@ export default function AdministradoresContent() {
           </div>
         </div>
 
+        {/* Modal Nuevo Administrador */}
+        <Modal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            title="Nuevo Administrador"
+        >
+            <form onSubmit={handleCreateAdmin} className="space-y-6">
+                <p className="text-sm text-brand-secondary/80 leading-relaxed">
+                    Ingresa el correo electrónico del usuario para invitarlo como administrador.
+                </p>
+                
+                <Input
+                    id="admin-email"
+                    label="Correo Electrónico"
+                    type="email"
+                    placeholder="ejemplo@biblioteca.com"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    required
+                />
+
+                <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setIsModalOpen(false)}
+                        className="w-auto px-4 py-1 text-sm"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="submit"
+                        className="w-auto px-6 !py-1 text-sm flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Crear Administrador
+                    </Button>
+                </div>
+            </form>
+        </Modal>
+
         {/* Filters & Actions Bar */}
-        <div className="bg-white p-1 rounded-xl border border-brand-accent/20 shadow-sm mb-6 animate-in fade-in slide-in-from-bottom-5 duration-500 delay-100 fill-mode-both">
-          <div className="flex flex-col md:flex-row gap-2 p-3 items-center">
-            <div className="relative flex-grow group w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-secondary group-focus-within:text-brand-primary transition-colors" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre o email..."
-                aria-label="Buscar administradores por nombre o email"
-                value={searchTerm}
-                onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1); // Reset to first page on search
-                    setSelectedIds([]); // Clear selection when filters change
-                }}
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-brand-bg/50 border border-transparent rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-brand-primary/10 transition-all text-brand-text placeholder:text-brand-secondary/60 hover:bg-brand-bg"
-              />
-            </div>
-
-          </div>
-        </div>
-
+        <FilterActionBar
+          searchTerm={searchTerm}
+          onSearchChange={handleSearchChange}
+          placeholder="Buscar por nombre o email..."
+        />
+        
         {/* Table Section */}
         <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200 fill-mode-both">
           <Table
