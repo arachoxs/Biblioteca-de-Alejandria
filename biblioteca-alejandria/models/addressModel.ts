@@ -58,3 +58,37 @@ export async function deleteAddress(id: number): Promise<void> {
     console.error("Error al eliminar dirección (rollback):", error);
   }
 }
+
+/**
+ * Actualiza una dirección existente por su ID.
+ */
+export async function updateAddress(
+  id: number,
+  input: AddressInput
+): Promise<{ success: boolean; error?: string }> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("direccion")
+    .update({
+      direccion_formateada: input.direccion,
+      place_id: input.placeId,
+      detalle_direccion: input.detalle ?? null,
+    })
+    .eq("id", id)
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Error al actualizar dirección:", error);
+    return { success: false, error: error.message };
+  }
+
+  if (!data) {
+    console.error(
+      `Error al actualizar dirección: no se encontró registro con id=${id}`
+    );
+    return { success: false, error: "Dirección no encontrada" };
+  }
+  return { success: true };
+}

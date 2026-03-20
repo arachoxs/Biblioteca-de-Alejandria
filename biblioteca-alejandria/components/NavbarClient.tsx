@@ -18,6 +18,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Rol } from "@/lib/types/auth";
 import { globalSignOutAction } from "@/app/actions/authActions";
+import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 
 // ── Tipos ───────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ export default function NavbarClient({
   roleBadge,
 }: NavbarClientProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [changePwdOpen, setChangePwdOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const firstMenuItemRef = useRef<HTMLButtonElement | null>(null);
@@ -114,7 +116,10 @@ export default function NavbarClient({
             ref={firstMenuItemRef}
             role="menuitem"
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-secondary hover:text-brand-text hover:bg-brand-accent/10 rounded-md transition-colors text-left cursor-pointer"
-            onClick={() => alert("Abrir modal de cambiar contraseña")}
+            onClick={() => {
+              setChangePwdOpen(true);
+              setMenuOpen(false);
+            }}
           >
             <KeyRound className="w-4 h-4 text-brand-accent" />
             Cambiar contraseña
@@ -282,6 +287,12 @@ export default function NavbarClient({
           </div>
         )}
       </div>
+
+      {/* ── Modo universal de Cambiar Contraseña ── */}
+      <ChangePasswordModal 
+        isOpen={changePwdOpen} 
+        onClose={() => setChangePwdOpen(false)} 
+      />
     </nav>
   );
 }

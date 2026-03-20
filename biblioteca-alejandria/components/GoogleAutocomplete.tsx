@@ -11,7 +11,7 @@ function createSessionToken(): string {
 }
 
 interface GoogleAutocompleteProps //Generacion del contrato de los props y sus data type para el componente
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> {
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "defaultValue"> {
   id: string;
   name: string;
   label: string;
@@ -21,6 +21,7 @@ interface GoogleAutocompleteProps //Generacion del contrato de los props y sus d
   apiKey?: string;
   debounceMs?: number;
   minChars?: number;
+  defaultValue?: string;
 }
 
 export default function GoogleAutocomplete({
@@ -36,15 +37,17 @@ export default function GoogleAutocomplete({
   debounceMs = 700,
   minChars = 10,
   disabled,
+  defaultValue = "",
   ...props
 }: GoogleAutocompleteProps) { //inicizliacion del componente
-  const [query, setQuery] = useState(""); 
+  const [query, setQuery] = useState(defaultValue); 
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]); //array que almacena las sugerencias
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false); //oermite definir si se abre el dropdown de sugerencias
   const [sessionToken, setSessionToken] = useState<string>(() => createSessionToken());
   const containerRef = useRef<HTMLDivElement>(null); //referencia al componente
+  const userTypedRef = useRef(false); // Rastrea si el cambio de query fue por tipeo manual
 
   useEffect(() => { //use effect para detectar clicks fuera del componente
     const handleOutsideClick = (event: MouseEvent) => {
@@ -60,7 +63,7 @@ export default function GoogleAutocomplete({
   useEffect(() => { //use effect para manejar la logica de busqueda de sugerencias
     const input = query.trim(); //el input se da basado en el query
 
-    if (input.length < minChars || disabled) { //verificacion de restricciones
+    if (!userTypedRef.current || input.length < minChars || disabled) { //verificacion de restricciones
       setLoading(false);
       setSuggestions([]);
       setIsOpen(false);
@@ -122,6 +125,7 @@ export default function GoogleAutocomplete({
   const inputError: string | boolean = errorMessage ?? hasError;
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => { //cuando el input cambia
+    userTypedRef.current = true; // Solo buscar si fue tipeado
     const value = event.target.value;
     setQuery(value);
     setApiError(null);
@@ -135,6 +139,7 @@ export default function GoogleAutocomplete({
   };
 
   const handleSelectSuggestion = (prediction: PlaceSuggestion) => { //cuando se selecciona una sugerencia
+    userTypedRef.current = false; // Evitar que la nueva query genere otra búsqueda
     const addressText = prediction.formattedText;
 
     setQuery(addressText);

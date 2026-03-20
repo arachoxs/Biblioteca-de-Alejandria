@@ -3,24 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
-import GoogleAutocomplete from "@/components/GoogleAutocomplete";
-import { Country } from "country-state-city";
+import PersonalDataFields from "@/components/PersonalDataFields";
 import { CredentialData, PersonalData, Genero } from "@/lib/types/auth";
 import { registerUser } from "./actions";
-
-const generoOptions = [
-    { value: "masculino", label: "Masculino" },
-    { value: "femenino", label: "Femenino" },
-    { value: "otro", label: "Otro" },
-];
-
-const paisOptions = Country.getAllCountries().map((country) => ({
-    value: country.name,
-    label: country.name,
-}));
 
 export default function RegistroForm() {
     const [loading, setLoading] = useState(false);
@@ -62,10 +49,6 @@ export default function RegistroForm() {
             if (response.success) {
                 setSuccess(true);
                 setErrors({});
-                // Opcional: resetear el formulario
-                // e.currentTarget.reset();
-                // setFormattedAddress("");
-                // setPlaceId("");
             } else {
                 setErrors(response.errors || { form: response.message || "Error desconocido" });
             }
@@ -94,83 +77,12 @@ export default function RegistroForm() {
                 </Alert>
             )}
 
-            {/* Datos personales */}
-            <fieldset className="space-y-5">
-                <legend className="text-base md:text-lg font-bold text-brand-primary uppercase tracking-widest pb-2 border-b border-brand-secondary/30 w-full">
-                    Datos personales
-                </legend>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <Input
-                        id="dni"
-                        name="dni"
-                        label="DNI"
-                        placeholder="1234567890"
-                        required
-                        error={errors.dni}
-                    />
-                    <Input
-                        id="nombres"
-                        name="nombres"
-                        label="Nombres"
-                        placeholder="Juan Carlos"
-                        required
-                        error={errors.nombres}
-                    />
-                    <Input
-                        id="apellidos"
-                        name="apellidos"
-                        label="Apellidos"
-                        placeholder="García López"
-                        required
-                        error={errors.apellidos}
-                    />
-                    <Input
-                        id="fecha_nacimiento"
-                        name="fecha_nacimiento"
-                        label="Fecha de nacimiento"
-                        type="date"
-                        required
-                        error={errors.fecha_nacimiento}
-                    />
-
-                    <Select
-                        id="lugar_nacimiento"
-                        name="lugar_nacimiento"
-                        label="Lugar de nacimiento"
-                        options={paisOptions}
-                        required
-                        error={errors.lugar_nacimiento}
-                    />
-                    <Select
-                        id="genero"
-                        name="genero"
-                        label="Género"
-                        options={generoOptions}
-                        required
-                        error={errors.genero}
-                    />
-
-                    <GoogleAutocomplete
-                        id="direccion_autocomplete"
-                        name="direccion_autocomplete"
-                        label="Direccion de correspondencia"
-                        placeholder="Cra 12 #34-56, Bogotá"
-                        required
-                        onPlaceSelect={(selectedPlaceId) => setPlaceId(selectedPlaceId)}
-                        onFormattedAddressSelect={(addressText) => setFormattedAddress(addressText)}
-                        error={errors.direccion}
-                    />
-
-                    <Input
-                        id="direccion_detalle"
-                        name="direccion_detalle"
-                        label="Detalle de la dirección"
-                        placeholder="Apto 101, Piso 2"
-                        error={errors.direccion_detalle}
-                    />
-                </div>
-            </fieldset>
+            {/* Datos personales — componente reutilizable */}
+            <PersonalDataFields
+                errors={errors}
+                onPlaceSelect={(selectedPlaceId) => setPlaceId(selectedPlaceId)}
+                onFormattedAddressSelect={(addressText) => setFormattedAddress(addressText)}
+            />
 
             {/* Datos de acceso */}
             <fieldset className="space-y-5">
@@ -180,6 +92,14 @@ export default function RegistroForm() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <Input
+                        id="usuario"
+                        name="usuario"
+                        label="Nombre de usuario"
+                        placeholder="juangarcia"
+                        required
+                        error={errors.usuario}
+                    />
+                    <Input
                         id="correo"
                         name="correo"
                         label="Correo electrónico"
@@ -187,14 +107,6 @@ export default function RegistroForm() {
                         placeholder="juan@ejemplo.com"
                         required
                         error={errors.correo}
-                    />
-                    <Input
-                        id="usuario"
-                        name="usuario"
-                        label="Nombre de usuario"
-                        placeholder="juangarcia"
-                        required
-                        error={errors.usuario}
                     />
                     <Input
                         id="contrasena"
