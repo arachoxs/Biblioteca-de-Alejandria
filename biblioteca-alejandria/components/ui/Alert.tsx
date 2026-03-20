@@ -1,12 +1,36 @@
-import { HTMLAttributes, ReactNode } from "react";
+import { HTMLAttributes, ReactNode, useEffect, useState } from "react";
 
 interface AlertProps extends HTMLAttributes<HTMLDivElement> {
     variant?: "success" | "error" | "warning" | "info";
     className?: string;
     children: ReactNode;
+    duration?: number;
+    onClose?: () => void;
 }
 
-export default function Alert({ variant = "info", className = "", children, ...props }: AlertProps) {
+export default function Alert({ 
+    variant = "info", 
+    className = "", 
+    children, 
+    duration = 5000,
+    onClose,
+    ...props 
+}: AlertProps) {
+    const [isVisible, setIsVisible] = useState(true);
+
+    useEffect(() => {
+        if (!duration) return;
+
+        const timer = setTimeout(() => {
+            setIsVisible(false);
+            if (onClose) onClose();
+        }, duration);
+
+        return () => clearTimeout(timer);
+    }, [duration, onClose]);
+
+    if (!isVisible) return null;
+
     const variants = {
         success: "bg-green-50 border-green-200 text-green-600",
         error: "bg-red-50 border-red-200 text-red-600",
