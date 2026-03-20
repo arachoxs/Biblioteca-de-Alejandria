@@ -1,39 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
+import Modal from "@/components/ui/Modal";
 
-// ─── Modal genérico usando Portal ──────────────────────────────────
 
-function Modal({
-    isOpen,
-    onClose,
-    children,
-}: {
-    isOpen: boolean;
-    onClose: () => void;
-    children: React.ReactNode;
-}) {
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    if (!isOpen || !mounted) return null;
-
-    return createPortal(
-        <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-text/60 backdrop-blur-sm transition-opacity animate-[fadeUp_0.2s_ease-out_both]"
-            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-        >
-            <div className="bg-white rounded-lg w-full max-w-[420px] shadow-2xl animate-[fadeUp_0.3s_ease-out_both]">
-                {children}
-            </div>
-        </div>,
-        document.body
-    );
-}
 
 // ─── Componente principal ──────────────────────────────────────────
 
@@ -92,8 +62,8 @@ export default function ClientModules() {
             </div>
 
             {/* ── Modal: Work in Progress ── */}
-            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-                <div className="px-6 py-8 text-center flex flex-col items-center">
+            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle}>
+                <div className="text-center flex flex-col items-center">
                     <div className="w-16 h-16 bg-brand-accent/15 rounded-full flex items-center justify-center mb-5">
                         <svg className="w-8 h-8 text-brand-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="m14 7 3 3-3 3" />
@@ -101,10 +71,6 @@ export default function ClientModules() {
                             <path d="M10 21l4-18" />
                         </svg>
                     </div>
-                    
-                    <h2 className="font-display text-2xl font-bold text-brand-primary mb-2">
-                        {modalTitle}
-                    </h2>
                     
                     <div className="w-10 h-0.5 bg-brand-accent/50 rounded-full mb-4" />
                     

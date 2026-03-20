@@ -4,7 +4,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import GoogleAutocomplete from "@/components/GoogleAutocomplete";
 import { Country } from "country-state-city";
-import { Genero } from "@/lib/types/auth";
+import type { Genero } from "@/lib/types/auth";
 
 // ─── Opciones estáticas ────────────────────────────────────────────
 

@@ -21,15 +21,13 @@ import type {
  *
  * Retorna `null` si el usuario no tiene perfil en la tabla `usuario`.
  */
-export async function fetchProfile(
-  userId: string
-): Promise<UserProfileData | null> {
-  const [user, rawProfile] = await Promise.all([
-    getCurrentUser(),
-    getUserProfileById(userId),
-  ]);
+export async function fetchProfile(): Promise<UserProfileData | null> {
+  const user = await getCurrentUser();
+  if (!user) return null;
 
-  if (!rawProfile || !user) return null;
+  const rawProfile = await getUserProfileById(user.id);
+
+  if (!rawProfile) return null;
 
   return {
     dni: rawProfile.dni,
@@ -61,11 +59,18 @@ export async function fetchProfile(
  */
 export async function updateProfile(
   userId: string,
-  currentUsername: string,
-  addressId: number,
   payload: ProfileUpdatePayload
 ): Promise<ProfileUpdateResponse> {
   try {
+    // 0. Obtener datos actuales de forma segura desde la BD (Server-Side)
+    const currentProfile = await fetchProfile();
+    if (!currentProfile) {
+      return { success: false, errors: { form: "Perfil no encontrado." } };
+    }
+
+    const currentUsername = currentProfile.usuario;
+    const addressId = currentProfile.id_direccion;
+
     // 1. Verificar unicidad del username si cambió
     if (payload.usuario !== currentUsername) {
       const usernameCheck = await checkUsernameExists(payload.usuario);
@@ -89,7 +94,7 @@ export async function updateProfile(
     const addressResult = await updateAddress(addressId, {
       direccion: payload.direccion,
       placeId: payload.direccion_place_id,
-      detalle: payload.direccion_detalle,
+      detalle: payload.direccion_detalle ?? undefined,
     });
 
     if (!addressResult.success) {
@@ -111,6 +116,13 @@ export async function updateProfile(
     });
 
     if (!profileResult.success) {
+      // ROLLBACK: Restaurar dirección anterior
+      await updateAddress(addressId, {
+        direccion: currentProfile.direccion_formateada,
+        placeId: currentProfile.direccion_place_id,
+        detalle: currentProfile.direccion_detalle ?? undefined,
+      });
+
       return {
         success: false,
         errors: {
@@ -130,10 +142,27 @@ export async function updateProfile(
 
       if (error) {
         console.error("Error al actualizar username en auth:", error);
+        
+        // ROLLBACK: Restaurar perfil y dirección
+        await Promise.all([
+          updateUserProfile(userId, {
+            nombres: currentProfile.nombres,
+            apellidos: currentProfile.apellidos,
+            fecha_nacimiento: currentProfile.fecha_nacimiento,
+            lugar_nacimiento: currentProfile.lugar_nacimiento,
+            genero: currentProfile.genero,
+          }),
+          updateAddress(addressId, {
+            direccion: currentProfile.direccion_formateada,
+            placeId: currentProfile.direccion_place_id,
+            detalle: currentProfile.direccion_detalle ?? undefined,
+          })
+        ]);
+
         return {
           success: false,
           errors: {
-            usuario: `Error al actualizar nombre de usuario: ${error.message}`,
+            usuario: `Error al actualizar nombre de usuario. Cambios revertidos. Detalle: ${error.message}`,
           },
         };
       }

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, getCurrentUserRole } from "@/models/authModel";
 import { fetchProfile } from "@/services/profile/profileService";
 import { Rol } from "@/lib/types/auth";
-import PerfilClient from "./PerfilClient";
+import PerfilClient from "@/app/perfil/PerfilClient";
 import Navbar from "@/components/Navbar";
 
 export const metadata = {
@@ -18,7 +18,7 @@ export default async function PerfilPage() {
     }
 
     const [profileData, role] = await Promise.all([
-        fetchProfile(user.id),
+        fetchProfile(),
         getCurrentUserRole(),
     ]);
 

@@ -33,8 +33,6 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
             const formData = new FormData(e.currentTarget);
 
             const response = await updateProfileAction(
-                profileData.usuario,
-                profileData.id_direccion,
                 formData,
                 formattedAddress,
                 placeId

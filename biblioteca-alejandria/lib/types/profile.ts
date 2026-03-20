@@ -1,4 +1,4 @@
-import { Genero } from "./auth";
+import type { Genero } from "./auth";
 
 // ─── Datos del perfil (lectura) ────────────────────────────────────
 
@@ -37,7 +37,7 @@ export interface ProfileUpdatePayload {
   // Dirección
   direccion: string;
   direccion_place_id: string;
-  direccion_detalle?: string;
+  direccion_detalle?: string | null;
 }
 
 // ─── Respuesta del server action ───────────────────────────────────

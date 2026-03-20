@@ -72,8 +72,6 @@ function validateProfileData(
 // ─── Server Action ─────────────────────────────────────────────────
 
 export async function updateProfileAction(
-  currentUsername: string,
-  addressId: number,
   formData: FormData,
   formattedAddress: string,
   placeId: string
@@ -97,7 +95,7 @@ export async function updateProfileAction(
     usuario: formData.get("usuario") as string,
     direccion: formattedAddress,
     direccion_place_id: placeId,
-    direccion_detalle: formData.get("direccion_detalle") as string,
+    direccion_detalle: (formData.get("direccion_detalle") as string | null) || null,
   };
 
   // 3. Validar datos
@@ -110,8 +108,6 @@ export async function updateProfileAction(
   try {
     const result = await updateProfile(
       user.id,
-      currentUsername,
-      addressId,
       payload
     );
 

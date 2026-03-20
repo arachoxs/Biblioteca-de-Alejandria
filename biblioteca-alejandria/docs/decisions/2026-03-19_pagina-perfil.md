@@ -29,9 +29,9 @@ Los datos del perfil provienen de múltiples fuentes:
 
 El servicio `profileService.ts` combina estas fuentes en un objeto unificado `UserProfileData`.
 
-### 3. Consistencia con `createAdminClient`
+### 3. Seguridad y Consistencia con `createAdminClient`
 
-Todas las funciones de modelo usan `createAdminClient` (service_role key que bypasea RLS). Se mantuvo esta consistencia en las nuevas funciones de modelo, verificando la autenticación server-side.
+Todas las funciones de modelo (`usuario`, `direccion`) usan `createAdminClient` (service_role key) para bypasear RLS y asegurar consistencia en operaciones administrativas. **La validación de identidad y permisos (Auth Guard) ocurre exclusivamente en la capa de servicios y Server Actions**, no en los modelos. El `userId` se obtiene de la sesión autenticada antes de ser pasado a las funciones de consulta o actualización.
 
 ### 4. Tipo Dedicado para Actualización
 
