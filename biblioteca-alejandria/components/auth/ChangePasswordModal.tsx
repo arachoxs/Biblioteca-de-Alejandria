@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Modal from "@/components/ui/Modal";
 
 export default function ChangePasswordModal({
@@ -10,11 +9,6 @@ export default function ChangePasswordModal({
     isOpen: boolean;
     onClose: () => void;
 }) {
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Cambiar Contraseña">

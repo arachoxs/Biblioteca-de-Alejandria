@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import PersonalDataFields from "@/components/PersonalDataFields";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -22,6 +23,8 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
     const [changePwdOpen, setChangePwdOpen] = useState(false);
     const [formattedAddress, setFormattedAddress] = useState(profileData.direccion_formateada);
     const [placeId, setPlaceId] = useState(profileData.direccion_place_id);
+    const [resetKey, setResetKey] = useState(0);
+    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -53,7 +56,12 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
     };
 
     const handleCancel = () => {
-        window.location.reload();
+        setErrors({});
+        setSuccess(false);
+        setFormattedAddress(profileData.direccion_formateada);
+        setPlaceId(profileData.direccion_place_id);
+        setResetKey(prev => prev + 1);
+        router.refresh();
     };
 
     return (
@@ -77,7 +85,7 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
 
             {/* ── Form Card ── */}
             <div className="bg-white rounded-lg border border-brand-accent/25 shadow-[0_1px_3px_rgba(10,9,8,0.04),0_8px_30px_rgba(10,9,8,0.06)] p-6 md:p-8 mb-6">
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form key={resetKey} onSubmit={handleSubmit} className="space-y-8">
 
                     {/* Mensajes de estado globales */}
                     {errors.form && (

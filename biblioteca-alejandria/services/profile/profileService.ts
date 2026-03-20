@@ -58,10 +58,15 @@ export async function fetchProfile(): Promise<UserProfileData | null> {
  * 4. Actualización del username en auth.users user_metadata (si cambió).
  */
 export async function updateProfile(
-  userId: string,
   payload: ProfileUpdatePayload
 ): Promise<ProfileUpdateResponse> {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, errors: { form: "No hay sesión activa." } };
+    }
+    const userId = user.id;
+
     // 0. Obtener datos actuales de forma segura desde la BD (Server-Side)
     const currentProfile = await fetchProfile();
     if (!currentProfile) {

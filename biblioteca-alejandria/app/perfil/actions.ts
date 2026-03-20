@@ -107,7 +107,6 @@ export async function updateProfileAction(
   // 4. Delegar al servicio
   try {
     const result = await updateProfile(
-      user.id,
       payload
     );
 
