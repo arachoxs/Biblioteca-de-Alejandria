@@ -1,3 +1,5 @@
+import { AuthResponse } from "@supabase/supabase-js/dist/index.cjs";
+
 export enum Genero {
     Masculino = "masculino",
     Femenino = "femenino",
@@ -29,10 +31,22 @@ export interface PersonalData {
     usuario: string;
 }
 
+export interface AuthSignUpResult {
+  success: boolean;
+  errors?: Record<string, string>;
+  message?: string;
+  data?: AuthResponse["data"];
+}
+
+export interface mailSentResponse {
+    success: boolean;
+    message: string;
+}
+
 export interface RegisterResponse { //respuesta que se envia al frontend
     success: boolean;
     errors?: Record<string, string>;
-    message?: string;
+    message?: string | null;
 }
 
 export interface RecoveryState {

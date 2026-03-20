@@ -8,6 +8,9 @@ import Table from "@/components/ui/Table";
 import type { Column } from "@/components/ui/Table";
 import { Plus, Search, CheckCircle, XCircle, UserX } from "lucide-react";
 import { useState } from "react";
+import { createAdmin } from "./action";
+import Alert from "@/components/ui/Alert";
+import { RegisterResponse } from "@/lib/types/auth";
 
 // Mock data for demonstration
 interface AdminUser {
@@ -25,6 +28,10 @@ export default function AdministradoresContent() {
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [alertState, setAlertState] = useState<RegisterResponse|null>(null); 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
   const itemsPerPage = 7;
 
   // Filter data based on search term
@@ -62,13 +69,27 @@ export default function AdministradoresContent() {
     setSelectedIds([]);
   };
 
-  const handleCreateAdmin = (e: React.FormEvent) => {
+  const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Creando administrador con email:", newAdminEmail);
-    alert(`Creando administrador: ${newAdminEmail}`);
-    // Aquí iría la lógica real de creación
-    setNewAdminEmail("");
-    setIsModalOpen(false);
+    setIsLoading(true);
+    setAlertState(null);
+    setErrors({});
+    
+    try {
+        const response: RegisterResponse = await createAdmin(newAdminEmail);
+    
+        if(!response.success) {
+            setErrors(response.errors || {});
+        }
+        setAlertState(response);
+    } catch (error:unknown) {
+        setAlertState({
+            success: false,
+            message: "Ocurrió un error inesperado al crear el administrador."
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleSearchChange = (value: string) => {
@@ -133,7 +154,18 @@ export default function AdministradoresContent() {
   ];
 
   return (
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
+        {
+          alertState && (
+            <Alert 
+              variant={alertState.success ? "success" : "error"}
+              className="mb-6"
+            >
+              {alertState.message}
+            </Alert>
+          )
+        }
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
           <div className="space-y-2">
@@ -195,6 +227,7 @@ export default function AdministradoresContent() {
                     value={newAdminEmail}
                     onChange={(e) => setNewAdminEmail(e.target.value)}
                     required
+                    error={errors.correo}
                 />
 
                 <div className="flex justify-end gap-3 pt-2">
@@ -208,10 +241,17 @@ export default function AdministradoresContent() {
                     </Button>
                     <Button
                         type="submit"
+                        disabled={isLoading}
                         className="w-auto px-6 !py-1 text-sm flex items-center gap-2"
                     >
-                        <Plus className="w-4 h-4" />
-                        Crear Administrador
+                        {isLoading ? (
+                            <span className="animate-pulse">Creando...</span>
+                        ) : (
+                            <>
+                                <Plus className="w-4 h-4" />
+                                Crear Administrador
+                            </>
+                        )}
                     </Button>
                 </div>
             </form>
