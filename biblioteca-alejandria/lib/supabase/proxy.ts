@@ -61,7 +61,21 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
   const { pathname } = request.nextUrl;
 
-  // Check each protected prefix.
+  // 1. Visitante-only routes check (Login/Register protection)
+  // If user is logged in and tries to access auth pages, redirect to home.
+  if (user) {
+    const isVisitanteRoute = VISITANTE_ONLY_ROUTES.some((route) => 
+      pathname.startsWith(route)
+    );
+    
+    if (isVisitanteRoute) {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = "/";
+      return redirectWithSupabaseCookies(homeUrl, supabaseResponse);
+    }
+  }
+
+  // 2. Protected routes check (Role-based access)
   for (const [prefix, requiredRole] of Object.entries(PROTECTED_ROUTES)) {
     if (pathname.startsWith(prefix)) {
       // Not logged in → redirect to login.
@@ -81,6 +95,33 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
       // Authorized — fall through.
       break;
+    }
+  }
+
+  // 3. Special case: /perfil protection
+  if (pathname.startsWith("/perfil")) {
+    // Requires login
+    if (!user) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = "/login";
+      return redirectWithSupabaseCookies(loginUrl, supabaseResponse);
+    }
+
+    const userRole = (user.app_metadata as Record<string, unknown>)?.role;
+
+    // ROOT cannot access profile (no personal data)
+    if (userRole === Rol.ROOT) {
+      const rootUrl = request.nextUrl.clone();
+      rootUrl.pathname = "/panel-root";
+      return redirectWithSupabaseCookies(rootUrl, supabaseResponse);
+    }
+
+    // Only CLIENTE and ADMINISTRADOR allowed
+    if (userRole !== Rol.CLIENTE && userRole !== Rol.ADMINISTRADOR) {
+      // VISITANTE (in theory shouldn't happen if user exists) or invalid role
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = "/";
+      return redirectWithSupabaseCookies(homeUrl, supabaseResponse);
     }
   }
 

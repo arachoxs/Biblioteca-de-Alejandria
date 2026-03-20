@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser, getCurrentUserRole } from "@/models/authModel";
+import { getCurrentUserRole } from "@/models/authModel";
 import { fetchProfile } from "@/services/profile/profileService";
 import { Rol } from "@/lib/types/auth";
 import PerfilClient from "@/app/perfil/PerfilClient";
@@ -11,17 +11,12 @@ export const metadata = {
 };
 
 export default async function PerfilPage() {
-    const user = await getCurrentUser();
-
-    if (!user) {
-        redirect("/login");
-    }
-
     const [profileData, role] = await Promise.all([
         fetchProfile(),
         getCurrentUserRole(),
     ]);
 
+    // Safety check for TypeScript, although Proxy handles redirection
     if (!profileData) {
         redirect("/login");
     }
