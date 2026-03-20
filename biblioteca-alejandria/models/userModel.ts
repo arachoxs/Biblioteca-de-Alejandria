@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { PersonalData, Genero } from "@/lib/types/auth";
+import type { PersonalData, Genero } from "@/lib/types/auth";
 
 // ─── Tipos internos ────────────────────────────────────────────────
 

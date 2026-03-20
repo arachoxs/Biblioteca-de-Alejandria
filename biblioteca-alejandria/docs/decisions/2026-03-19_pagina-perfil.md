@@ -75,7 +75,7 @@ Los modales de Preferencias Literarias y Gestión Financiera son implementacione
 ```
 [page.tsx] Server Component
   ├── getCurrentUser() → sesión autenticada
-  ├── fetchProfile(userId) → UserProfileData
+  ├── fetchProfile() → UserProfileData  // usa getCurrentUser() para obtener userId
   └── Renderiza <PerfilClient>
 
 [PerfilClient.tsx] Client Component
