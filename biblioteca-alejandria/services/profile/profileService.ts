@@ -4,7 +4,10 @@ import {
   checkUsernameExists,
   updateUserProfile,
 } from "@/models/userModel";
-import { updateAddress } from "@/models/addressModel";
+import {
+  createAddress,
+  deleteAddress,
+} from "@/models/addressModel";
 import { Genero } from "@/lib/types/auth";
 import type {
   UserProfileData,
@@ -95,38 +98,37 @@ export async function updateProfile(
       }
     }
 
-    // 2. Actualizar dirección
-    const addressResult = await updateAddress(addressId, {
+    // 2. Crear nueva dirección (Inmutabilidad: siempre se crea nueva)
+    // No editamos la anterior para mantener integridad histórica de entregas/tiendas.
+    const createResult = await createAddress({
       direccion: payload.direccion,
       placeId: payload.direccion_place_id,
       detalle: payload.direccion_detalle ?? undefined,
     });
 
-    if (!addressResult.success) {
+    if (!createResult.success) {
       return {
         success: false,
         errors: {
-          direccion: `Error al actualizar dirección: ${addressResult.error}`,
+          direccion: `Error al crear nueva dirección: ${createResult.error}`,
         },
       };
     }
+    const newAddressId = createResult.id!;
 
-    // 3. Actualizar perfil de usuario
+    // 3. Actualizar perfil de usuario con la nueva dirección
     const profileResult = await updateUserProfile(userId, {
       nombres: payload.nombres,
       apellidos: payload.apellidos,
       fecha_nacimiento: payload.fecha_nacimiento,
       lugar_nacimiento: payload.lugar_nacimiento,
       genero: payload.genero,
+      id_direccion: newAddressId,
     });
 
     if (!profileResult.success) {
-      // ROLLBACK: Restaurar dirección anterior
-      await updateAddress(addressId, {
-        direccion: currentProfile.direccion_formateada,
-        placeId: currentProfile.direccion_place_id,
-        detalle: currentProfile.direccion_detalle ?? undefined,
-      });
+      // ROLLBACK: Eliminar la nueva dirección creada
+      await deleteAddress(newAddressId);
 
       return {
         success: false,
@@ -149,20 +151,18 @@ export async function updateProfile(
         console.error("Error al actualizar username en auth:", error);
         
         // ROLLBACK: Restaurar perfil y dirección
-        await Promise.all([
-          updateUserProfile(userId, {
-            nombres: currentProfile.nombres,
-            apellidos: currentProfile.apellidos,
-            fecha_nacimiento: currentProfile.fecha_nacimiento,
-            lugar_nacimiento: currentProfile.lugar_nacimiento,
-            genero: currentProfile.genero,
-          }),
-          updateAddress(addressId, {
-            direccion: currentProfile.direccion_formateada,
-            placeId: currentProfile.direccion_place_id,
-            detalle: currentProfile.direccion_detalle ?? undefined,
-          })
-        ]);
+        // 1. Revertimos usuario a la dirección original
+        await updateUserProfile(userId, {
+          nombres: currentProfile.nombres,
+          apellidos: currentProfile.apellidos,
+          fecha_nacimiento: currentProfile.fecha_nacimiento,
+          lugar_nacimiento: currentProfile.lugar_nacimiento,
+          genero: currentProfile.genero,
+          id_direccion: addressId,
+        });
+
+        // 2. Eliminamos la nueva dirección creada
+        await deleteAddress(newAddressId);
 
         return {
           success: false,
