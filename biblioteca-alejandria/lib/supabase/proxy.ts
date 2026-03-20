@@ -11,6 +11,10 @@ const PROTECTED_ROUTES: Record<string, Rol> = {
   "/panel-admin": Rol.ADMINISTRADOR,
 };
 
+/** Routes that only guests (unauthenticated) can access. */
+const VISITANTE_ONLY_ROUTES = ["/login", "/register", "/password-recovery"];
+
+
 /**
  * Create a redirect response that preserves any cookies
  * that were set on the Supabase response (e.g. refreshed tokens).
@@ -86,7 +90,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       }
 
       // Logged in but wrong role → redirect to home.
-      const userRole = (user.app_metadata as Record<string, unknown>)?.role;
+      const userRole = (user.app_metadata as Record<string, unknown>)?.role as Rol;
       if (userRole !== requiredRole) {
         const homeUrl = request.nextUrl.clone();
         homeUrl.pathname = "/";
@@ -107,7 +111,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       return redirectWithSupabaseCookies(loginUrl, supabaseResponse);
     }
 
-    const userRole = (user.app_metadata as Record<string, unknown>)?.role;
+    const userRole = (user.app_metadata as Record<string, unknown>)?.role as Rol;
 
     // ROOT cannot access profile (no personal data)
     if (userRole === Rol.ROOT) {
