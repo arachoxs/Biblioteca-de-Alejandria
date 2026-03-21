@@ -1,3 +1,5 @@
+"use client";
+
 import { HTMLAttributes, ReactNode, useEffect, useState } from "react";
 
 interface AlertProps extends HTMLAttributes<HTMLDivElement> {
@@ -8,13 +10,13 @@ interface AlertProps extends HTMLAttributes<HTMLDivElement> {
     onClose?: () => void;
 }
 
-export default function Alert({ 
-    variant = "info", 
-    className = "", 
-    children, 
+export default function Alert({
+    variant = "info",
+    className = "",
+    children,
     duration = 5000,
     onClose,
-    ...props 
+    ...props
 }: AlertProps) {
     const [isVisible, setIsVisible] = useState(true);
 
@@ -39,9 +41,9 @@ export default function Alert({
     };
 
     const baseStyles = "border px-4 py-3 rounded-lg text-sm z-100";
-    
+
     return (
-        <div 
+        <div
             className={`${baseStyles} absolute left-1/2 -translate-x-1/2 ${variants[variant]} ${className}`}
             role="alert"
             {...props}

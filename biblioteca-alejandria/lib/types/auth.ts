@@ -1,4 +1,4 @@
-import { AuthResponse } from "@supabase/supabase-js/dist/index.cjs";
+import type { AuthResponse } from "@supabase/supabase-js";
 
 export enum Genero {
     Masculino = "masculino",
@@ -32,10 +32,10 @@ export interface PersonalData {
 }
 
 export interface AuthSignUpResult {
-  success: boolean;
-  errors?: Record<string, string>;
-  message?: string;
-  data?: AuthResponse["data"];
+    success: boolean;
+    errors?: Record<string, string>;
+    message?: string;
+    data?: AuthResponse["data"];
 }
 
 export interface mailSentResponse {
