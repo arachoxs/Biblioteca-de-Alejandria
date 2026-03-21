@@ -269,7 +269,19 @@ export async function updatePasswordWithVerification(
   });
 
   if (signInError) {
-    return { error: "La contraseña actual es incorrecta." };
+    console.error("Error en signInWithPassword:", signInError);
+
+    // Supabase puede fallar por credenciales inválidas u otros motivos (rate limit,
+    // problemas de red, usuario sin password, etc.). Solo mostramos el mensaje
+    // de contraseña incorrecta cuando claramente se trata de credenciales inválidas.
+    if (signInError.status === 400) {
+      return { error: "La contraseña actual es incorrecta." };
+    }
+
+    return {
+      error:
+        "No se pudo verificar la contraseña actual. Inténtalo de nuevo más tarde.",
+    };
   }
 
   // 3. Actualizar contraseña
