@@ -5,12 +5,9 @@ import { Rol, type LoginState } from "@/lib/types/auth";
 import { signIn } from "@/models/authModel";
 
 export async function loginAction(
-  _prevState: LoginState,
-  formData: FormData
+  email: string,
+  password: string
 ): Promise<LoginState> {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
   // Validaciones básicas
   if (!email || !email.trim()) {
     return { error: "El correo electrónico es obligatorio." };
