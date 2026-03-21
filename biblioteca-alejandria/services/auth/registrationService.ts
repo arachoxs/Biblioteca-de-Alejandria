@@ -60,7 +60,9 @@ export async function registerAuthUser(
   rol: Rol,
   username: string | null = null
 ): Promise<AuthSignUpResult> {
-  console.log("Iniciando registro de usuario con rol:", rol);
+  if (process.env.NODE_ENV !== "production") {
+    console.debug("Iniciando registro de usuario en entorno no productivo");
+  }
   if (rol !== Rol.CLIENTE) {
     const isRoot = await isCurrentUserRoot();
     if (!isRoot) {
@@ -123,7 +125,7 @@ export async function registerAuthUser(
   }
 
   if (rol === Rol.ADMINISTRADOR) {
-    console.log("Enviando correo de credenciales al nuevo administrador:", credentialData.correo);
+    console.log("Enviando correo de credenciales al nuevo administrador");
     const emailResult = await notifyNewAdmin(credentialData.correo, credentialData.contrasena);
     if (!emailResult.success) {
       //rollback

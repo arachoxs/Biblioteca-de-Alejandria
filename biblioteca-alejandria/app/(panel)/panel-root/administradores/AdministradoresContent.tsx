@@ -10,7 +10,7 @@ import { Plus, Search, CheckCircle, XCircle, UserX } from "lucide-react";
 import { useState } from "react";
 import { createAdmin } from "./action";
 import Alert from "@/components/ui/Alert";
-import { RegisterResponse } from "@/lib/types/auth";
+import type { RegisterResponse } from "@/lib/types/auth";
 
 // Mock data for demonstration
 interface AdminUser {

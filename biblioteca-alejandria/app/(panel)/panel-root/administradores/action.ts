@@ -1,7 +1,7 @@
 "use server";
 
 import { registerAuthUser } from "@/services/auth/registrationService";
-import { CredentialData,Rol,RegisterResponse,AuthSignUpResult } from "@/lib/types/auth";
+import { Rol, type CredentialData, type RegisterResponse, type AuthSignUpResult } from "@/lib/types/auth";
 
 
 function generateRandomPassword(length: number): string {
@@ -19,7 +19,6 @@ function generateRandomPassword(length: number): string {
 
 
 export async function createAdmin(email: string): Promise<RegisterResponse> {
-    console.log("entro");
     const password = generateRandomPassword(12);
 
     const credentialData: CredentialData = {
