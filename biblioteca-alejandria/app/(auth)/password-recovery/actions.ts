@@ -1,37 +1,22 @@
 "use server";
 
-import { RecoveryState } from "@/lib/types/auth";
+import { AuthActionResult } from "@/lib/types/auth";
 import {
   sendRecoveryCode as sendRecoveryCodeService,
   verifyRecoveryCode as verifyRecoveryCodeService,
   resetPassword as resetPasswordService,
 } from "@/services/auth/recoveryService";
+import { validatePasswordRule } from "@/lib/validations/auth";
 
 // ─── Constantes de validación ──────────────────────────────────────
 
-const PASSWORD_MIN_LENGTH = 8;
 const OTP_LENGTH = 8;
-
-const PASSWORD_RULES = [
-  {
-    test: (p: string) => p.length >= PASSWORD_MIN_LENGTH,
-    message: `La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`,
-  },
-  {
-    test: (p: string) => /[A-Z]/.test(p),
-    message: "La contraseña debe incluir al menos una letra mayúscula.",
-  },
-  {
-    test: (p: string) => /[0-9]/.test(p),
-    message: "La contraseña debe incluir al menos un número.",
-  },
-] as const;
 
 // ─── Paso 1: Enviar código de recuperación ─────────────────────────
 
 export async function sendRecoveryCode(
   email: string
-): Promise<RecoveryState> {
+): Promise<AuthActionResult> {
   const trimmedEmail = email?.trim();
 
   if (!trimmedEmail) {
@@ -46,7 +31,7 @@ export async function sendRecoveryCode(
 export async function verifyRecoveryCode(
   email: string,
   code: string
-): Promise<RecoveryState> {
+): Promise<AuthActionResult> {
   const trimmedEmail = email?.trim();
   const trimmedCode = code?.trim();
 
@@ -66,7 +51,7 @@ export async function verifyRecoveryCode(
 export async function resetPassword(
   newPassword: string,
   confirmPassword: string
-): Promise<RecoveryState> {
+): Promise<AuthActionResult> {
   if (!newPassword || !confirmPassword) {
     return { error: "Ambos campos de contraseña son obligatorios." };
   }
@@ -77,10 +62,9 @@ export async function resetPassword(
   }
 
   // Validar requisitos de seguridad (CU-04, paso 10)
-  for (const rule of PASSWORD_RULES) {
-    if (!rule.test(newPassword)) {
-      return { error: rule.message };
-    }
+  const passwordError = validatePasswordRule(newPassword);
+  if (passwordError) {
+    return { error: passwordError };
   }
 
   return resetPasswordService(newPassword);

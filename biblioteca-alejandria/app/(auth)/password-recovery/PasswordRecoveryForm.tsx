@@ -14,7 +14,7 @@ import {
   verifyRecoveryCode,
   resetPassword,
 } from "./actions";
-import type { RecoveryState } from "@/lib/types/auth";
+import type { AuthActionResult } from "@/lib/types/auth";
 
 // ─── Constantes ────────────────────────────────────────────────────
 
@@ -154,7 +154,7 @@ export default function PasswordRecoveryForm() {
     setSuccessMessage(null);
   };
 
-  const handleActionResult = (result: RecoveryState): boolean => {
+  const handleActionResult = (result: AuthActionResult): boolean => {
     if (result.error) {
       setError(result.error);
       return false;
@@ -404,7 +404,7 @@ export default function PasswordRecoveryForm() {
                 required
               />
               <span className="text-xs text-brand-accent font-light mt-1 block">
-                Mínimo 8 caracteres, incluir mayúsculas y números.
+                Mínimo 8 caracteres.
               </span>
             </div>
 

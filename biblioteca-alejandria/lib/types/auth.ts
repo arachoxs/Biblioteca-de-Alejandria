@@ -49,7 +49,7 @@ export interface RegisterResponse { //respuesta que se envia al frontend
     message?: string | null;
 }
 
-export interface RecoveryState {
+export interface AuthActionResult {
     error?: string;
     success?: boolean;
     message?: string;
