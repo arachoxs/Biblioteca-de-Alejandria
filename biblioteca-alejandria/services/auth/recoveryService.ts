@@ -3,7 +3,7 @@ import {
   verifyRecoveryCode as verifyRecoveryCodeModel,
   resetPassword as resetPasswordModel,
 } from "@/models/authModel";
-import { RecoveryState } from "@/lib/types/auth";
+import { AuthActionResult } from "@/lib/types/auth";
 
 /**
  * Envía un código de recuperación al correo del usuario.
@@ -11,7 +11,7 @@ import { RecoveryState } from "@/lib/types/auth";
  */
 export async function sendRecoveryCode(
   email: string
-): Promise<RecoveryState> {
+): Promise<AuthActionResult> {
   return sendRecoveryCodeModel(email);
 }
 
@@ -22,7 +22,7 @@ export async function sendRecoveryCode(
 export async function verifyRecoveryCode(
   email: string,
   code: string
-): Promise<RecoveryState> {
+): Promise<AuthActionResult> {
   return verifyRecoveryCodeModel(email, code);
 }
 
@@ -32,6 +32,6 @@ export async function verifyRecoveryCode(
  */
 export async function resetPassword(
   newPassword: string
-): Promise<RecoveryState> {
+): Promise<AuthActionResult> {
   return resetPasswordModel(newPassword);
 }

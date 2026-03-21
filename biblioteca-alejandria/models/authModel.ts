@@ -1,5 +1,5 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { RecoveryState, Rol } from "@/lib/types/auth";
+import { AuthActionResult, Rol } from "@/lib/types/auth";
 import { redirect } from "next/navigation";
 import type { AuthResponse } from "@supabase/supabase-js";
 
@@ -137,7 +137,7 @@ export async function isCurrentUserRoot(): Promise<boolean> {
  */
 export async function sendRecoveryCode(
   email: string
-): Promise<RecoveryState> {
+): Promise<AuthActionResult> {
   const supabase = await createClient();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email);
@@ -160,7 +160,7 @@ export async function sendRecoveryCode(
 export async function verifyRecoveryCode(
   email: string,
   code: string
-): Promise<RecoveryState> {
+): Promise<AuthActionResult> {
   const supabase = await createClient();
 
   const { error } = await supabase.auth.verifyOtp({
@@ -193,7 +193,7 @@ export async function verifyRecoveryCode(
  */
 export async function resetPassword(
   newPassword: string
-): Promise<RecoveryState> {
+): Promise<AuthActionResult> {
   const supabase = await createClient();
 
   const { data, error: getUserError } = await supabase.auth.getUser();
@@ -236,6 +236,78 @@ export async function resetPassword(
   return {
     success: true,
     message: "Contraseña actualizada exitosamente. Ya puedes iniciar sesión.",
+  };
+}
+
+/**
+ * Cambia la contraseña del usuario autenticado verificando la actual.
+ *
+ * Flujo:
+ * 1. Obtiene el email de la sesión activa.
+ * 2. Re-autentica con `signInWithPassword` para verificar la contraseña actual.
+ * 3. Actualiza la contraseña con `updateUser`.
+ * 4. Cierra la sesión para forzar re-login.
+ */
+export async function updatePasswordWithVerification(
+  currentPassword: string,
+  newPassword: string
+): Promise<AuthActionResult> {
+  const supabase = await createClient();
+
+  // 1. Obtener usuario actual
+  const { data: userData, error: getUserError } = await supabase.auth.getUser();
+
+  if (getUserError || !userData.user?.email) {
+    console.error("Error en getUser:", getUserError?.message);
+    return { error: "No se pudo verificar tu sesión. Inicia sesión de nuevo." };
+  }
+
+  // 2. Verificar contraseña actual
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: userData.user.email,
+    password: currentPassword,
+  });
+
+  if (signInError) {
+    console.error("Error en signInWithPassword:", signInError);
+
+    // Supabase puede fallar por credenciales inválidas u otros motivos (rate limit,
+    // problemas de red, usuario sin password, etc.). Solo mostramos el mensaje
+    // de contraseña incorrecta cuando claramente se trata de credenciales inválidas.
+    if (signInError.status === 400) {
+      return { error: "La contraseña actual es incorrecta." };
+    }
+
+    return {
+      error:
+        "No se pudo verificar la contraseña actual. Inténtalo de nuevo más tarde.",
+    };
+  }
+
+  // 3. Actualizar contraseña
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (updateError) {
+    console.error("Error en updateUser:", updateError);
+    return { error: "No se pudo actualizar la contraseña. Intenta de nuevo." };
+  }
+
+  // 4. Cerrar sesión
+  const { error: signOutError } = await supabase.auth.signOut();
+
+  if (signOutError) {
+    console.error("Error en signOut:", signOutError.message);
+    return {
+      error:
+        "Tu contraseña se actualizó, pero no se pudo cerrar la sesión correctamente. Por seguridad, cierra sesión manualmente.",
+    };
+  }
+
+  return {
+    success: true,
+    message: "Contraseña actualizada exitosamente.",
   };
 }
 

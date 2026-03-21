@@ -117,6 +117,9 @@ export default function RegistroForm() {
                         required
                         error={errors.contrasena}
                     />
+                    <span className="text-xs text-brand-accent font-light mt-1 block">
+                        Mínimo 8 caracteres.
+                    </span>
                     <Input
                         id="confirmar_contrasena"
                         name="confirmar_contrasena"

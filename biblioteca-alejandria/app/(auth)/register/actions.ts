@@ -2,6 +2,7 @@
 
 import { CredentialData, PersonalData, RegisterResponse, Rol } from "@/lib/types/auth";
 import { register } from "@/services/auth/registrationService";
+import { validatePasswordRule } from "@/lib/validations/auth";
 
 // ─── Validación de entrada ─────────────────────────────────────────
 
@@ -64,8 +65,11 @@ function validateRegistrationData(
     }
   }
 
-  if (!errors.contrasena && credentialData.contrasena.length < 7) {
-    errors.contrasena = "La contraseña debe tener al menos 7 caracteres.";
+  if (!errors.contrasena) {
+    const passwordError = validatePasswordRule(credentialData.contrasena);
+    if (passwordError) {
+      errors.contrasena = passwordError;
+    }
   }
 
   if (
