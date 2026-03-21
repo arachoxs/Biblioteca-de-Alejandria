@@ -40,7 +40,7 @@ export default function Alert({
         info: "bg-blue-50 border-blue-200 text-blue-600",
     };
 
-    const baseStyles = "border px-4 py-3 rounded-lg text-sm z-100";
+    const baseStyles = "border px-4 py-3 rounded-lg text-sm z-[100]";
 
     return (
         <div

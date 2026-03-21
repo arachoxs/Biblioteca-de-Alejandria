@@ -38,7 +38,7 @@ export interface AuthSignUpResult {
     data?: AuthResponse["data"];
 }
 
-export interface mailSentResponse {
+export interface MailSentResponse {
     success: boolean;
     message: string;
 }
