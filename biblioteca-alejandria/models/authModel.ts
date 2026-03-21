@@ -6,7 +6,7 @@ import type { AuthResponse } from "@supabase/supabase-js";
 // ─── Tipos internos ────────────────────────────────────────────────
 
 /** Respuesta interna de operaciones de registro en Supabase Auth. */
-import { AuthSignUpResult } from "@/lib/types/auth";
+import type { AuthSignUpResult } from "@/lib/types/auth";
 
 // ─── Registro ──────────────────────────────────────────────────────
 

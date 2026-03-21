@@ -16,7 +16,7 @@ import {
   AuthSignUpResult,
   RegisterResponse,
   Rol,
-  mailSentResponse
+  MailSentResponse
 } from "@/lib/types/auth";
 
 
@@ -34,98 +34,98 @@ import { sendEmail } from "@/lib/services/email";
  * Incluye rollback automático si cualquier paso intermedio falla.
  */
 
-export async function notifyNewAdmin(email: string, password: string): Promise<mailSentResponse> {
+export async function notifyNewAdmin(email: string, password: string): Promise<MailSentResponse> {
   try {
-        const mailResult = await sendEmail({
-            to: email,
-            subject: "Credenciales de Administrador - Biblioteca de Alejandría",
-            html: `
+    const mailResult = await sendEmail({
+      to: email,
+      subject: "Credenciales de Administrador - Biblioteca de Alejandría",
+      html: `
                 <h1>Bienvenido al equipo de administración</h1>
                 <p>Se ha creado una cuenta de administrador para usted.</p>
                 <p><strong>Usuario:</strong> ${email}</p>
                 <p><strong>Contraseña temporal:</strong> ${password}</p>
             `,
-            text: `Bienvenido. Usuario: ${email}, Contraseña: ${password}`
-        });
+      text: `Bienvenido. Usuario: ${email}, Contraseña: ${password}`
+    });
 
-        return mailResult;
-    } catch (error) {
-        console.error("Error al enviar correo de credenciales:", error);
-        return { success: false, message: "Error al enviar el correo de credenciales." };
-    }
+    return mailResult;
+  } catch (error) {
+    console.error("Error al enviar correo de credenciales:", error);
+    return { success: false, message: "Error al enviar el correo de credenciales." };
+  }
 }
 
 export async function registerAuthUser(
   credentialData: CredentialData,
-  rol:Rol,
+  rol: Rol,
   username: string | null = null
 ): Promise<AuthSignUpResult> {
   console.log("Iniciando registro de usuario con rol:", rol);
   if (rol !== Rol.CLIENTE) {
-      const isRoot = await isCurrentUserRoot();
-      if (!isRoot) {
-        return {
-          success: false,
-          errors: { form: "No tienes permisos para registrar nuevos usuarios." },
-          message: "Permisos insuficientes para registrar usuarios.",
-        };
-      }
+    const isRoot = await isCurrentUserRoot();
+    if (!isRoot) {
+      return {
+        success: false,
+        errors: { form: "No tienes permisos para registrar nuevos usuarios." },
+        message: "Permisos insuficientes para registrar usuarios.",
+      };
+    }
   }
-  
-  if (username){ 
+
+  if (username) {
     const usernameCheck = await checkUsernameExists(username);
-      if (usernameCheck.error) {
-        return {
-          success: false,
-          errors: { form: `Error verificando usuario. ${usernameCheck.error}` },
-          message: `Error al verificar el nombre de usuario. ${usernameCheck.error}`,
-        };
-      }
-      if (usernameCheck.exists) {
-        return {
-          success: false,
-          errors: { usuario: "El nombre de usuario ya está en uso." },
-          message: "El nombre de usuario ya está en uso.",
-        };
-      }
+    if (usernameCheck.error) {
+      return {
+        success: false,
+        errors: { form: `Error verificando usuario. ${usernameCheck.error}` },
+        message: `Error al verificar el nombre de usuario. ${usernameCheck.error}`,
+      };
+    }
+    if (usernameCheck.exists) {
+      return {
+        success: false,
+        errors: { usuario: "El nombre de usuario ya está en uso." },
+        message: "El nombre de usuario ya está en uso.",
+      };
+    }
   }
 
   const authModelResult = await signUp(credentialData.correo, credentialData.contrasena, username);
 
   if (!authModelResult.success) {
-      return {
-        success: false,
-        errors: authModelResult.errors,
-        message: authModelResult.message,
-      };
+    return {
+      success: false,
+      errors: authModelResult.errors,
+      message: authModelResult.message,
+    };
   }
 
-    const userId = authModelResult.data?.user?.id;
-    if (!userId) {
-      return {
-        success: false,
-        errors: { form: "No se pudo obtener el usuario después del registro." },
-        message: "No se pudo obtener el usuario después del registro.",
-      };
+  const userId = authModelResult.data?.user?.id;
+  if (!userId) {
+    return {
+      success: false,
+      errors: { form: "No se pudo obtener el usuario después del registro." },
+      message: "No se pudo obtener el usuario después del registro.",
+    };
   }
 
   if (rol !== Rol.CLIENTE) {
-      const roleResult = await setUserRole(userId, rol);
-      if (!roleResult.success) {
-        // Rollback: eliminar usuario Auth
-        await deleteAuthUser(userId);
-        return {
-          success: false,
-          errors: { form: `Error al asignar rol: ${roleResult.error}` },
-          message: `Error al asignar rol: ${roleResult.error}`,
-        };
-      }
+    const roleResult = await setUserRole(userId, rol);
+    if (!roleResult.success) {
+      // Rollback: eliminar usuario Auth
+      await deleteAuthUser(userId);
+      return {
+        success: false,
+        errors: { form: `Error al asignar rol: ${roleResult.error}` },
+        message: `Error al asignar rol: ${roleResult.error}`,
+      };
+    }
   }
 
-  if(rol === Rol.ADMINISTRADOR){
+  if (rol === Rol.ADMINISTRADOR) {
     console.log("Enviando correo de credenciales al nuevo administrador:", credentialData.correo);
     const emailResult = await notifyNewAdmin(credentialData.correo, credentialData.contrasena);
-    if(!emailResult.success){
+    if (!emailResult.success) {
       //rollback
       await deleteAuthUser(userId);
       return {
