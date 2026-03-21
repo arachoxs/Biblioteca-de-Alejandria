@@ -27,9 +27,9 @@ export default function LoginPage() {
               className="mx-auto drop-shadow-lg"
             />
           </div>
-          <h2 className="relative z-10 text-4xl font-bold text-white mb-3 tracking-tight">
+          <p className="relative z-10 text-4xl font-bold text-white mb-3 tracking-tight">
             Bienvenido de nuevo
-          </h2>
+          </p>
           <p className="relative z-10 text-2xs md:text-lg text-white/85 leading-relaxed max-w-md mx-auto">
             Ingresa tus credenciales para acceder al sistema de la Biblioteca de Alejandría
           </p>
