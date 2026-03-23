@@ -1,68 +1,51 @@
 "use client";
 
 import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Modal from "@/components/ui/Modal";
 import FilterActionBar from "@/components/ui/FilterActionBar";
-import { Plus, CheckCircle, UserX, Loader2, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
-import { getAdmins } from "./action";
+import Table from "@/components/ui/Table";
+import type { Column } from "@/components/ui/Table";
+import { Plus, Search, CheckCircle, XCircle, UserX } from "lucide-react";
+import { useState } from "react";
+import { createAdmin } from "./action";
 import Alert from "@/components/ui/Alert";
-import type { AdminUserFromView } from "@/lib/types/profile";
-import CreateAdminModal from "./CreateAdminModal";
-import AdminsTable from "./AdminsTable";
+import type { RegisterResponse } from "@/lib/types/auth";
+
+// Mock data for demonstration
+interface AdminUser {
+    id: string;
+    nombre: string;
+    email: string;
+    activo: boolean; // Estado: true = Habilitado, false = Deshabilitado
+}
+
+const MOCK_DATA: AdminUser[] = []
 
 export default function AdministradoresContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Estado para los datos de administradores
-  const [adminsData, setAdminsData] = useState<AdminUserFromView[]>([]);
-  const [isLoadingAdmins, setIsLoadingAdmins] = useState(true);
-  const [errorLoadingAdmins, setErrorLoadingAdmins] = useState<string | null>(null);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [alertState, setAlertState] = useState<RegisterResponse|null>(null); 
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   const itemsPerPage = 7;
 
-  // Cargar administradores desde el servidor
-  const loadAdmins = async (page: number = 1) => {
-    setIsLoadingAdmins(true);
-    setErrorLoadingAdmins(null);
-    
-    try {
-      const response = await getAdmins(page, itemsPerPage);
-      
-      if (response.success && response.data) {
-        setAdminsData(response.data.data);
-        setTotalPages(response.data.totalPages);
-        setTotalItems(response.data.total);
-      } else {
-        setErrorLoadingAdmins(response.message || "Error al cargar administradores");
-        setAdminsData([]);
-      }
-    } catch (error) {
-      console.error("Error cargando administradores:", error);
-      setErrorLoadingAdmins("Error inesperado al cargar administradores");
-      setAdminsData([]);
-    } finally {
-      setIsLoadingAdmins(false);
-    }
-  };
+  // Filter data based on search term
+  const filteredData = MOCK_DATA.filter((user) => 
+    user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  // Cargar administradores al montar el componente
-  useEffect(() => {
-    loadAdmins(currentPage);
-  }, [currentPage]);
-
-  // Filtrar datos localmente
-  const filteredData = adminsData.filter((user) => {
-    const nombre = `${user.nombres || ""} ${user.apellidos || ""}`.toLowerCase();
-    const email = (user.email || "").toLowerCase();
-    const search = searchTerm.toLowerCase();
-    
-    return nombre.includes(search) || email.includes(search);
-  });
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handlePageChange = (page: number) => { 
     setCurrentPage(page);
@@ -72,61 +55,125 @@ export default function AdministradoresContent() {
     setSelectedIds(ids);
   };
 
-  const handleEnable = () => {
+  const handleEnable = () => { //logica para activar administradores
     console.log("Habilitando usuarios:", selectedIds);
     alert(`Habilitando ${selectedIds.length} administrador(es)`);
-    console.log("IDs seleccionados para habilitar:", selectedIds);
-    // TODO: Implementar lógica de habilitación
+    // Lógica para habilitar
     setSelectedIds([]); 
   };
 
-  const handleDisable = () => {
+  const handleDisable = () => { //logica para desactivar administradores
     console.log("Deshabilitando usuarios:", selectedIds);
     alert(`Deshabilitando ${selectedIds.length} administrador(es)`);
-    console.log("IDs seleccionados para deshabilitar:", selectedIds);
-    // TODO: Implementar lógica de deshabilitación
+    // Lógica para deshabilitar
     setSelectedIds([]);
   };
 
-  const handleAdminCreated = async () => {
-    // Recargar la lista de administradores después de crear uno nuevo
-    await loadAdmins(currentPage);
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setAlertState(null);
+    setErrors({});
+    
+    try {
+        const response: RegisterResponse = await createAdmin(newAdminEmail);
+    
+        if(!response.success) {
+            setErrors(response.errors || {});
+        }
+        setAlertState(response);
+    } catch (error:unknown) {
+        setAlertState({
+            success: false,
+            message: "Ocurrió un error inesperado al crear el administrador."
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setSelectedIds([]); // Limpiar selección al buscar
+    setCurrentPage(1); // Reset to first page on search
+    setSelectedIds([]); // Clear selection when filters change
   };
 
+  const columns: Column<AdminUser>[] = [
+    {
+      header: "Nombre",
+      accessorKey: "nombre",
+      // Custom render to show avatar or initials if needed
+      render: (item) => (
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs ring-2 ring-brand-bg">
+            {item.nombre
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .substring(0, 2)
+              .toUpperCase()}
+          </div>
+          <div className="flex flex-col">
+            <span className="font-semibold text-brand-text text-sm">
+              {item.nombre}
+            </span>
+            <span className="text-xs text-brand-secondary/70 lg:hidden">
+              {item.email}
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Email",
+      accessorKey: "email",
+      className: "hidden lg:table-cell",
+    },
+    {
+      header: "Estado",
+      accessorKey: "activo",
+      render: (item) => (
+        <div className="flex items-center">
+            <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                item.activo
+                ? "bg-green-50 text-green-700 border-green-200/60"
+                : "bg-red-50 text-red-700 border-red-200/60"
+            }`}
+            >
+                {item.activo ? (
+                    <CheckCircle className="w-3.5 h-3.5" />
+                ) : (
+                    <XCircle className="w-3.5 h-3.5" />
+                )}
+            {item.activo ? "Habilitado" : "Deshabilitado"}
+            </span>
+        </div>
+      ),
+    },
+  ];
+
   return (
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">{errorLoadingAdmins && (
-          <Alert 
-            variant="error"
-            className="mb-6 flex items-center gap-2"
-          >
-            <AlertCircle className="w-4 h-4" />
-            {errorLoadingAdmins}
-          </Alert>
-        )}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
+        {
+          alertState && (
+            <Alert 
+              variant={alertState.success ? "success" : "error"}
+              className="mb-6"
+            >
+              {alertState.message}
+            </Alert>
+          )
+        }
 
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl md:text-4xl font-bold text-brand-primary font-display tracking-tight">
-                Gestión de Administradores
-              </h1>
-              {isLoadingAdmins && (
-                <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
-              )}
-            </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-brand-primary font-display tracking-tight">
+              Gestión de Administradores
+            </h1>
             <p className="text-brand-secondary text-sm md:text-base max-w-2xl leading-relaxed">
               Supervisa y administra los accesos y privilegios del equipo administrativo.
-              {totalItems > 0 && (
-                <span className="font-semibold text-brand-primary ml-1">
-                  ({totalItems} {totalItems === 1 ? "administrador" : "administradores"})
-                </span>
-              )}
             </p>
           </div>
 
@@ -152,7 +199,7 @@ export default function AdministradoresContent() {
             )}
 
             <Button
-              className="flex items-center justify-center gap-2 w-full flex-2 min-w-64 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30 transition-shadow"
+              className="flex items-center gap-2 w-full flex-2 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30 transition-shadow"
               onClick={() => setIsModalOpen(true)}
             >
               <Plus className="w-4 h-4" />
@@ -162,11 +209,53 @@ export default function AdministradoresContent() {
         </div>
 
         {/* Modal Nuevo Administrador */}
-        <CreateAdminModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSuccess={handleAdminCreated}
-        />
+        <Modal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            title="Nuevo Administrador"
+        >
+            <form onSubmit={handleCreateAdmin} className="space-y-6">
+                <p className="text-sm text-brand-secondary/80 leading-relaxed">
+                    Ingresa el correo electrónico del usuario para invitarlo como administrador.
+                </p>
+                
+                <Input
+                    id="admin-email"
+                    label="Correo Electrónico"
+                    type="email"
+                    placeholder="ejemplo@biblioteca.com"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    required
+                    error={errors.correo}
+                />
+
+                <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setIsModalOpen(false)}
+                        className="w-auto px-4 py-1 text-sm"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-auto px-6 !py-1 text-sm flex items-center gap-2"
+                    >
+                        {isLoading ? (
+                            <span className="animate-pulse">Creando...</span>
+                        ) : (
+                            <>
+                                <Plus className="w-4 h-4" />
+                                Crear Administrador
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </form>
+        </Modal>
 
         {/* Filters & Actions Bar */}
         <FilterActionBar
@@ -177,17 +266,29 @@ export default function AdministradoresContent() {
         
         {/* Table Section */}
         <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200 fill-mode-both">
-          <AdminsTable
-            data={filteredData}
-            isLoading={isLoadingAdmins}
-            error={null} // Error se muestra arriba con Alert
-            searchTerm={searchTerm}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            selectedIds={selectedIds}
-            onPageChange={handlePageChange}
-            onSelectionChange={handleSelectionChange}
+          <Table
+            data={paginatedData}
+            columns={columns}
+            keyExtractor={(item) => item.id}
+            pagination={{
+                currentPage: currentPage, //pagina actual
+                totalPages: totalPages, //cantidad de datos entre la cantidad de items por pagina
+                onPageChange: handlePageChange, //funcion para cambiar de pagina
+                totalItems: filteredData.length //cantidad total de items despues de aplicar filtros, se muestra en la parte inferior de la tabla
+            }}
+            selection={{
+                selectedIds: selectedIds,
+                onSelectionChange: handleSelectionChange
+            }}
+            emptyMessage={
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-brand-secondary/60">
+                <div className="p-3 bg-brand-bg rounded-full">
+                    <Search className="w-6 h-6" />
+                </div>
+                <p className="font-medium">No se encontraron administradores</p>
+                <p className="text-xs">Intenta ajustar los filtros de búsqueda</p>
+              </div>
+            }
           />
         </div>
       </main>
