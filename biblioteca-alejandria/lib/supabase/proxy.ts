@@ -102,7 +102,41 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     }
   }
 
-  // 3. Special case: /perfil protection
+  // 3. Admin onboarding guard: force incomplete admins to /completar-perfil
+  if (user) {
+    const userRole = (user.app_metadata as Record<string, unknown>)?.role as Rol;
+    const profileComplete = (user.app_metadata as Record<string, unknown>)?.profile_complete === true;
+
+    if (userRole === Rol.ADMINISTRADOR && !profileComplete) {
+      // Admin sin perfil completo: bloquear todo excepto /completar-perfil
+      if (!pathname.startsWith("/completar-perfil")) {
+        const onboardingUrl = request.nextUrl.clone();
+        onboardingUrl.pathname = "/completar-perfil";
+        return redirectWithSupabaseCookies(onboardingUrl, supabaseResponse);
+      }
+    }
+
+    // Admin con perfil completo intentando acceder a /completar-perfil → al panel
+    if (userRole === Rol.ADMINISTRADOR && profileComplete && pathname.startsWith("/completar-perfil")) {
+      const panelUrl = request.nextUrl.clone();
+      panelUrl.pathname = "/panel-admin";
+      return redirectWithSupabaseCookies(panelUrl, supabaseResponse);
+    }
+
+    // Otros roles intentando acceder a /completar-perfil → home
+    if (userRole !== Rol.ADMINISTRADOR && pathname.startsWith("/completar-perfil")) {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = "/";
+      return redirectWithSupabaseCookies(homeUrl, supabaseResponse);
+    }
+  } else if (pathname.startsWith("/completar-perfil")) {
+    // No autenticado intentando /completar-perfil → login
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    return redirectWithSupabaseCookies(loginUrl, supabaseResponse);
+  }
+
+  // 4. Special case: /perfil protection
   if (pathname.startsWith("/perfil")) {
     // Requires login
     if (!user) {
