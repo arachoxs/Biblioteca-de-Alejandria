@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type { PersonalData, Genero } from "@/lib/types/auth";
-import type {  PaginatedAdminUsers } from "@/lib/types/profile";
+import type { AdminUserFromView, PaginatedAdminUsers } from "@/lib/types/profile";
 // ─── Tipos internos ────────────────────────────────────────────────
 
 interface ModelResult {
@@ -52,8 +52,14 @@ export async function getAdminUsers(
 
   if (error) throw error;
 
+  // Filtramos filas con id null (no deberían existir en auth.users,
+  // pero lo garantizamos aquí para que el tipo AdminUserFromView sea seguro).
+  const safeData = (data || []).filter(
+    (row): row is AdminUserFromView => row.id !== null
+  );
+
   return {
-    data: data || [],
+    data: safeData,
     total: count || 0,
     page,
     pageSize,
