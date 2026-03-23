@@ -13,3 +13,4 @@ SELECT
 FROM auth.users u
 LEFT JOIN public.usuario p ON u.id = p.id
 WHERE u.raw_app_meta_data->>'role' = 'ADMINISTRADOR';
+
