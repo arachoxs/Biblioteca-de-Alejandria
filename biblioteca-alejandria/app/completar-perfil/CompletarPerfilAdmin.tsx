@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import PersonalDataFields from "@/components/PersonalDataFields";
 import Input from "@/components/ui/Input";
@@ -18,6 +18,15 @@ export default function CompletarPerfilAdmin() {
     const [success, setSuccess] = useState(false);
     const [formattedAddress, setFormattedAddress] = useState("");
     const [placeId, setPlaceId] = useState("");
+
+    useEffect(() => {
+        if (success) {
+            const timer = setTimeout(() => {
+                router.push("/panel-admin");
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [success, router]);
 
     // Validación en tiempo real de contraseñas
     const [newPwd, setNewPwd] = useState("");
@@ -39,7 +48,6 @@ export default function CompletarPerfilAdmin() {
 
             if (response.success) {
                 setSuccess(true);
-                setTimeout(() => router.push("/panel-admin"), 2000);
             } else {
                 setErrors(response.errors || { form: response.message || "Error desconocido" });
             }
