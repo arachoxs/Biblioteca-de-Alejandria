@@ -914,7 +914,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vista_administradores: {
+        Row: {
+          apellidos: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          nombres: string | null
+          rol: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_username_exists: {

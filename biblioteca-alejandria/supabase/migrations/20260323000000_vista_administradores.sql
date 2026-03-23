@@ -2,7 +2,7 @@ DROP VIEW IF EXISTS vista_administradores;
 
 CREATE VIEW vista_administradores AS
 SELECT 
-    u.id,
+    (u.id::text)::uuid AS id,
     u.email,
     -- Extraemos el rol del JSON de metadata de Auth
     (u.raw_app_meta_data->>'role') AS rol,
@@ -14,3 +14,5 @@ FROM auth.users u
 LEFT JOIN public.usuario p ON u.id = p.id
 WHERE u.raw_app_meta_data->>'role' = 'ADMINISTRADOR';
 
+-- 🔒 Bloquear acceso directo vía REST API
+REVOKE SELECT ON vista_administradores FROM anon, authenticated;
