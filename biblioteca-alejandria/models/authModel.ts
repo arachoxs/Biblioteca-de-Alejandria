@@ -7,6 +7,7 @@ import type { AuthResponse } from "@supabase/supabase-js";
 
 /** Respuesta interna de operaciones de registro en Supabase Auth. */
 import type { AuthSignUpResult } from "@/lib/types/auth";
+import { AdminUserFromView, PaginatedAdminUsers } from "@/lib/types/profile";
 
 // ─── Registro ──────────────────────────────────────────────────────
 
