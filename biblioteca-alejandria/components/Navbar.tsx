@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getCurrentUserRole, getCurrentUserEmail, VISITANTE } from "@/models/authModel";
+import { getCurrentUser, VISITANTE } from "@/models/authModel";
 import { Rol } from "@/lib/types/auth";
 import NavbarClient from "./NavbarClient";
 
@@ -21,15 +21,20 @@ function NavbarSkeleton() {
 
 // ── Navbar (Server Component) ───────────────────────────────────────
 /**
- * Server Component que resuelve la sesión y el rol del usuario actual
- * y los pasa al NavbarClient envuelto en Suspense para prevenir
- * de-optimización CSR por el uso de `useSearchParams` en el buscador.
+ * Server Component que resuelve la sesión del usuario actual **una sola vez**
+ * y deriva rol, email y estado de perfil para pasarlos al NavbarClient
+ * envuelto en Suspense (requerido por useSearchParams en el buscador).
  */
 export default async function Navbar() {
-  const [role, email] = await Promise.all([
-    getCurrentUserRole(),
-    getCurrentUserEmail(),
-  ]);
+  const user = await getCurrentUser();
+
+  // Derivar valores del único user object — evitamos waterfalls (data-patterns)
+  const role = user
+    ? ((user.app_metadata as Record<string, unknown>)?.role as Rol) ?? VISITANTE
+    : VISITANTE;
+  const email = user?.email ?? null;
+  const profileComplete =
+    (user?.app_metadata as Record<string, unknown>)?.profile_complete === true;
 
   // Derivar la etiqueta del badge según el rol
   const roleBadgeMap: Record<string, string> = {
@@ -46,6 +51,7 @@ export default async function Navbar() {
         role={role}
         email={email}
         roleBadge={roleBadge}
+        profileComplete={profileComplete}
       />
     </Suspense>
   );
