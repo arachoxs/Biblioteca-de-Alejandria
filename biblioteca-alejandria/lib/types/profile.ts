@@ -1,6 +1,11 @@
 import type { Genero } from "./auth";
+import type { Database } from "@/lib/types/supabase"; // Importa el tipo Database generado por Supabase
 
+
+
+export type AdminUserFromView = Database['public']['Views']['vista_administradores']['Row'];
 // ─── Datos del perfil (lectura) ────────────────────────────────────
+
 
 /** Datos completos del usuario para renderizar la página de perfil. */
 export interface UserProfileData {
@@ -44,6 +49,22 @@ export interface ProfileUpdatePayload {
 
 export interface ProfileUpdateResponse {
   success: boolean;
+  errors?: Record<string, string>;
+  message?: string;
+}
+
+// ─── Datos de usuarios administradores (lectura) ─────────────────────────
+export interface PaginatedAdminUsers {
+  data: AdminUserFromView[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface AdminUsersResponse {
+  success: boolean;
+  data?: PaginatedAdminUsers;
   errors?: Record<string, string>;
   message?: string;
 }

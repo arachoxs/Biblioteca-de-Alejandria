@@ -904,6 +904,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "Usuario_id_auth_users_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "vista_administradores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "Usuario_id_direccion_fkey"
             columns: ["id_direccion"]
             isOneToOne: false
@@ -914,7 +921,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vista_administradores: {
+        Row: {
+          apellidos: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          nombres: string | null
+          rol: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_username_exists: {

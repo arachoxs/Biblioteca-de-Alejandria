@@ -1,7 +1,9 @@
 "use server";
 
 import { registerAuthUser } from "@/services/auth/registrationService";
+import { fetchAdminUsers } from "@/services/admin/adminService";
 import { Rol, type CredentialData, type RegisterResponse, type AuthSignUpResult } from "@/lib/types/auth";
+import type { AdminUsersResponse } from "@/lib/types/profile";
 
 
 function generateRandomPassword(length: number): string {
@@ -41,4 +43,18 @@ export async function createAdmin(email: string): Promise<RegisterResponse> {
         success: true,
         message: `Administrador creado exitosamente.`,
     };
+}
+
+/**
+ * Obtiene la lista paginada de usuarios administradores.
+ * 
+ * @param page - Número de página (comienza en 1)
+ * @param pageSize - Cantidad de resultados por página
+ * @returns Respuesta con datos paginados de administradores
+ */
+export async function getAdmins(
+    page: number = 1,
+    pageSize: number = 10
+): Promise<AdminUsersResponse> {
+    return await fetchAdminUsers(page, pageSize);
 }

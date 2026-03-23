@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type { PersonalData, Genero } from "@/lib/types/auth";
-
+import type {  PaginatedAdminUsers } from "@/lib/types/profile";
 // ─── Tipos internos ────────────────────────────────────────────────
 
 interface ModelResult {
@@ -25,6 +25,41 @@ export interface RawUserProfile {
 }
 
 // ─── Consultas de perfil ───────────────────────────────────────────
+
+
+/**
+ * Obtiene todos los usuarios con rol ADMINISTRADOR paginados.
+ * 
+ * @param page - Número de página (comienza en 1)
+ * @param pageSize - Cantidad de resultados por página (por defecto 10)
+ * @returns Listado paginado de usuarios administradores con sus nombres
+ */
+export async function getAdminUsers(
+  page: number = 1,
+  pageSize: number = 10
+): Promise<PaginatedAdminUsers> {
+  const adminClient = createAdminClient();
+  
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // ¡Consultamos la VISTA como si fuera una tabla normal!
+  const { data, error, count } = await adminClient
+    .from("vista_administradores") // El nombre que le dimos en SQL
+    .select("*", { count: "exact" })
+    .range(from, to)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return {
+    data: data || [],
+    total: count || 0,
+    page,
+    pageSize,
+    totalPages: Math.ceil((count || 0) / pageSize),
+  };
+}
 
 /**
  * Obtiene el perfil del usuario con la dirección asociada (join).
