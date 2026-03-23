@@ -28,6 +28,7 @@ interface NavbarClientProps {
   role: NavbarRole;
   email: string | null;
   roleBadge: string | null;
+  profileComplete: boolean;
 }
 
 // ── Componente ──────────────────────────────────────────────────────
@@ -36,6 +37,7 @@ export default function NavbarClient({
   role,
   email,
   roleBadge,
+  profileComplete,
 }: NavbarClientProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [changePwdOpen, setChangePwdOpen] = useState(false);
@@ -94,7 +96,9 @@ export default function NavbarClient({
     role === Rol.ROOT
       ? "/panel-root"
       : role === Rol.ADMINISTRADOR
-        ? "/panel-admin"
+        ? profileComplete
+          ? "/panel-admin"
+          : "/completar-perfil"
         : "/";
 
   // ── Search handler ────────────────────────────────────────────────
@@ -128,14 +132,14 @@ export default function NavbarClient({
 
         {(role === Rol.ADMINISTRADOR || role === Rol.CLIENTE) && (
           <Link
-            href="/perfil"
+            href={role === Rol.ADMINISTRADOR && !profileComplete ? "/completar-perfil" : "/perfil"}
             ref={firstMenuItemRef as React.Ref<HTMLAnchorElement>}
             role="menuitem"
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-secondary hover:text-brand-text hover:bg-brand-accent/10 rounded-md transition-colors text-left cursor-pointer"
             onClick={() => setMenuOpen(false)}
           >
             <UserCircle className="w-4 h-4 text-brand-accent" />
-            Ver perfil
+            {role === Rol.ADMINISTRADOR && !profileComplete ? "Completar perfil" : "Ver perfil"}
           </Link>
         )}
 
@@ -171,21 +175,22 @@ export default function NavbarClient({
         </span>
       </Link>
 
-      {/* ── Right section ─────────────────────────────────────────── */}
-      {/* ── Center: Search ───────────────────────────────────── */}
-      <div className="flex flex-1 justify-center px-1 sm:px-4">
-        <form onSubmit={handleSearch} className="relative w-full max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-accent/60 pointer-events-none" />
-          <input
-            type="search"
-            name="q"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Buscar libros…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-brand-bg/10 text-brand-bg text-sm placeholder:text-brand-accent/40 border border-brand-accent/20 focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary/40 transition-all"
-          />
-        </form>
-      </div>
+      {/* ── Center: Search (oculto si el admin no ha completado su perfil) ── */}
+      {!(role === Rol.ADMINISTRADOR && !profileComplete) && (
+        <div className="flex flex-1 justify-center px-1 sm:px-4">
+          <form onSubmit={handleSearch} className="relative w-full max-w-xl">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-accent/60 pointer-events-none" />
+            <input
+              type="search"
+              name="q"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              placeholder="Buscar libros…"
+              className="w-full pl-9 pr-3 py-2 rounded-lg bg-brand-bg/10 text-brand-bg text-sm placeholder:text-brand-accent/40 border border-brand-accent/20 focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary/40 transition-all"
+            />
+          </form>
+        </div>
+      )}
 
       {/* ── Right section ─────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
@@ -200,7 +205,7 @@ export default function NavbarClient({
           </Link>
         )}
 
-        {role === Rol.ADMINISTRADOR && (
+        {role === Rol.ADMINISTRADOR && profileComplete && (
           <Link
             href="/panel-admin"
             className="hidden md:flex items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition-colors"
