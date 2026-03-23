@@ -1,4 +1,6 @@
-CREATE OR REPLACE VIEW vista_administradores AS
+DROP VIEW IF EXISTS vista_administradores;
+
+CREATE VIEW vista_administradores AS
 SELECT 
     u.id,
     u.email,
