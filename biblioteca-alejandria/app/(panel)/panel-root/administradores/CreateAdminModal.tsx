@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
@@ -20,6 +20,15 @@ export default function CreateAdminModal({ isOpen, onClose, onSuccess }: CreateA
   const [isCreating, setIsCreating] = useState(false);
   const [alertState, setAlertState] = useState<RegisterResponse | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current !== null) {
+        clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleClose = () => {
     // Limpiar el estado al cerrar
@@ -43,7 +52,8 @@ export default function CreateAdminModal({ isOpen, onClose, onSuccess }: CreateA
         setAlertState(response);
         
         // Esperar un momento para mostrar el mensaje de éxito antes de cerrar
-        setTimeout(() => {
+        successTimerRef.current = setTimeout(() => {
+          successTimerRef.current = null;
           handleClose();
           onSuccess(); // Notificar al padre para que recargue la lista
         }, 1500);
