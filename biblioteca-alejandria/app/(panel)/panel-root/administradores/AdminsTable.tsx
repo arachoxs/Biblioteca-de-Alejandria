@@ -144,7 +144,7 @@ export default function AdminsTable({
     <Table
       data={data}
       columns={adminColumns}
-      keyExtractor={(item) => item.id || ""}
+      keyExtractor={(item) => item.id}
       pagination={{
         currentPage,
         totalPages,

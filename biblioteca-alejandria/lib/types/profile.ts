@@ -3,7 +3,15 @@ import type { Database } from "@/lib/types/supabase"; // Importa el tipo Databas
 
 
 
-export type AdminUserFromView = Database['public']['Views']['vista_administradores']['Row'];
+/**
+ * Fila de la vista `vista_administradores`.
+ * Se sobreescribe `id` como `string` (no nulo) porque proviene de
+ * `auth.users.id`, que es clave primaria y nunca puede ser null.
+ */
+export type AdminUserFromView = Omit<
+  Database['public']['Views']['vista_administradores']['Row'],
+  'id'
+> & { id: string };
 // ─── Datos del perfil (lectura) ────────────────────────────────────
 
 
