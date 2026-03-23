@@ -68,10 +68,10 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // 1. Visitante-only routes check (Login/Register protection)
   // If user is logged in and tries to access auth pages, redirect to home.
   if (user) {
-    const isVisitanteRoute = VISITANTE_ONLY_ROUTES.some((route) => 
+    const isVisitanteRoute = VISITANTE_ONLY_ROUTES.some((route) =>
       pathname.startsWith(route)
     );
-    
+
     if (isVisitanteRoute) {
       const homeUrl = request.nextUrl.clone();
       homeUrl.pathname = "/";
@@ -102,39 +102,28 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     }
   }
 
-  // 3. Admin onboarding guard: force incomplete admins to /completar-perfil
-  if (user) {
-    const userRole = (user.app_metadata as Record<string, unknown>)?.role as Rol;
-    const profileComplete = (user.app_metadata as Record<string, unknown>)?.profile_complete === true;
+  // 3. Admin onboarding guard
+  const userRole = user
+    ? ((user.app_metadata as Record<string, unknown>)?.role as Rol)
+    : null;
+  const profileComplete =
+    (user?.app_metadata as Record<string, unknown>)?.profile_complete === true;
 
-    if (userRole === Rol.ADMINISTRADOR && !profileComplete) {
-      // Admin sin perfil completo: bloquear todo excepto /completar-perfil
-      if (!pathname.startsWith("/completar-perfil")) {
-        const onboardingUrl = request.nextUrl.clone();
-        onboardingUrl.pathname = "/completar-perfil";
-        return redirectWithSupabaseCookies(onboardingUrl, supabaseResponse);
-      }
-    }
-
-    // Admin con perfil completo intentando acceder a /completar-perfil → al panel
-    if (userRole === Rol.ADMINISTRADOR && profileComplete && pathname.startsWith("/completar-perfil")) {
-      const panelUrl = request.nextUrl.clone();
-      panelUrl.pathname = "/panel-admin";
-      return redirectWithSupabaseCookies(panelUrl, supabaseResponse);
-    }
-
-    // Otros roles intentando acceder a /completar-perfil → home
-    if (userRole !== Rol.ADMINISTRADOR && pathname.startsWith("/completar-perfil")) {
-      const homeUrl = request.nextUrl.clone();
-      homeUrl.pathname = "/";
-      return redirectWithSupabaseCookies(homeUrl, supabaseResponse);
-    }
-  } else if (pathname.startsWith("/completar-perfil")) {
-    // No autenticado intentando /completar-perfil → login
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    return redirectWithSupabaseCookies(loginUrl, supabaseResponse);
+  // 3a. Admin con perfil incompleto fuera de /completar-perfil → forzar onboarding
+  if (userRole === Rol.ADMINISTRADOR && !profileComplete && !pathname.startsWith("/completar-perfil")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/completar-perfil";
+    return redirectWithSupabaseCookies(url, supabaseResponse);
   }
+
+  // 3b. /completar-perfil solo es accesible para admins con perfil incompleto
+  if (pathname.startsWith("/completar-perfil")) {
+    const denied = !user || userRole !== Rol.ADMINISTRADOR || profileComplete;
+    const url = request.nextUrl.clone();
+    url.pathname = !user ? "/login" : "/";
+    if (denied) return redirectWithSupabaseCookies(url, supabaseResponse);
+  }
+
 
   // 4. Special case: /perfil protection
   if (pathname.startsWith("/perfil")) {
