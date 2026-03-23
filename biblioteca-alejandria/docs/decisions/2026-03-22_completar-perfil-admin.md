@@ -19,7 +19,7 @@ Cuando Root crea un Administrador, solo se crea la entrada en `auth.users` con c
 
 - Se evalúa después del check de rol (sección 3 del proxy).
 - Admin sin `profile_complete` → redirect forzoso a `/completar-perfil`.
-- Admin con `profile_complete` en `/completar-perfil` → redirect a `/panel-admin`.
+- Admin con `profile_complete` en `/completar-perfil` → redirect a `/`.
 - Otros roles en `/completar-perfil` → redirect a home.
 
 ### 3. Cambio de contraseña sin verificar la actual

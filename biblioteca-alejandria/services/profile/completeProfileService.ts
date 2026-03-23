@@ -3,6 +3,7 @@ import {
   checkDniExists,
   checkUsernameExists,
   createUserProfile,
+  deleteUserProfile,
 } from "@/models/userModel";
 import { createAddress, deleteAddress } from "@/models/addressModel";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -41,12 +42,16 @@ interface CompleteAdminProfileInput {
 export async function completeAdminProfile(
   input: CompleteAdminProfileInput
 ): Promise<ProfileUpdateResponse> {
+  let createdAddressId: number | null = null;
+  let profileCreated = false;
+  let userId: string | null = null;
+
   try {
     const user = await getCurrentUser();
     if (!user) {
       return { success: false, errors: { form: "No hay sesión activa." } };
     }
-    const userId = user.id;
+    userId = user.id;
 
     // 1. Validar unicidad de DNI
     const dniExists = await checkDniExists(input.dni);
@@ -72,19 +77,7 @@ export async function completeAdminProfile(
       };
     }
 
-    // 3. Actualizar contraseña (sin verificar la actual — caso especial primer inicio)
-    const supabase = await createClient();
-    const { error: pwdError } = await supabase.auth.updateUser({
-      password: input.nueva_contrasena,
-    });
-
-    if (pwdError) {
-      console.error("Error al actualizar contraseña:", pwdError);
-      return {
-        success: false,
-        errors: { form: "No se pudo actualizar la contraseña. Intenta de nuevo." },
-      };
-    }
+    // 3. (Movido al final) La contraseña se actualiza de último para asegurar rollback completo.
 
     // 4. Crear dirección
     const addressResult = await createAddress({
@@ -99,6 +92,7 @@ export async function completeAdminProfile(
         errors: { direccion: `Error al registrar dirección: ${addressResult.error}` },
       };
     }
+    createdAddressId = addressResult.id;
 
     // 5. Crear perfil de usuario
     const personalData: PersonalData = {
@@ -122,12 +116,13 @@ export async function completeAdminProfile(
 
     if (!profileResult.success) {
       // Rollback: eliminar dirección creada
-      await deleteAddress(addressResult.id);
+      if (createdAddressId) await deleteAddress(createdAddressId);
       return {
         success: false,
         errors: { form: `Error al crear perfil: ${profileResult.error}` },
       };
     }
+    profileCreated = true;
 
     // 6. Marcar profile_complete en app_metadata + actualizar username
     const adminClient = createAdminClient();
@@ -169,6 +164,15 @@ export async function completeAdminProfile(
     );
     if (metaError) {
       console.error("Error al marcar profile_complete:", metaError);
+      
+      // Rollback: deshacer perfil y dirección
+      if (profileCreated && userId) {
+        await deleteUserProfile(userId);
+      }
+      if (createdAddressId) {
+        await deleteAddress(createdAddressId);
+      }
+
       // Este paso es crítico para que el middleware permita el acceso.
       // Si falla, consideramos que el flujo no se completó correctamente.
       const metaErrorMessage =
@@ -181,12 +185,58 @@ export async function completeAdminProfile(
       };
     }
 
+    // 7. Actualizar contraseña (paso final, asegura que se mantiene la anterior si hay fallo)
+    const supabase = await createClient();
+    const { error: pwdError } = await supabase.auth.updateUser({
+      password: input.nueva_contrasena,
+    });
+
+    if (pwdError) {
+      console.error("Error al actualizar contraseña:", pwdError);
+      
+      // Rollback: revertir app_metadata y user_metadata a su estado original
+      try {
+        await adminClient.auth.admin.updateUserById(userId, {
+          app_metadata: existingAppMetadata,
+          user_metadata: existingUserMetadata,
+        });
+      } catch (err) {
+        console.error("Error crítico al revertir metadatos:", err);
+      }
+
+      // Rollback: deshacer perfil y dirección
+      if (profileCreated && userId) {
+        await deleteUserProfile(userId);
+      }
+      if (createdAddressId) {
+        await deleteAddress(createdAddressId);
+      }
+
+      return {
+        success: false,
+        errors: { form: "No se pudo actualizar la contraseña. Revisa que sea segura e intenta de nuevo." },
+      };
+    }
+
     return {
       success: true,
       message: "Perfil configurado exitosamente.",
     };
   } catch (error: unknown) {
     console.error("Error inesperado en completeAdminProfile:", error);
+
+    // Rollback genérico si ocurre una excepción
+    try {
+      if (profileCreated && userId) {
+        await deleteUserProfile(userId);
+      }
+      if (createdAddressId) {
+        await deleteAddress(createdAddressId);
+      }
+    } catch (rollbackError) {
+      console.error("Error durante rollback en el catch:", rollbackError);
+    }
+
     const errorMessage =
       error instanceof Error ? error.message : "Desconocido";
     return {

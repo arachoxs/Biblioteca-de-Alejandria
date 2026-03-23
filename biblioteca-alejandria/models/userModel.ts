@@ -179,3 +179,25 @@ export async function createUserProfile(
 
   return { success: true };
 }
+
+/**
+ * Elimina el perfil del usuario en la tabla `usuario`.
+ * Utilizado principalmente para operaciones de rollback.
+ */
+export async function deleteUserProfile(
+  userId: string
+): Promise<ModelResult> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("usuario")
+    .delete()
+    .eq("id", userId);
+
+  if (error) {
+    console.error("Error al eliminar el perfil del usuario:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
