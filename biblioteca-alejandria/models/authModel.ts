@@ -7,6 +7,7 @@ import type { AuthResponse } from "@supabase/supabase-js";
 
 /** Respuesta interna de operaciones de registro en Supabase Auth. */
 import type { AuthSignUpResult } from "@/lib/types/auth";
+import { AdminUserFromView, PaginatedAdminUsers } from "@/lib/types/profile";
 
 // ─── Registro ──────────────────────────────────────────────────────
 
@@ -372,4 +373,49 @@ export async function globalSignOutModel(): Promise<void> {
   }
 
   redirect("/");
+}
+
+//obtencion de usuarios administradores paginados para el panel de administradores
+
+/**
+ * Obtiene todos los usuarios con rol ADMINISTRADOR paginados.
+ * 
+ * @param page - Número de página (comienza en 1)
+ * @param pageSize - Cantidad de resultados por página (por defecto 10)
+ * @returns Listado paginado de usuarios administradores con sus nombres
+ */
+export async function getAdminUsers(
+  page: number = 1,
+  pageSize: number = 10
+): Promise<PaginatedAdminUsers> {
+  const adminClient = createAdminClient();
+
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.max(1, pageSize);
+
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  // ¡Consultamos la VISTA como si fuera una tabla normal!
+  const { data, error, count } = await adminClient
+    .from("vista_administradores") // El nombre que le dimos en SQL
+    .select("*", { count: "exact" })
+    .range(from, to)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  // Filtramos filas con id null (no deberían existir en auth.users,
+  // pero lo garantizamos aquí para que el tipo AdminUserFromView sea seguro).
+  const safeData = (data || []).filter(
+    (row): row is AdminUserFromView => row.id !== null
+  );
+
+  return {
+    data: safeData,
+    total: count || 0,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.ceil((count || 0) / safePageSize),
+  };
 }

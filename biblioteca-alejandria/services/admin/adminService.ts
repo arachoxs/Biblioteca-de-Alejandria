@@ -1,4 +1,4 @@
-import { getAdminUsers } from "@/models/userModel";
+import { getAdminUsers } from "@/models/authModel";
 import type { AdminUsersResponse } from "@/lib/types/profile";
 
 /**

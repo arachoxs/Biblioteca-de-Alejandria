@@ -904,13 +904,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "Usuario_id_auth_users_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "vista_administradores"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "Usuario_id_direccion_fkey"
             columns: ["id_direccion"]
             isOneToOne: false
