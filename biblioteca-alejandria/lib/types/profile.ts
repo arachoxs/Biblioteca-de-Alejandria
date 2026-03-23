@@ -1,6 +1,19 @@
 import type { Genero } from "./auth";
+import type { Database } from "@/lib/types/supabase"; // Importa el tipo Database generado por Supabase
 
+
+
+/**
+ * Fila de la vista `vista_administradores`.
+ * Se sobreescribe `id` como `string` (no nulo) porque proviene de
+ * `auth.users.id`, que es clave primaria y nunca puede ser null.
+ */
+export type AdminUserFromView = Omit<
+  Database['public']['Views']['vista_administradores']['Row'],
+  'id'
+> & { id: string };
 // ─── Datos del perfil (lectura) ────────────────────────────────────
+
 
 /** Datos completos del usuario para renderizar la página de perfil. */
 export interface UserProfileData {
@@ -44,6 +57,22 @@ export interface ProfileUpdatePayload {
 
 export interface ProfileUpdateResponse {
   success: boolean;
+  errors?: Record<string, string>;
+  message?: string;
+}
+
+// ─── Datos de usuarios administradores (lectura) ─────────────────────────
+export interface PaginatedAdminUsers {
+  data: AdminUserFromView[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface AdminUsersResponse {
+  success: boolean;
+  data?: PaginatedAdminUsers;
   errors?: Record<string, string>;
   message?: string;
 }
