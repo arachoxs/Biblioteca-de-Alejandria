@@ -131,15 +131,54 @@ export async function completeAdminProfile(
 
     // 6. Marcar profile_complete en app_metadata + actualizar username
     const adminClient = createAdminClient();
-    const { error: metaError } = await adminClient.auth.admin.updateUserById(userId, {
-      app_metadata: { profile_complete: true },
-      user_metadata: { username: input.usuario },
-    });
 
+    // Obtener metadata actual para no perder claves críticas (p.ej. role)
+    const { data: userData, error: fetchUserError } =
+      await adminClient.auth.admin.getUserById(userId);
+
+    if (fetchUserError) {
+      console.error("Error al obtener app_metadata actual:", fetchUserError);
+    }
+
+    const existingAppMetadata =
+      userData?.user?.app_metadata && typeof userData.user.app_metadata === "object"
+        ? userData.user.app_metadata
+        : {};
+
+    const existingUserMetadata =
+      userData?.user?.user_metadata && typeof userData.user.user_metadata === "object"
+        ? userData.user.user_metadata
+        : {};
+
+    const updatedAppMetadata = {
+      ...existingAppMetadata,
+      profile_complete: true,
+    };
+
+    const updatedUserMetadata = {
+      ...existingUserMetadata,
+      username: input.usuario,
+    };
+
+    const { error: metaError } = await adminClient.auth.admin.updateUserById(
+      userId,
+      {
+        app_metadata: updatedAppMetadata,
+        user_metadata: updatedUserMetadata,
+      }
+    );
     if (metaError) {
       console.error("Error al marcar profile_complete:", metaError);
-      // El perfil ya se creó, no es crítico — el admin podrá acceder
-      // pero el flag quedará pendiente. Log para monitoreo.
+      // Este paso es crítico para que el middleware permita el acceso.
+      // Si falla, consideramos que el flujo no se completó correctamente.
+      const metaErrorMessage =
+        metaError instanceof Error ? metaError.message : "Error al actualizar metadatos de usuario.";
+      return {
+        success: false,
+        errors: {
+          form: `No se pudo finalizar la configuración del perfil. Detalle: ${metaErrorMessage}`,
+        },
+      };
     }
 
     return {

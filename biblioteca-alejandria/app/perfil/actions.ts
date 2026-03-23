@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentUser } from "@/models/authModel";
-import { Genero } from "@/lib/types/auth";
+import type { Genero } from "@/lib/types/auth";
 import type { ProfileUpdatePayload, ProfileUpdateResponse } from "@/lib/types/profile";
 import { validateProfileFields } from "@/lib/validations/profile";
 import { updateProfile } from "@/services/profile/profileService";
