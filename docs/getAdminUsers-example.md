@@ -7,9 +7,10 @@ La función `getAdminUsers` permite obtener todos los usuarios con rol `ADMINIST
 
 ```typescript
 import { getAdminUsers } from "@/models/userModel";
+import type { AdminUsersResponse } from "@/lib/types/profile";
 
 // En una Server Action
-export async function fetchAdminUsers(page: number = 1, pageSize: number = 10) {
+export async function fetchAdminUsers(page: number = 1, pageSize: number = 10): Promise<AdminUsersResponse> {
   try {
     const result = await getAdminUsers(page, pageSize);
     
@@ -21,7 +22,8 @@ export async function fetchAdminUsers(page: number = 1, pageSize: number = 10) {
     console.error("Error al obtener administradores:", error);
     return {
       success: false,
-      error: "Error al obtener la lista de administradores"
+      errors: { form: "Error al obtener la lista de administradores" },
+      message: "No se pudo obtener la lista de administradores"
     };
   }
 }
@@ -117,6 +119,7 @@ export default function AdminUsersTable() {
 ```typescript
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminUsers } from "@/models/userModel";
+import type { AdminUsersResponse } from "@/lib/types/profile";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -129,7 +132,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error en API route:", error);
     return NextResponse.json(
-      { error: "Error al obtener administradores" },
+      {
+        success: false,
+        errors: { form: "Error al obtener administradores" },
+        message: "No se pudo obtener la lista de administradores"
+      } satisfies AdminUsersResponse,
       { status: 500 }
     );
   }
