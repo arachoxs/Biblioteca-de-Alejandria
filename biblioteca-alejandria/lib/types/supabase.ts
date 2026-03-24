@@ -916,11 +916,10 @@ export type Database = {
     Views: {
       vista_administradores: {
         Row: {
-          apellidos: string | null
           created_at: string | null
           email: string | null
           id: string | null
-          nombres: string | null
+          nombre_completo: string | null
           rol: string | null
         }
         Relationships: []

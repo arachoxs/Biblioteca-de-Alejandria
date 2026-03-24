@@ -1,5 +1,5 @@
-import { updatePasswordWithVerification as updatePasswordModel } from "@/models/authModel";
-import { AuthActionResult } from "@/lib/types/auth";
+import { updatePasswordWithVerification as updatePasswordModel , deactivateUsers, activateUsers } from "@/models/authModel";
+import { AuthActionResult , UserStatusResult } from "@/lib/types/auth";
 
 /**
  * Cambia la contraseña del usuario autenticado.
@@ -10,4 +10,12 @@ export async function changePassword(
   newPassword: string
 ): Promise<AuthActionResult> {
   return updatePasswordModel(currentPassword, newPassword);
+}
+
+export async function deshabilitarUsuario(userId: string[]): Promise<UserStatusResult> {
+  return deactivateUsers(userId);
+}
+
+export async function habilitarUsuario(userId: string[]): Promise<UserStatusResult> {
+  return activateUsers(userId);
 }

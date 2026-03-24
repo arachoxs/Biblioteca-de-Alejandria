@@ -1,5 +1,5 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { AuthActionResult, Rol } from "@/lib/types/auth";
+import { AuthActionResult, Rol, UserStatusResult } from "@/lib/types/auth";
 import { redirect } from "next/navigation";
 import type { AuthResponse } from "@supabase/supabase-js";
 
@@ -8,6 +8,7 @@ import type { AuthResponse } from "@supabase/supabase-js";
 /** Respuesta interna de operaciones de registro en Supabase Auth. */
 import type { AuthSignUpResult } from "@/lib/types/auth";
 import { AdminUserFromView, PaginatedAdminUsers } from "@/lib/types/profile";
+
 
 // ─── Registro ──────────────────────────────────────────────────────
 
@@ -418,4 +419,259 @@ export async function getAdminUsers(
     pageSize: safePageSize,
     totalPages: Math.ceil((count || 0) / safePageSize),
   };
+}
+
+/**
+ * Busca administradores por correo, nombre o apellidos.
+ * 
+ * @param searchTerm - Término de búsqueda a aplicar en email, nombres o apellidos
+ * @returns Listado de administradores que coinciden con el término de búsqueda
+ */
+export async function searchAdminUsers(
+  searchTerm: string
+): Promise<AdminUserFromView[]> {
+  const adminClient = createAdminClient();
+
+  // Normalizamos el término de búsqueda para hacer una búsqueda case-insensitive
+  const normalizedSearch = `%${searchTerm.trim()}%`;
+
+  const { data, error } = await adminClient
+    .from("vista_administradores")
+    .select("*")
+    .or(
+      `email.ilike.${normalizedSearch},nombre_completo.ilike.${normalizedSearch}`
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  // Filtramos filas con id null
+  const safeData = (data || []).filter(
+    (row): row is AdminUserFromView => row.id !== null
+  );
+
+  return safeData;
+}
+
+// ─── Activación/Desactivación de usuarios ─────────────────────────────
+
+/**
+ * Desactiva uno o múltiples usuarios mediante ban de auth indefinido.
+ * Verifica que los usuarios no estén ya desactivados antes de proceder.
+ * 
+ * El ban es indefinido (100 años) para simular una desactivación permanente
+ * hasta que se active manualmente.
+ * 
+ * @param userIds - ID o array de IDs de usuarios a desactivar
+ * @returns Resultado con mensaje y array de IDs que fallaron (si aplica)
+ */
+export async function deactivateUsers(
+  userIds: string | string[]
+): Promise<UserStatusResult> {
+  const adminClient = createAdminClient();
+  const ids = Array.isArray(userIds) ? userIds : [userIds];
+
+  const errorIds: string[] = [];
+  let successCount = 0;
+  let alreadyBannedCount = 0;
+
+  try {
+    await Promise.all(
+      ids.map(async (userId) => {
+        try {
+          // 1. Verificar el estado actual del usuario
+          const { data: user, error: getUserError } = 
+            await adminClient.auth.admin.getUserById(userId);
+
+          if (getUserError) {
+            console.error(`Error al obtener usuario ${userId}:`, getUserError);
+            errorIds.push(userId);
+            return;
+          }
+
+          if (!user || !user.user) {
+            errorIds.push(userId);
+            return;
+          }
+
+          // 2. Verificar si ya está baneado
+          if (user.user.banned_until) {
+            const bannedUntil = new Date(user.user.banned_until);
+            const now = new Date();
+
+            // Si banned_until es en el futuro, el usuario ya está baneado
+            if (bannedUntil > now) {
+              alreadyBannedCount++;
+              return;
+            }
+          }
+
+          // 3. Desactivar el usuario indefinidamente (876000h ≈ 100 años)
+          const { error: banError } = await adminClient.auth.admin.updateUserById(
+            userId,
+            { ban_duration: '876000h' }
+          );
+
+          if (banError) {
+            console.error(`Error al desactivar usuario ${userId}:`, banError);
+            errorIds.push(userId);
+            return;
+          }
+
+          successCount++;
+        } catch (error) {
+          console.error(`Excepción al procesar usuario ${userId}:`, error);
+          errorIds.push(userId);
+        }
+      })
+    );
+
+    // Generar mensaje y resultado
+    if (errorIds.length === 0 && successCount === 0 && alreadyBannedCount === ids.length) {
+      return {
+        success: true,
+        message: `Todos los usuarios ya estaban desactivados (${alreadyBannedCount})`,
+      };
+    }
+
+    if (errorIds.length === ids.length) {
+      return {
+        success: false,
+        message: "No se pudo desactivar ningún usuario",
+        errorIds,
+      };
+    }
+
+    const parts: string[] = [];
+    if (successCount > 0) parts.push(`${successCount} desactivado(s)`);
+    if (alreadyBannedCount > 0) parts.push(`${alreadyBannedCount} ya desactivado(s)`);
+    if (errorIds.length > 0) parts.push(`${errorIds.length} fallido(s)`);
+
+    return {
+      success: successCount > 0 || alreadyBannedCount > 0,
+      message: parts.join(", "),
+      errorIds: errorIds.length > 0 ? errorIds : undefined,
+    };
+  } catch (error) {
+    console.error("Error general en deactivateUsers:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Error desconocido",
+      errorIds: ids,
+    };
+  }
+}
+
+/**
+ * Activa uno o múltiples usuarios removiendo el ban de auth.
+ * Verifica que los usuarios estén desactivados antes de proceder.
+ * 
+ * @param userIds - ID o array de IDs de usuarios a activar
+ * @returns Resultado con mensaje y array de IDs que fallaron (si aplica)
+ */
+export async function activateUsers(
+  userIds: string | string[]
+): Promise<UserStatusResult> {
+  const adminClient = createAdminClient();
+  const ids = Array.isArray(userIds) ? userIds : [userIds];
+
+  if (ids.length === 0) {
+    return {
+      success: false,
+      message: "No se proporcionaron IDs de usuarios.",
+    };
+  }
+
+  const errorIds: string[] = [];
+  let successCount = 0;
+  let alreadyActiveCount = 0;
+
+  try {
+    await Promise.all(
+      ids.map(async (userId) => {
+        try {
+          // 1. Verificar el estado actual del usuario
+          const { data: user, error: getUserError } = 
+            await adminClient.auth.admin.getUserById(userId);
+
+          if (getUserError) {
+            console.error(`Error al obtener usuario ${userId}:`, getUserError);
+            errorIds.push(userId);
+            return;
+          }
+
+          if (!user || !user.user) {
+            errorIds.push(userId);
+            return;
+          }
+
+          // 2. Verificar si ya está activo (no baneado)
+          if (!user.user.banned_until) {
+            alreadyActiveCount++;
+            return;
+          }
+
+          const bannedUntil = new Date(user.user.banned_until);
+          const now = new Date();
+
+          // Si banned_until es en el pasado, el usuario ya está activo
+          if (bannedUntil <= now) {
+            alreadyActiveCount++;
+            return;
+          }
+
+          // 3. Activar el usuario (removiendo el ban con 'none')
+          const { error: unbanError } = await adminClient.auth.admin.updateUserById(
+            userId,
+            { ban_duration: 'none' }
+          );
+
+          if (unbanError) {
+            console.error(`Error al activar usuario ${userId}:`, unbanError);
+            errorIds.push(userId);
+            return;
+          }
+
+          successCount++;
+        } catch (error) {
+          console.error(`Excepción al procesar usuario ${userId}:`, error);
+          errorIds.push(userId);
+        }
+      })
+    );
+
+    // Generar mensaje y resultado
+    if (errorIds.length === 0 && successCount === 0 && alreadyActiveCount === ids.length) {
+      return {
+        success: true,
+        message: `Todos los usuarios ya estaban activos (${alreadyActiveCount})`,
+      };
+    }
+
+    if (errorIds.length === ids.length) {
+      return {
+        success: false,
+        message: "No se pudo activar ningún usuario",
+        errorIds,
+      };
+    }
+
+    const parts: string[] = [];
+    if (successCount > 0) parts.push(`${successCount} activado(s)`);
+    if (alreadyActiveCount > 0) parts.push(`${alreadyActiveCount} ya activo(s)`);
+    if (errorIds.length > 0) parts.push(`${errorIds.length} fallido(s)`);
+
+    return {
+      success: successCount > 0 || alreadyActiveCount > 0,
+      message: parts.join(", "),
+      errorIds: errorIds.length > 0 ? errorIds : undefined,
+    };
+  } catch (error) {
+    console.error("Error general en activateUsers:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Error desconocido",
+      errorIds: ids,
+    };
+  }
 }

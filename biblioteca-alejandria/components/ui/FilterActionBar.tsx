@@ -19,7 +19,7 @@ export default function FilterActionBar({
   return (
     <div className="bg-white p-1 rounded-xl border border-brand-accent/20 shadow-sm mb-6 animate-in fade-in slide-in-from-bottom-5 duration-500 delay-100 fill-mode-both">
       <div className="flex flex-col md:flex-row gap-2 p-3 items-center">
-        <div className="relative flex-grow group w-full">
+        <div className="relative grow group w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-secondary group-focus-within:text-brand-primary transition-colors" />
           <input
             type="text"
