@@ -76,3 +76,11 @@ export interface AdminUsersResponse {
   errors?: Record<string, string>;
   message?: string;
 }
+
+// ─── Búsqueda de administradores ─────────────────────────────────────
+export interface AdminSearchResponse {
+  success: boolean;
+  data?: AdminUserFromView[];
+  errors?: Record<string, string>;
+  message?: string;
+}

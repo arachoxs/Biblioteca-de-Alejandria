@@ -4,11 +4,13 @@ import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
 import { Plus, CheckCircle, UserX, Loader2, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getAdmins } from "./action";
+import { getAdmins, searchAdminsByTerm, habilitarAdministradores, deshabilitarAdministradores  } from "./action";
 import Alert from "@/components/ui/Alert";
 import type { AdminUserFromView } from "@/lib/types/profile";
 import CreateAdminModal from "./CreateAdminModal";
 import AdminsTable from "./AdminsTable";
+import { useDebounce } from "@/hooks/useDebounce";
+import type { UserStatusResult } from "@/lib/types/auth";
 
 export default function AdministradoresContent() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,7 +25,15 @@ export default function AdministradoresContent() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   
+  // Estado para las acciones de habilitar/deshabilitar
+  const [isEnabling, setIsEnabling] = useState(false);
+  const [isDisabling, setIsDisabling] = useState(false);
+  const [changeStateUserResponse, setChangeStateUserResponse] = useState<UserStatusResult | null>(null);
+  
   const itemsPerPage = 7;
+
+  // Usar el hook de debounce para el término de búsqueda
+  const debouncedSearchTerm = useDebounce(searchTerm, 700);
 
   // Cargar administradores desde el servidor
   const loadAdmins = async (page: number = 1) => {
@@ -50,19 +60,67 @@ export default function AdministradoresContent() {
     }
   };
 
-  // Cargar administradores al montar el componente
-  useEffect(() => {
-    loadAdmins(currentPage);
-  }, [currentPage]);
+  const refreshAdmins = async () => {
+  if (!debouncedSearchTerm.trim()) {
+    // Si no hay búsqueda, carga normal
+    await loadAdmins(currentPage);
+  } else {
+    // Si hay búsqueda, repite la búsqueda para actualizar los datos
+    setIsLoadingAdmins(true);
+    try {
+      const response = await searchAdminsByTerm(debouncedSearchTerm);
+      if (response.success && response.data) {
+        setAdminsData(response.data);
+        setTotalPages(1);
+        setTotalItems(response.data.length);
+      }
+    } catch (error) {
+      console.error("Error al refrescar búsqueda:", error);
+    } finally {
+      setIsLoadingAdmins(false);
+    }
+  }
+};
 
-  // Filtrar datos localmente
-  const filteredData = adminsData.filter((user) => {
-    const nombre = `${user.nombres || ""} ${user.apellidos || ""}`.toLowerCase();
-    const email = (user.email || "").toLowerCase();
-    const search = searchTerm.toLowerCase();
-    
-    return nombre.includes(search) || email.includes(search);
-  });
+  // Cargar o buscar administradores cuando cambie la página o el término de búsqueda
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!debouncedSearchTerm.trim()) {
+        // Si no hay término de búsqueda, cargar la lista paginada completa
+        await loadAdmins(currentPage);
+        return;
+      }
+
+      // Si hay término de búsqueda, realizar búsqueda
+      setIsLoadingAdmins(true);
+      setErrorLoadingAdmins(null);
+
+      try {
+        const response = await searchAdminsByTerm(debouncedSearchTerm);
+        
+        if (response.success && response.data) {
+          setAdminsData(response.data);
+          // Resetear paginación cuando hay búsqueda
+          setTotalPages(1);
+          setTotalItems(response.data.length);
+        } else {
+          setErrorLoadingAdmins(response.message || "Error al buscar administradores");
+          setAdminsData([]);
+        }
+      } catch (error) {
+        console.error("Error buscando administradores:", error);
+        setErrorLoadingAdmins("Error inesperado al buscar administradores");
+        setAdminsData([]);
+      } finally {
+        setIsLoadingAdmins(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedSearchTerm, currentPage]);
+
+  // Filtrar datos localmente (solo si no hay búsqueda del servidor)
+  const filteredData = adminsData;
 
   const handlePageChange = (page: number) => { 
     setCurrentPage(page);
@@ -72,20 +130,86 @@ export default function AdministradoresContent() {
     setSelectedIds(ids);
   };
 
-  const handleEnable = () => {
-    console.log("Habilitando usuarios:", selectedIds);
-    alert(`Habilitando ${selectedIds.length} administrador(es)`);
-    console.log("IDs seleccionados para habilitar:", selectedIds);
-    // TODO: Implementar lógica de habilitación
-    setSelectedIds([]); 
+  const handleEnable = async () => {
+    if (selectedIds.length === 0) return;
+    
+    setIsEnabling(true);
+    setChangeStateUserResponse(null);
+    
+    try {
+      const idsAsStrings = selectedIds.map(id => String(id));
+      const result = await habilitarAdministradores(idsAsStrings);
+      
+      // Guardar la respuesta para mostrar el alert
+      setChangeStateUserResponse(result);
+
+      if (result.success) {
+        // Recargar la lista de administradores
+        await refreshAdmins();
+        
+        // Si hay IDs que fallaron, mantenerlos seleccionados
+        if (result.errorIds && result.errorIds.length > 0) {
+          setSelectedIds(result.errorIds);
+        } else {
+          // Si todo fue exitoso, limpiar selección
+          setSelectedIds([]);
+        }
+      } else {
+        // Si la operación falló completamente, mantener todos los IDs seleccionados
+        if (result.errorIds && result.errorIds.length > 0) {
+          setSelectedIds(result.errorIds);
+        }
+      }
+    } catch (error) {
+      console.error("Error al habilitar administradores:", error);
+      setChangeStateUserResponse({
+        success: false,
+        message: "Error inesperado al habilitar administradores"
+      });
+    } finally {
+      setIsEnabling(false);
+    }
   };
 
-  const handleDisable = () => {
-    console.log("Deshabilitando usuarios:", selectedIds);
-    alert(`Deshabilitando ${selectedIds.length} administrador(es)`);
-    console.log("IDs seleccionados para deshabilitar:", selectedIds);
-    // TODO: Implementar lógica de deshabilitación
-    setSelectedIds([]);
+  const handleDisable = async () => {
+    if (selectedIds.length === 0) return;
+    
+    setIsDisabling(true);
+    setChangeStateUserResponse(null);
+    
+    try {
+      const idsAsStrings = selectedIds.map(id => String(id));
+      const result = await deshabilitarAdministradores(idsAsStrings);
+      
+      // Guardar la respuesta para mostrar el alert
+      setChangeStateUserResponse(result);
+      
+      if (result.success) {
+        // Recargar la lista de administradores
+        await refreshAdmins();
+        
+        // Si hay IDs que fallaron, mantenerlos seleccionados
+        if (result.errorIds && result.errorIds.length > 0) {
+          setSelectedIds(result.errorIds);
+        } else {
+          // Si todo fue exitoso, limpiar selección
+          setSelectedIds([]);
+        }
+      } else {
+        // Si la operación falló completamente, mantener todos los IDs seleccionados
+        if (result.errorIds && result.errorIds.length > 0) {
+          setSelectedIds(result.errorIds);
+        }
+      }
+    } catch (error) {
+      console.error("Error al deshabilitar administradores:", error);
+      setChangeStateUserResponse({
+        success: false,
+        message: "Error inesperado al deshabilitar administradores"
+      });
+    } finally {
+      setIsDisabling(false);
+    }
   };
 
   const handleAdminCreated = async () => {
@@ -96,16 +220,55 @@ export default function AdministradoresContent() {
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setSelectedIds([]); // Limpiar selección al buscar
+    setCurrentPage(1); // Reset a primera página al buscar
   };
 
   return (
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">{errorLoadingAdmins && (
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
+        {/* Alert para errores de carga */}
+        {errorLoadingAdmins && (
           <Alert 
             variant="error"
             className="mb-6 flex items-center gap-2"
           >
             <AlertCircle className="w-4 h-4" />
             {errorLoadingAdmins}
+          </Alert>
+        )}
+
+        {/* Alert para operaciones exitosas */}
+        {changeStateUserResponse?.success === true && !changeStateUserResponse?.errorIds?.length && (
+          <Alert 
+            variant="success" 
+            className="mb-6 flex items-center gap-2"
+            onClose={() => setChangeStateUserResponse(null)}
+          >
+            <CheckCircle className="w-4 h-4" />
+            {changeStateUserResponse.message || "Operación completada exitosamente"}
+          </Alert>
+        )}
+
+        {/* Alert para operaciones parcialmente exitosas */}
+        {changeStateUserResponse?.success === true && changeStateUserResponse?.errorIds && changeStateUserResponse.errorIds.length > 0 && (
+          <Alert 
+            variant="warning" 
+            className="mb-6 flex items-center gap-2"
+            onClose={() => setChangeStateUserResponse(null)}
+          >
+            <AlertCircle className="w-4 h-4" />
+            {`Operación parcialmente completada. ${changeStateUserResponse.errorIds.length} administrador(es) no pudieron ser procesados. ${changeStateUserResponse.message || ""}`}
+          </Alert>
+        )}
+
+        {/* Alert para operaciones fallidas */}
+        {changeStateUserResponse?.success === false && (
+          <Alert 
+            variant="error" 
+            className="mb-6 flex items-center gap-2"
+            onClose={() => setChangeStateUserResponse(null)}
+          >
+            <AlertCircle className="w-4 h-4" />
+            {changeStateUserResponse.message || "Error al procesar la operación"}
           </Alert>
         )}
 
@@ -122,6 +285,7 @@ export default function AdministradoresContent() {
             </div>
             <p className="text-brand-secondary text-sm md:text-base max-w-2xl leading-relaxed">
               Supervisa y administra los accesos y privilegios del equipo administrativo.
+              <br></br>
               {totalItems > 0 && (
                 <span className="font-semibold text-brand-primary ml-1">
                   ({totalItems} {totalItems === 1 ? "administrador" : "administradores"})
@@ -135,16 +299,26 @@ export default function AdministradoresContent() {
                 <div className="flex gap-2 w-full md:w-auto animate-in fade-in slide-in-from-right-4 duration-300">
                     <Button 
                         onClick={handleEnable}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                        disabled={isEnabling || isDisabling}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <CheckCircle className="w-4 h-4" />
+                        {isEnabling ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
                         <span className="inline">Habilitar</span>
                     </Button>
                     <Button
                         onClick={handleDisable}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                        disabled={isEnabling || isDisabling}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <UserX className="w-4 h-4" />
+                        {isDisabling ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <UserX className="w-4 h-4" />
+                        )}
                         <span className="inline">Deshabilitar</span>
                     </Button>
                     <div className="h-8 w-px bg-brand-accent/20 mx-1 hidden md:block"></div>

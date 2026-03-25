@@ -59,3 +59,9 @@ export interface LoginState {
     error?: string;
     success?: boolean;
 }
+
+export interface UserStatusResult {
+    success: boolean;
+    message: string;
+    errorIds?: string[]; // IDs de usuarios que fallaron en la operación
+}

@@ -5,6 +5,7 @@ import {
   PlaceSuggestion,
   searchGooglePlacesAutocomplete,
 } from "../lib/services/googlePlacesService";
+import { useDebounce } from "@/hooks/useDebounce";
 
 function createSessionToken(): string {
   return crypto.randomUUID();
@@ -49,6 +50,9 @@ export default function GoogleAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null); //referencia al componente
   const userTypedRef = useRef(false); // Rastrea si el cambio de query fue por tipeo manual
 
+  // Usar el hook de debounce para el query
+  const debouncedQuery = useDebounce(query, debounceMs);
+
   useEffect(() => { //use effect para detectar clicks fuera del componente
     const handleOutsideClick = (event: MouseEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) {
@@ -61,7 +65,7 @@ export default function GoogleAutocomplete({
   }, []);
 
   useEffect(() => { //use effect para manejar la logica de busqueda de sugerencias
-    const input = query.trim(); //el input se da basado en el query
+    const input = debouncedQuery.trim(); //el input se da basado en el debouncedQuery
 
     if (!userTypedRef.current || input.length < minChars || disabled) { //verificacion de restricciones
       setLoading(false);
@@ -72,7 +76,7 @@ export default function GoogleAutocomplete({
 
     let isCancelled = false;
 
-    const timer = setTimeout(async () => { //timer que permite hacer la busqueda despues de un tiempo definido por debounceMs, evitando hacer demasiadas peticiones a la API mientras el usuario escribe
+    const fetchSuggestions = async () => {
       try {
         setLoading(true);
         setApiError(null);
@@ -104,16 +108,16 @@ export default function GoogleAutocomplete({
           setLoading(false);
         }
       }
-    }, debounceMs);
+    };
 
-    return () => { //cada que se vuelve a llamar el efect limpia el anterior iniciado para solo sugerir el ultimo y evitar condiciones de carrera
+    fetchSuggestions();
+
+    return () => { //limpieza para evitar condiciones de carrera
       isCancelled = true;
-      clearTimeout(timer);
     };
   }, [
-    query,
+    debouncedQuery,
     apiKey,
-    debounceMs,
     minChars,
     disabled,
     sessionToken,
