@@ -3,6 +3,7 @@
 import { CredentialData, PersonalData, RegisterResponse, Rol } from "@/lib/types/auth";
 import { register } from "@/services/auth/registrationService";
 import { validatePasswordRule } from "@/lib/validations/auth";
+import { signIn } from "@/models/authModel";
 import { validateProfileFields } from "@/lib/validations/profile";
 
 // ─── Validación de entrada ─────────────────────────────────────────
@@ -61,7 +62,17 @@ export async function registerUser(
 
   // 2. Delegar al servicio de registro
   try {
-    return await register(credentialData, personalData, Rol.CLIENTE);
+    const response = await register(credentialData, personalData, Rol.CLIENTE);
+
+    if (response.success) {
+      // Iniciar sesión automáticamente para establecer las cookies
+      const sessionData = await signIn(credentialData.correo, credentialData.contrasena);
+      if (!sessionData) {
+        console.error("Auto-login falló después del registro de:", credentialData.correo);
+      }
+    }
+
+    return response;
   } catch (error: unknown) {
     console.error("Error inesperado en registerUser:", error);
     const errorMessage =

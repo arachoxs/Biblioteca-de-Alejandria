@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -10,11 +11,21 @@ import { CredentialData, PersonalData, Genero } from "@/lib/types/auth";
 import { registerUser } from "./actions";
 
 export default function RegistroForm() {
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [success, setSuccess] = useState(false);
     const [formattedAddress, setFormattedAddress] = useState("");
     const [placeId, setPlaceId] = useState("");
+
+    useEffect(() => {
+        if (success) {
+            const timer = setTimeout(() => {
+                router.push("/");
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [success, router]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -108,18 +119,20 @@ export default function RegistroForm() {
                         required
                         error={errors.correo}
                     />
-                    <Input
-                        id="contrasena"
-                        name="contrasena"
-                        label="Contraseña"
-                        type="password"
-                        placeholder="••••••••"
-                        required
-                        error={errors.contrasena}
-                    />
-                    <span className="text-xs text-brand-accent font-light mt-1 block">
-                        Mínimo 8 caracteres.
-                    </span>
+                    <div>
+                        <Input
+                            id="contrasena"
+                            name="contrasena"
+                            label="Contraseña"
+                            type="password"
+                            placeholder="••••••••"
+                            required
+                            error={errors.contrasena}
+                        />
+                        <span className="text-xs text-brand-accent font-light mt-1 block">
+                            Mínimo 8 caracteres.
+                        </span>
+                    </div>
                     <Input
                         id="confirmar_contrasena"
                         name="confirmar_contrasena"
