@@ -8,11 +8,11 @@ export const metadata = {
 
 export default function Registro() {
     return (
-        <div className="min-h-screen md:max-h-screen bg-brand-bg flex w-full">
-            <div className="w-full h-screen flex lg:flex-row flex-col mx-auto grainy-glass">
+        <div className="bg-brand-bg flex w-full">
+            <div className="w-full min-h-screen lg:max-h-screen flex lg:flex-row flex-col mx-auto grainy-glass">
 
                 {/* ── Banner lateral ── */}
-                <header className="text-center flex flex-1 rounded-b-2xl lg:rounded-r-2xl flex-col items-center justify-center px-10 py-12 relative overflow-hidden">
+                <header className="text-center flex flex-1 rounded-b-2xl lg:rounded-r-2xl lg:rounded-bl-none flex-col items-center justify-center px-10 py-12 relative overflow-hidden">
                     {/* Fondo desenfocado */}
                     <div className="absolute h-full inset-0 bg-cover bg-center bg-[url(/libros_banner.jpeg)] blur-sm scale-110" />
                     {/* Overlay */}
@@ -39,7 +39,7 @@ export default function Registro() {
                 </header>
 
                 {/* ── Formulario ── */}
-                <main className="flex-2 px-4 md:px-10 lg:px-30 md:my-auto py-10 lg:overflow-y-scroll">
+                <main className="flex-2 px-4 md:px-10 lg:px-30 bg-white/50 py-10 lg:h-full lg:overflow-hidden">
                     <RegistroForm />
                 </main>
 

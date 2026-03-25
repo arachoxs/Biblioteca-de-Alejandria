@@ -73,7 +73,7 @@ export default function RegistroForm() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-10 max-h-full w-full relative">
+        <form onSubmit={handleSubmit} className="space-y-10 h-full flex flex-col justify-center w-full lg:overflow-y-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative">
 
             {/* Mensajes de estado globales */}
             {errors.form && (
