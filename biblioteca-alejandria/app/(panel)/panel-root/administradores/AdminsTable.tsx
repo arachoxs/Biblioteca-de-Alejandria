@@ -10,7 +10,7 @@ const adminColumns: Column<AdminUserFromView>[] = [
   {
     header: "Nombre",
     render: (item) => {
-      const nombreCompleto = `${item.nombres || ""} ${item.apellidos || ""}`.trim() || "Sin nombre";
+      const nombreCompleto = `${item.nombre_completo || "sin nombre"}`;
       const iniciales = nombreCompleto
         .split(" ")
         .map((n) => n[0])

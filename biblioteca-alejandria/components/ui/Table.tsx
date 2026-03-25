@@ -212,7 +212,7 @@ export default function Table<T>({
                 <button
                   key={page}
                   onClick={() => pagination.onPageChange(page)}
-                  className={`min-w-[2rem] h-8 px-2 rounded-lg text-xs font-semibold transition-all ${
+                  className={`min-w-8 h-8 px-2 rounded-lg text-xs font-semibold transition-all ${
                     pagination.currentPage === page
                       ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20"
                       : "bg-transparent text-brand-secondary hover:bg-brand-bg hover:text-brand-text"

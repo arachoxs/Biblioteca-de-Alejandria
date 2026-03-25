@@ -54,6 +54,15 @@ export function validateProfileFields(
     }
   }
 
+  // Validar formato del DNI si está presente
+  if (!errors.dni && payload.dni) {
+    const dniStr = payload.dni.toString().trim();
+    const dniRegex = /^[A-Za-z0-9]{5,20}$/;
+    if (dniStr.length > 0 && !dniRegex.test(dniStr)) {
+      errors.dni = "El documento debe tener entre 5 y 20 caracteres alfanuméricos.";
+    }
+  }
+
   // Validar fecha de nacimiento
   if (!errors.fecha_nacimiento) {
     const fechaSeleccionada = new Date(payload.fecha_nacimiento);
