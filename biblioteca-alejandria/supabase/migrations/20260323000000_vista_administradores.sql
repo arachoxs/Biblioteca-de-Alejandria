@@ -26,7 +26,7 @@ SELECT
     -- Extraemos el rol del JSON
     (u.raw_app_meta_data->>'role') AS rol,
     -- Fusionamos y eliminamos las columnas individuales
-    concat_ws(' ', p.nombres, p.apellidos) AS nombre_completo,
+    NULLIF(concat_ws(' ', p.nombres, p.apellidos), '') AS nombre_completo,
     u.created_at
 FROM auth.users u
 LEFT JOIN public.usuario p ON u.id = p.id
