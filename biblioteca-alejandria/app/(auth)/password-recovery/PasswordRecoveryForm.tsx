@@ -250,7 +250,7 @@ export default function PasswordRecoveryForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-8">
+    <div className="w-full md:px-10 space-y-8">
 
       {/* Encabezado */}
       <div className="text-center space-y-3">
