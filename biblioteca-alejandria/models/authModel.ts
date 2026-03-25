@@ -3,6 +3,8 @@ import { AuthActionResult, Rol, UserStatusResult } from "@/lib/types/auth";
 import { redirect } from "next/navigation";
 import type { AuthResponse } from "@supabase/supabase-js";
 
+import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
+
 // ─── Tipos internos ────────────────────────────────────────────────
 
 /** Respuesta interna de operaciones de registro en Supabase Auth. */
@@ -432,8 +434,8 @@ export async function searchAdminUsers(
 ): Promise<AdminUserFromView[]> {
   const adminClient = createAdminClient();
 
-  // Normalizamos el término de búsqueda para hacer una búsqueda case-insensitive
-  const normalizedSearch = `%${searchTerm.trim()}%`;
+  const cleanInput = escapeLikePattern(searchTerm);
+  const normalizedSearch = formatILIKE(cleanInput);
 
   const { data, error } = await adminClient
     .from("vista_administradores")
