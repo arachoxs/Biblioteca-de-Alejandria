@@ -21,6 +21,7 @@ import { Rol } from "@/lib/types/auth";
 import { globalSignOutAction } from "@/app/actions/authActions";
 import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 import MobileMenu from "@/components/MobileMenu";
+import { getBrandHref } from "@/lib/utils/navbar";
 
 // ── Tipos ───────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ export default function NavbarClient({
   const [changePwdOpen, setChangePwdOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const firstMenuItemRef = useRef<HTMLButtonElement | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -95,14 +97,7 @@ export default function NavbarClient({
   }, [menuOpen]);
 
   // ── Resolve brand link based on role ──────────────────────────────
-  const brandHref =
-    role === Rol.ROOT
-      ? "/panel-root"
-      : role === Rol.ADMINISTRADOR
-        ? profileComplete
-          ? "/panel-admin"
-          : "/completar-perfil"
-        : "/";
+  const brandHref = getBrandHref(role, profileComplete);
 
   // ── Search handler ────────────────────────────────────────────────
   function handleSearch(e: React.FormEvent) {
@@ -298,6 +293,7 @@ export default function NavbarClient({
 
       {/* ── Hamburger button (mobile only) ────────────────────────── */}
       <button
+        ref={mobileMenuTriggerRef}
         type="button"
         onClick={() => setMobileMenuOpen(true)}
         className="flex md:hidden items-center p-2 rounded-lg text-brand-accent hover:bg-brand-bg/10 transition-colors cursor-pointer"
@@ -311,6 +307,7 @@ export default function NavbarClient({
       <MobileMenu
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
+        triggerRef={mobileMenuTriggerRef}
         onOpenChangePwd={() => setChangePwdOpen(true)}
         role={role}
         email={email}

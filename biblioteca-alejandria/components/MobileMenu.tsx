@@ -15,6 +15,7 @@ import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Rol } from "@/lib/types/auth";
 import { globalSignOutAction } from "@/app/actions/authActions";
+import { getBrandHref } from "@/lib/utils/navbar";
 
 // ── Tipos ───────────────────────────────────────────────────────────
 
@@ -23,6 +24,7 @@ type NavbarRole = Rol | "VISITANTE";
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
   onOpenChangePwd: () => void;
   role: NavbarRole;
   email: string | null;
@@ -35,6 +37,7 @@ interface MobileMenuProps {
 export default function MobileMenu({
   isOpen,
   onClose,
+  triggerRef,
   onOpenChangePwd,
   role,
   email,
@@ -47,9 +50,16 @@ export default function MobileMenu({
 
   const isVisitor = role === "VISITANTE";
 
+  const handleClose = () => {
+    onClose();
+    if (triggerRef?.current) {
+      setTimeout(() => triggerRef.current?.focus(), 0);
+    }
+  };
+
   // ── Auto-close on route change ──────────────────────────────────
   useEffect(() => {
-    onClose();
+    handleClose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, searchParams]);
 
@@ -68,23 +78,16 @@ export default function MobileMenu({
   useEffect(() => {
     if (!isOpen) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 
   // ── Resolve brand link ──────────────────────────────────────────
-  const brandHref =
-    role === Rol.ROOT
-      ? "/panel-root"
-      : role === Rol.ADMINISTRADOR
-        ? profileComplete
-          ? "/panel-admin"
-          : "/completar-perfil"
-        : "/";
+  const brandHref = getBrandHref(role, profileComplete);
 
   return (
     <div
@@ -96,7 +99,7 @@ export default function MobileMenu({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-brand-text/60 backdrop-blur-sm mobile-backdrop-in"
-        onClick={onClose}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
@@ -128,7 +131,7 @@ export default function MobileMenu({
           )}
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 -mr-2 rounded-lg text-brand-secondary hover:text-brand-text hover:bg-brand-accent/10 transition-all cursor-pointer"
             aria-label="Cerrar menú"
           >
@@ -144,7 +147,7 @@ export default function MobileMenu({
               <Link
                 href="/login"
                 className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg transition-all group"
-                onClick={onClose}
+                onClick={handleClose}
               >
                 <LogIn className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
                 Iniciar sesión
@@ -152,7 +155,7 @@ export default function MobileMenu({
               <Link
                 href="/register"
                 className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg transition-all group"
-                onClick={onClose}
+                onClick={handleClose}
               >
                 <UserPlus className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
                 Registrarse
@@ -167,7 +170,7 @@ export default function MobileMenu({
                 <Link
                   href="/panel-root"
                   className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg transition-all group"
-                  onClick={onClose}
+                  onClick={handleClose}
                 >
                   <Crown className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
                   Panel Root
@@ -178,7 +181,7 @@ export default function MobileMenu({
                 <Link
                   href="/panel-admin"
                   className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg transition-all group"
-                  onClick={onClose}
+                  onClick={handleClose}
                 >
                   <ShieldCheck className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
                   Panel Administración
@@ -193,7 +196,7 @@ export default function MobileMenu({
                       : "/perfil"
                   }
                   className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg transition-all group"
-                  onClick={onClose}
+                  onClick={handleClose}
                 >
                   <UserCircle className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
                   {role === Rol.ADMINISTRADOR && !profileComplete
@@ -206,7 +209,7 @@ export default function MobileMenu({
                 <button
                   onClick={() => {
                     onOpenChangePwd();
-                    onClose();
+                    handleClose();
                   }}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg transition-all text-left cursor-pointer group"
                 >
@@ -234,7 +237,7 @@ export default function MobileMenu({
           <Link
             href={brandHref}
             className="text-xs text-brand-accent hover:text-brand-text transition-colors"
-            onClick={onClose}
+            onClick={handleClose}
           >
             Biblioteca de Alejandría
           </Link>
