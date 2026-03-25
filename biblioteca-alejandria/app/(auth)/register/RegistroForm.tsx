@@ -73,7 +73,7 @@ export default function RegistroForm() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-10 relative">
+        <form onSubmit={handleSubmit} className="space-y-10 max-h-full w-full relative">
 
             {/* Mensajes de estado globales */}
             {errors.form && (
@@ -145,21 +145,23 @@ export default function RegistroForm() {
                 </div>
             </fieldset>
 
-            <Button type="submit" className="flex flex-row items-center justify-center gap-5" disabled={loading}>
-                {loading ? (
-                    <>
-                        <svg className="text-brand-text size-5 animate-spin" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" /></svg>
-                        Procesando
-                    </>
-                ) : "Crear cuenta"}
-            </Button>
+            <div className="flex gap-5 flex-col">
+                <Button type="submit" className="flex flex-row items-center justify-center gap-5" disabled={loading}>
+                    {loading ? (
+                        <>
+                            <svg className="text-brand-text size-5 animate-spin" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" /></svg>
+                            Procesando
+                        </>
+                    ) : "Crear cuenta"}
+                </Button>
 
-            <p className="text-center text-sm text-brand-secondary font-light">
-                ¿Ya tienes cuenta?{" "}
-                <Link href="/login" className="text-brand-primary font-semibold hover:underline underline-offset-2 transition-all">
-                    Inicia sesión aquí
-                </Link>
-            </p>
+                <p className="text-center text-sm text-brand-secondary font-light">
+                    ¿Ya tienes cuenta?{" "}
+                    <Link href="/login" className="text-brand-primary font-semibold hover:underline underline-offset-2 transition-all">
+                        Inicia sesión aquí
+                    </Link>
+                </p>
+            </div>
 
         </form>
     );

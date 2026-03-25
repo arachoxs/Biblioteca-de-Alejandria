@@ -46,7 +46,7 @@ export default function CodeInput({ length = 6, value, onChange }: CodeInputProp
   };
 
   return (
-    <div className="flex gap-2.5 justify-center mb-6">
+    <div className="flex gap-2.5 flex-wrap justify-center mb-6">
       {digits.map((digit, index) => (
         <input
           key={index}
@@ -59,7 +59,7 @@ export default function CodeInput({ length = 6, value, onChange }: CodeInputProp
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={index === 0 ? handlePaste : undefined}
-          className="w-12 h-14 text-center text-2xl font-bold text-brand-text
+          className="w-12 h-14 text-center text-2xl  font-bold text-brand-text
             border border-brand-accent/35 rounded bg-brand-bg outline-none
             transition-all duration-200
             focus:border-brand-primary focus:shadow-[0_0_0_3px_rgba(73,17,28,0.08)] font-display"

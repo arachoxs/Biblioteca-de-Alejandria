@@ -82,7 +82,7 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-8">
+    <div className="min-w-full mx-auto space-y-8">
 
       {/* Encabezado */}
       <div className="text-center space-y-3">
