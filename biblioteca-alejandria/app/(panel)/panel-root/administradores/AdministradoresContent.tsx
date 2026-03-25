@@ -10,7 +10,7 @@ import type { AdminUserFromView } from "@/lib/types/profile";
 import CreateAdminModal from "./CreateAdminModal";
 import AdminsTable from "./AdminsTable";
 import { useDebounce } from "@/hooks/useDebounce";
-import { UserStatusResult} from "@/lib/types/auth";
+import type { UserStatusResult } from "@/lib/types/auth";
 
 export default function AdministradoresContent() {
   const [searchTerm, setSearchTerm] = useState("");
