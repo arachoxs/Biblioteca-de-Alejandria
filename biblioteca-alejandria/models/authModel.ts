@@ -1,5 +1,5 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { AuthActionResult, Rol, UserStatusResult } from "@/lib/types/auth";
+import { type AuthActionResult, Rol, type UserStatusResult } from "@/lib/types/auth";
 import { redirect } from "next/navigation";
 import type { AuthResponse } from "@supabase/supabase-js";
 
