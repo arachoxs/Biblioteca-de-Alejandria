@@ -28,7 +28,6 @@ export default function AdministradoresContent() {
   // Estado para las acciones de habilitar/deshabilitar
   const [isEnabling, setIsEnabling] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
-
   const [changeStateUserResponse, setChangeStateUserResponse] = useState<UserStatusResult | null>(null);
   
   const itemsPerPage = 7;
@@ -60,6 +59,28 @@ export default function AdministradoresContent() {
       setIsLoadingAdmins(false);
     }
   };
+
+  const refreshAdmins = async () => {
+  if (!debouncedSearchTerm.trim()) {
+    // Si no hay búsqueda, carga normal
+    await loadAdmins(currentPage);
+  } else {
+    // Si hay búsqueda, repite la búsqueda para actualizar los datos
+    setIsLoadingAdmins(true);
+    try {
+      const response = await searchAdminsByTerm(debouncedSearchTerm);
+      if (response.success && response.data) {
+        setAdminsData(response.data);
+        setTotalPages(1);
+        setTotalItems(response.data.length);
+      }
+    } catch (error) {
+      console.error("Error al refrescar búsqueda:", error);
+    } finally {
+      setIsLoadingAdmins(false);
+    }
+  }
+};
 
   // Cargar o buscar administradores cuando cambie la página o el término de búsqueda
   useEffect(() => {
@@ -124,7 +145,7 @@ export default function AdministradoresContent() {
 
       if (result.success) {
         // Recargar la lista de administradores
-        await loadAdmins(currentPage);
+        await refreshAdmins();
         
         // Si hay IDs que fallaron, mantenerlos seleccionados
         if (result.errorIds && result.errorIds.length > 0) {
@@ -165,7 +186,7 @@ export default function AdministradoresContent() {
       
       if (result.success) {
         // Recargar la lista de administradores
-        await loadAdmins(currentPage);
+        await refreshAdmins();
         
         // Si hay IDs que fallaron, mantenerlos seleccionados
         if (result.errorIds && result.errorIds.length > 0) {

@@ -84,6 +84,14 @@ export async function searchAdminsByTerm(
 export async function deshabilitarAdministradores(
     userIds: string | string[]
 ): Promise<UserStatusResult> {
+    const ids = Array.isArray(userIds) ? userIds : [userIds];
+
+    if (ids.length === 0) {
+        return {
+            success: false,
+            message: "No se proporcionaron IDs de usuarios para deshabilitar.",
+        };
+    }
     // Verificar que el usuario actual sea ROOT
     const isRoot = await isCurrentUserRoot();
     
@@ -96,7 +104,6 @@ export async function deshabilitarAdministradores(
     }
 
     // Si es ROOT, proceder con la deshabilitación
-    const ids = Array.isArray(userIds) ? userIds : [userIds];
     return await deshabilitarUsuario(ids);
 }
 
@@ -111,6 +118,14 @@ export async function deshabilitarAdministradores(
 export async function habilitarAdministradores(
     userIds: string | string[]
 ): Promise<UserStatusResult> {
+    const ids = Array.isArray(userIds) ? userIds : [userIds];
+
+    if (ids.length === 0) {
+        return {
+            success: false,
+            message: "No se proporcionaron IDs de usuarios para habilitar.",
+        };
+    }
     // Verificar que el usuario actual sea ROOT
     const isRoot = await isCurrentUserRoot();
     
@@ -123,6 +138,5 @@ export async function habilitarAdministradores(
     }
 
     // Si es ROOT, proceder con la habilitación
-    const ids = Array.isArray(userIds) ? userIds : [userIds];
     return await habilitarUsuario(ids);
 }
