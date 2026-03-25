@@ -54,14 +54,18 @@ export default function MobileMenu({
     onClose();
     if (triggerRef?.current) {
       setTimeout(() => triggerRef.current?.focus(), 0);
-    }
-  };
+  const isFirstRenderRef = useRef(true);
+
+  const isVisitor = role === "VISITANTE";
 
   // ── Auto-close on route change ──────────────────────────────────
   useEffect(() => {
-    handleClose();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, searchParams]);
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+    onClose();
+  }, [pathname, searchParams, onClose]);
 
   // ── Lock body scroll ────────────────────────────────────────────
   useEffect(() => {
