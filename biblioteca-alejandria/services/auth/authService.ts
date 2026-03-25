@@ -12,10 +12,10 @@ export async function changePassword(
   return updatePasswordModel(currentPassword, newPassword);
 }
 
-export async function deshabilitarUsuario(userId: string[]): Promise<UserStatusResult> {
-  return deactivateUsers(userId);
+export async function deshabilitarUsuario(userIds: string | string[]): Promise<UserStatusResult> {
+  return deactivateUsers(userIds);
 }
 
-export async function habilitarUsuario(userId: string[]): Promise<UserStatusResult> {
-  return activateUsers(userId);
+export async function habilitarUsuario(userIds: string | string[]): Promise<UserStatusResult> {
+  return activateUsers(userIds);
 }
