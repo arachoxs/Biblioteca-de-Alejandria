@@ -5,7 +5,6 @@ import { fetchAdminUsers, searchAdmins } from "@/services/admin/adminService";
 import { Rol, type CredentialData, type RegisterResponse, type AuthSignUpResult, type UserStatusResult } from "@/lib/types/auth";
 import type { AdminUsersResponse, AdminSearchResponse } from "@/lib/types/profile";
 import { deshabilitarUsuario, habilitarUsuario } from "@/services/auth/authService";
-import { isCurrentUserRoot , getCurrentUser } from "@/models/authModel";
 
 
 function generateRandomPassword(length: number): string {
