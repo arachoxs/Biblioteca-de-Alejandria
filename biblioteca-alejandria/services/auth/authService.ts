@@ -1,5 +1,5 @@
 import { updatePasswordWithVerification as updatePasswordModel , deactivateUsers, activateUsers } from "@/models/authModel";
-import { AuthActionResult , UserStatusResult } from "@/lib/types/auth";
+import type { AuthActionResult , UserStatusResult } from "@/lib/types/auth";
 
 /**
  * Cambia la contraseña del usuario autenticado.
