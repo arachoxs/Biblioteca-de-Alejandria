@@ -1,4 +1,4 @@
-import { updatePasswordWithVerification as updatePasswordModel , deactivateUsers, activateUsers } from "@/models/authModel";
+import { updatePasswordWithVerification as updatePasswordModel , deactivateUsers, activateUsers, isCurrentUserRoot } from "@/models/authModel";
 import type { AuthActionResult , UserStatusResult } from "@/lib/types/auth";
 
 /**
@@ -12,10 +12,32 @@ export async function changePassword(
   return updatePasswordModel(currentPassword, newPassword);
 }
 
-export async function deshabilitarUsuario(userIds: string | string[]): Promise<UserStatusResult> {
+export async function deshabilitarUsuario(userIds: string[]): Promise<UserStatusResult> {
+    // Si es ROOT, proceder con la habilitación
+  const isRoot = await isCurrentUserRoot();
+    
+  if (!isRoot) {
+      return {
+          success: false,
+          message: "No tienes permisos para realizar esta acción. Solo usuarios ROOT pueden deshabilitar administradores.",
+          errorIds: userIds
+      };
+  }
+
   return deactivateUsers(userIds);
 }
 
-export async function habilitarUsuario(userIds: string | string[]): Promise<UserStatusResult> {
+export async function habilitarUsuario(userIds:string[]): Promise<UserStatusResult> {
+    // Si es ROOT, proceder con la habilitación
+  const isRoot = await isCurrentUserRoot();
+      
+  if (!isRoot) {
+      return {
+          success: false,
+          message: "No tienes permisos para realizar esta acción. Solo usuarios ROOT pueden habilitar administradores.",
+          errorIds: userIds
+      };
+  }
+
   return activateUsers(userIds);
 }

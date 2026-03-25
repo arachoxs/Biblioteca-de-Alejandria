@@ -5,7 +5,7 @@ import { fetchAdminUsers, searchAdmins } from "@/services/admin/adminService";
 import { Rol, type CredentialData, type RegisterResponse, type AuthSignUpResult, type UserStatusResult } from "@/lib/types/auth";
 import type { AdminUsersResponse, AdminSearchResponse } from "@/lib/types/profile";
 import { deshabilitarUsuario, habilitarUsuario } from "@/services/auth/authService";
-import { isCurrentUserRoot } from "@/models/authModel";
+import { isCurrentUserRoot , getCurrentUser } from "@/models/authModel";
 
 
 function generateRandomPassword(length: number): string {
@@ -92,18 +92,7 @@ export async function deshabilitarAdministradores(
             message: "No se proporcionaron IDs de usuarios para deshabilitar.",
         };
     }
-    // Verificar que el usuario actual sea ROOT
-    const isRoot = await isCurrentUserRoot();
-    
-    if (!isRoot) {
-        return {
-            success: false,
-            message: "No tienes permisos para realizar esta acción. Solo usuarios ROOT pueden deshabilitar administradores.",
-            errorIds: Array.isArray(userIds) ? userIds : [userIds],
-        };
-    }
 
-    // Si es ROOT, proceder con la deshabilitación
     return await deshabilitarUsuario(ids);
 }
 
@@ -126,17 +115,6 @@ export async function habilitarAdministradores(
             message: "No se proporcionaron IDs de usuarios para habilitar.",
         };
     }
-    // Verificar que el usuario actual sea ROOT
-    const isRoot = await isCurrentUserRoot();
-    
-    if (!isRoot) {
-        return {
-            success: false,
-            message: "No tienes permisos para realizar esta acción. Solo usuarios ROOT pueden habilitar administradores.",
-            errorIds: Array.isArray(userIds) ? userIds : [userIds],
-        };
-    }
 
-    // Si es ROOT, proceder con la habilitación
     return await habilitarUsuario(ids);
 }
