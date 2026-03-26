@@ -59,6 +59,46 @@ export async function signUp(
 }
 
 /**
+ * Crea un usuario mediante el cliente de administración sin iniciar sesión automáticamente.
+ * Ideal para la creación de administradores desde el panel.
+ */
+export async function adminSignUp(
+  email: string,
+  password: string,
+  username: string | null
+): Promise<AuthSignUpResult> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { username },
+  });
+
+  if (error) {
+    console.error("Error al registrar en Supabase Auth via Admin:", error);
+
+    if (
+      error.message.toLowerCase().includes("already registered") ||
+      error.status === 422
+    ) {
+      return {
+        success: false,
+        errors: { correo: "Este correo electrónico ya está registrado." },
+      };
+    }
+
+    return {
+      success: false,
+      errors: { form: `Error en autenticación: ${error.message}` },
+    };
+  }
+
+  return { success: true, data: { user: data.user, session: null } as any };
+}
+
+/**
  * Asigna un rol distinto a `CLIENTE` en `app_metadata` usando el admin client.
  * Solo ROOT debería invocar esta operación.
  */

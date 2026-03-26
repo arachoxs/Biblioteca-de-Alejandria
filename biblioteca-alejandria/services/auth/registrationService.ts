@@ -1,5 +1,6 @@
 import {
   signUp,
+  adminSignUp,
   setUserRole,
   deleteAuthUser,
   isCurrentUserRoot,
@@ -89,7 +90,9 @@ export async function registerAuthUser(
     }
   }
 
-  const authModelResult = await signUp(credentialData.correo, credentialData.contrasena, username);
+  const authModelResult = rol !== Rol.CLIENTE 
+    ? await adminSignUp(credentialData.correo, credentialData.contrasena, username)
+    : await signUp(credentialData.correo, credentialData.contrasena, username);
 
   if (!authModelResult.success) {
     return {
