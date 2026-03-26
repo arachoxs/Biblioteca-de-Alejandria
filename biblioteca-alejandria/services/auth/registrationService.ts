@@ -21,6 +21,7 @@ import {
 
 
 import { sendEmail } from "@/lib/services/email";
+import { newAdminHtmlTemplate } from "@/lib/templates/email-templates";
 /**
  * Orquesta el flujo completo de registro de usuario:
  *
@@ -34,17 +35,13 @@ import { sendEmail } from "@/lib/services/email";
  * Incluye rollback automático si cualquier paso intermedio falla.
  */
 
+
 export async function notifyNewAdmin(email: string, password: string): Promise<MailSentResponse> {
   try {
     const mailResult = await sendEmail({
       to: email,
       subject: "Credenciales de Administrador - Biblioteca de Alejandría",
-      html: `
-                <h1>Bienvenido al equipo de administración</h1>
-                <p>Se ha creado una cuenta de administrador para usted.</p>
-                <p><strong>Usuario:</strong> ${email}</p>
-                <p><strong>Contraseña temporal:</strong> ${password}</p>
-            `,
+      html: newAdminHtmlTemplate(email, password),
       text: `Bienvenido. Usuario: ${email}, Contraseña: ${password}`
     });
 
