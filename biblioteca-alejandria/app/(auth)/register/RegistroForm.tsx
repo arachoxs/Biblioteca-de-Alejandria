@@ -129,7 +129,7 @@ export default function RegistroForm() {
                             required
                             error={errors.contrasena}
                         />
-                        <span className={`text-xs text-brand-accent font-light mt-1 block ${errors.contrasena ? "opacity-0" : "opacity-100"}`}>
+                        <span className={`text-xs text-brand-accent font-light mt-1 block ${errors.contrasena ? "invisible" : ""}`}>
                             Mínimo 8 caracteres.
                         </span>
                     </div>
