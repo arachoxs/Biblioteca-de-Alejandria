@@ -19,6 +19,11 @@ type SendEmailOptions = {
 };
 
 export const sendEmail = async ({ to, subject, html, text, from }: SendEmailOptions): Promise<MailSentResponse> => {
+  if (!process.env.GMAIL_USER || !process.env.CLAVE_APP_GMAIL) {
+    console.error('Error de configuración: Faltan las variables de entorno GMAIL_USER o CLAVE_APP_GMAIL.');
+    return { success: false, message: "Error al enviar el correo debido a configuración faltante." };
+  }
+
   const mailOptions = {
     from: from || process.env.GMAIL_USER,
     to,

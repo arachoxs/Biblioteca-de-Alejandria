@@ -1,4 +1,18 @@
-export const newAdminHtmlTemplate = (email: string, password: string) => `
+const escapeHtml = (unsafe: string) => {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+export const newAdminHtmlTemplate = (email: string, password: string) => {
+  const safeEmail = escapeHtml(email);
+  const safePassword = escapeHtml(password);
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+  return `
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -59,13 +73,13 @@ export const newAdminHtmlTemplate = (email: string, password: string) => `
                 <tr>
                   <td style="padding-bottom:12px;">
                     <p style="margin:0; font-size:12px; color:#a9927d; text-transform:uppercase; letter-spacing:1px; font-weight:bold;">Correo Electrónico</p>
-                    <p style="margin:4px 0 0; font-size:16px; color:#49111c; font-family: 'Courier New', Courier, monospace;">${email}</p>
+                    <p style="margin:4px 0 0; font-size:16px; color:#49111c; font-family: 'Courier New', Courier, monospace;">${safeEmail}</p>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding-top:12px; border-top:1px dashed #a9927d;">
                     <p style="margin:0; font-size:12px; color:#a9927d; text-transform:uppercase; letter-spacing:1px; font-weight:bold;">Contraseña Temporal</p>
-                    <p style="margin:4px 0 0; font-size:16px; color:#49111c; font-family: 'Courier New', Courier, monospace; font-weight:bold;">${password}</p>
+                    <p style="margin:4px 0 0; font-size:16px; color:#49111c; font-family: 'Courier New', Courier, monospace; font-weight:bold;">${safePassword}</p>
                   </td>
                 </tr>
               </table>
@@ -74,7 +88,7 @@ export const newAdminHtmlTemplate = (email: string, password: string) => `
 
           <tr>
             <td align="center" style="padding:0 40px 36px;">
-              <a href="https://biblioteca-de-alejandria-delta.vercel.app/login" 
+              <a href="${baseUrl}/login" 
                  style="display:inline-block; background-color:#49111c; color:#f2f4f3; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:15px; font-family:Georgia, 'Times New Roman', serif; border:1px solid #a9927d;">
                 Acceder al Panel
               </a>
@@ -116,3 +130,4 @@ export const newAdminHtmlTemplate = (email: string, password: string) => `
   </body>
 </html>
 `;
+};
