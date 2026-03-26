@@ -59,7 +59,7 @@ export async function signUp(
 }
 
 /**
- * Crea un usuario mediante el cliente de administración sin autologgearlo.
+ * Crea un usuario mediante el cliente de administración sin iniciar sesión automáticamente.
  * Ideal para la creación de administradores desde el panel.
  */
 export async function adminSignUp(
