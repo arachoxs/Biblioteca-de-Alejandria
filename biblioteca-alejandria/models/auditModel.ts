@@ -1,6 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type { AuditoriaRow, AuditLogPayload } from "@/lib/types/audit";
-import type { Json } from "@/lib/types/supabase";
 
 // ─── Escritura ─────────────────────────────────────────────────────
 

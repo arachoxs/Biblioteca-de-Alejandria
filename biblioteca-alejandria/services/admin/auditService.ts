@@ -1,5 +1,5 @@
 import { insertAuditLog, getAuditLogs } from "@/models/auditModel";
-import { AccionAdministrador } from "@/lib/types/audit";
+import type { AccionAdministrador } from "@/lib/types/audit";
 import type { AuditoriaResponse } from "@/lib/types/audit";
 import type { Json } from "@/lib/types/supabase";
 

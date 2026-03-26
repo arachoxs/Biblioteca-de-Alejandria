@@ -18,9 +18,9 @@ export interface AuditLogPayload {
 export interface AuditoriaRow {
     id: number;
     fecha: string;
-    accion: string;
+    accion: AccionAdministrador;
     descripcion: string;
-    entidad_afectada: Record<string, unknown>;
+    entidad_afectada: Json;
     id_usuario: string | null;
 }
 
