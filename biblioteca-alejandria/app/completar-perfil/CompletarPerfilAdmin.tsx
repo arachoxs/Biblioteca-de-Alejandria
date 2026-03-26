@@ -7,7 +7,6 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
 import { completarPerfilAction } from "./actions";
-import { validatePasswordRule } from "@/lib/validations/auth";
 
 // ─── Componente ────────────────────────────────────────────────────
 
@@ -28,13 +27,7 @@ export default function CompletarPerfilAdmin() {
         }
     }, [success, router]);
 
-    // Validación en tiempo real de contraseñas
-    const [newPwd, setNewPwd] = useState("");
-    const [confirmPwd, setConfirmPwd] = useState("");
-
-    const passwordMismatch = confirmPwd.length > 0 && newPwd !== confirmPwd;
-    const passwordRuleError = newPwd.length > 0 ? validatePasswordRule(newPwd) : null;
-    const canSubmit = !passwordMismatch && !passwordRuleError && !loading && !success;
+    const canSubmit = !loading && !success;
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -134,12 +127,10 @@ export default function CompletarPerfilAdmin() {
                                     placeholder="••••••••"
                                     required
                                     autoComplete="new-password"
-                                    value={newPwd}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPwd(e.target.value)}
-                                    error={errors.nueva_contrasena || passwordRuleError || undefined}
+                                    error={errors.nueva_contrasena}
                                     disabled={success}
                                 />
-                                <span className="text-xs text-brand-accent font-light mt-1 block">
+                                <span className={`text-xs text-brand-accent font-light mt-1 block ${errors.nueva_contrasena ? "opacity-0" : "opacity-100"}`}>
                                     Mínimo 8 caracteres.
                                 </span>
                             </div>
@@ -151,9 +142,7 @@ export default function CompletarPerfilAdmin() {
                                 placeholder="••••••••"
                                 required
                                 autoComplete="new-password"
-                                value={confirmPwd}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPwd(e.target.value)}
-                                error={errors.confirmar_contrasena || (passwordMismatch ? "Las contraseñas no coinciden." : undefined)}
+                                error={errors.confirmar_contrasena}
                                 disabled={success}
                             />
                         </div>
