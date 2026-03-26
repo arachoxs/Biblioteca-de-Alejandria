@@ -54,9 +54,10 @@ export default function MobileMenu({
     onClose();
     if (triggerRef?.current) {
       setTimeout(() => triggerRef.current?.focus(), 0);
-  const isFirstRenderRef = useRef(true);
+    }
+  };
 
-  const isVisitor = role === "VISITANTE";
+  const isFirstRenderRef = useRef(true);
 
   // ── Auto-close on route change ──────────────────────────────────
   useEffect(() => {
