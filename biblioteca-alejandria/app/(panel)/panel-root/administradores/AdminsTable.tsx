@@ -1,7 +1,7 @@
 "use client";
 
 import Table from "@/components/ui/Table";
-import { Search, UserX, Loader2 } from "lucide-react";
+import { Search, UserX, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import type { AdminUserFromView } from "@/lib/types/profile";
 import type { Column } from "@/components/ui/Table";
 
@@ -48,6 +48,34 @@ const adminColumns: Column<AdminUserFromView>[] = [
       </span>
     ),
     className: "hidden md:table-cell",
+  },
+  {
+    header: "Estado",
+    render: (item) => {
+      const isEnabled = item.habilitado ?? true;
+      return (
+        <span 
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+            isEnabled 
+              ? "bg-green-50 text-green-700 border-green-200" 
+              : "bg-red-50 text-red-700 border-red-200"
+          }`}
+        >
+          {isEnabled ? (
+            <>
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Habilitado
+            </>
+          ) : (
+            <>
+              <XCircle className="w-3.5 h-3.5" />
+              Inhabilitado
+            </>
+          )}
+        </span>
+      );
+    },
+    className: "hidden lg:table-cell",
   },
   {
     header: "Fecha de creación",
