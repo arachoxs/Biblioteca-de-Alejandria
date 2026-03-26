@@ -13,12 +13,15 @@ import {
   UserCircle,
   LogIn,
   UserPlus,
+  Menu,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Rol } from "@/lib/types/auth";
 import { globalSignOutAction } from "@/app/actions/authActions";
 import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
+import MobileMenu from "@/components/MobileMenu";
+import { getBrandHref } from "@/lib/utils/navbar";
 
 // ── Tipos ───────────────────────────────────────────────────────────
 
@@ -40,12 +43,17 @@ export default function NavbarClient({
   profileComplete,
 }: NavbarClientProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [changePwdOpen, setChangePwdOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const firstMenuItemRef = useRef<HTMLButtonElement | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const handleMobileMenuClose = useCallback(() => setMobileMenuOpen(false), []);
+  const handleOpenChangePwd = useCallback(() => setChangePwdOpen(true), []);
 
   const [searchValue, setSearchValue] = useState(
     searchParams.get("q") ?? ""
@@ -58,7 +66,7 @@ export default function NavbarClient({
 
   const isVisitor = role === "VISITANTE";
 
-  // ── Close menu on outside click ───────────────────────────────────
+  // ── Close desktop menu on outside click ───────────────────────────
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -72,7 +80,7 @@ export default function NavbarClient({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ── Close menu on Escape ──────────────────────────────────────────
+  // ── Close desktop menu on Escape ──────────────────────────────────
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -92,14 +100,7 @@ export default function NavbarClient({
   }, [menuOpen]);
 
   // ── Resolve brand link based on role ──────────────────────────────
-  const brandHref =
-    role === Rol.ROOT
-      ? "/panel-root"
-      : role === Rol.ADMINISTRADOR
-        ? profileComplete
-          ? "/panel-admin"
-          : "/completar-perfil"
-        : "/";
+  const brandHref = getBrandHref(role, profileComplete);
 
   // ── Search handler ────────────────────────────────────────────────
   function handleSearch(e: React.FormEvent) {
@@ -119,13 +120,13 @@ export default function NavbarClient({
           <button
             ref={firstMenuItemRef}
             role="menuitem"
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-secondary hover:text-brand-text hover:bg-brand-accent/10 rounded-md transition-colors text-left cursor-pointer"
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg rounded-lg transition-all text-left cursor-pointer group"
             onClick={() => {
               setChangePwdOpen(true);
               setMenuOpen(false);
             }}
           >
-            <KeyRound className="w-4 h-4 text-brand-accent" />
+            <KeyRound className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
             Cambiar contraseña
           </button>
         )}
@@ -135,10 +136,10 @@ export default function NavbarClient({
             href={role === Rol.ADMINISTRADOR && !profileComplete ? "/completar-perfil" : "/perfil"}
             ref={firstMenuItemRef as React.Ref<HTMLAnchorElement>}
             role="menuitem"
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-secondary hover:text-brand-text hover:bg-brand-accent/10 rounded-md transition-colors text-left cursor-pointer"
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg rounded-lg transition-all text-left cursor-pointer group"
             onClick={() => setMenuOpen(false)}
           >
-            <UserCircle className="w-4 h-4 text-brand-accent" />
+            <UserCircle className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
             {role === Rol.ADMINISTRADOR && !profileComplete ? "Completar perfil" : "Ver perfil"}
           </Link>
         )}
@@ -146,9 +147,9 @@ export default function NavbarClient({
         <button
           role="menuitem"
           onClick={() => globalSignOutAction()}
-          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-primary hover:bg-brand-primary/10 rounded-md transition-colors text-left cursor-pointer"
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-brand-primary hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-all text-left cursor-pointer group"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-5 h-5 text-brand-primary/90 group-hover:text-brand-primary transition-colors" />
           Cerrar sesión
         </button>
       </>
@@ -175,9 +176,9 @@ export default function NavbarClient({
         </span>
       </Link>
 
-      {/* ── Center: Search (oculto si el admin no ha completado su perfil) ── */}
+      {/* ── Center: Search (hidden if admin hasn't completed profile) ── */}
       {!(role === Rol.ADMINISTRADOR && !profileComplete) && (
-        <div className="flex flex-1 justify-center px-1 sm:px-4">
+        <div className="flex flex-1 justify-center px-2 sm:px-4">
           <form onSubmit={handleSearch} className="relative w-full max-w-xl">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-accent/60 pointer-events-none" />
             <input
@@ -192,13 +193,13 @@ export default function NavbarClient({
         </div>
       )}
 
-      {/* ── Right section ─────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
+      {/* ── Right section (desktop) ────────────────────────────────── */}
+      <div className="hidden md:flex items-center gap-3">
         {/* Panel Buttons — role-specific */}
         {role === Rol.ROOT && (
           <Link
             href="/panel-root"
-            className="hidden md:flex items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition-colors"
           >
             <Crown className="w-4 h-4" />
             Panel Root
@@ -208,14 +209,14 @@ export default function NavbarClient({
         {role === Rol.ADMINISTRADOR && profileComplete && (
           <Link
             href="/panel-admin"
-            className="hidden md:flex items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition-colors"
           >
             <ShieldCheck className="w-4 h-4" />
             Panel Administración
           </Link>
         )}
 
-        {/* Role Badge — hidden on mobile */}
+        {/* Role Badge */}
         {roleBadge && (
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-brand-accent/15 rounded-full border border-brand-accent/20">
             <div className="w-2.5 h-2.5 rounded-full bg-brand-primary ring-2 ring-brand-primary/30" />
@@ -225,7 +226,7 @@ export default function NavbarClient({
           </div>
         )}
 
-        {/* ── Visitor: sign in button ─────────────────────────────── */}
+        {/* ── Visitor: sign in buttons ────────────────────────────── */}
         {isVisitor && (
           <div className="flex items-center gap-2">
             <Link
@@ -233,14 +234,14 @@ export default function NavbarClient({
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-secondary hover:bg-brand-secondary/90 rounded-lg shadow-sm transition-colors cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Registrarse</span>
+              Registrarse
             </Link>
             <Link
               href="/login"
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-primary hover:bg-brand-primary/90 rounded-lg shadow-sm transition-colors cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
-              <span className="hidden sm:inline">Iniciar sesión</span>
+              Iniciar sesión
             </Link>
           </div>
         )}
@@ -274,11 +275,11 @@ export default function NavbarClient({
                 className="absolute right-0 mt-2 w-56 rounded-xl bg-white border border-brand-accent/20 shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
               >
                 {/* Header */}
-                <div className="px-4 py-3 bg-brand-bg/50 border-b border-brand-accent/10">
-                  <p className="text-sm font-semibold text-brand-text truncate">
+                <div className="px-4 py-3 bg-brand-bg border-b border-brand-accent/20">
+                  <p className="text-sm font-medium text-brand-text truncate">
                     {email}
                   </p>
-                  <p className="text-xs text-brand-secondary">
+                  <p className="text-xs text-brand-secondary font-medium mt-0.5">
                     {roleBadge}
                   </p>
                 </div>
@@ -293,7 +294,31 @@ export default function NavbarClient({
         )}
       </div>
 
-      {/* ── Modo universal de Cambiar Contraseña ── */}
+      {/* ── Hamburger button (mobile only) ────────────────────────── */}
+      <button
+        ref={mobileMenuTriggerRef}
+        type="button"
+        onClick={() => setMobileMenuOpen(true)}
+        className="flex md:hidden items-center p-2 rounded-lg text-brand-accent hover:bg-brand-bg/10 transition-colors cursor-pointer"
+        aria-label="Abrir menú de navegación"
+        aria-expanded={mobileMenuOpen}
+      >
+        <Menu className="w-6 h-6" />
+      </button>
+
+      {/* ── Mobile Menu Drawer ────────────────────────────────────── */}
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        onClose={handleMobileMenuClose}
+        triggerRef={mobileMenuTriggerRef}
+        onOpenChangePwd={handleOpenChangePwd}
+        role={role}
+        email={email}
+        roleBadge={roleBadge}
+        profileComplete={profileComplete}
+      />
+
+      {/* ── Cambiar Contraseña Modal ─────────────────────────────── */}
       <ChangePasswordModal 
         isOpen={changePwdOpen} 
         onClose={() => setChangePwdOpen(false)} 
