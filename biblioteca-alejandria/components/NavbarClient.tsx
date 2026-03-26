@@ -15,7 +15,7 @@ import {
   UserPlus,
   Menu,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Rol } from "@/lib/types/auth";
 import { globalSignOutAction } from "@/app/actions/authActions";
@@ -51,6 +51,9 @@ export default function NavbarClient({
   const firstMenuItemRef = useRef<HTMLButtonElement | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const handleMobileMenuClose = useCallback(() => setMobileMenuOpen(false), []);
+  const handleOpenChangePwd = useCallback(() => setChangePwdOpen(true), []);
 
   const [searchValue, setSearchValue] = useState(
     searchParams.get("q") ?? ""
@@ -306,9 +309,9 @@ export default function NavbarClient({
       {/* ── Mobile Menu Drawer ────────────────────────────────────── */}
       <MobileMenu
         isOpen={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
+        onClose={handleMobileMenuClose}
         triggerRef={mobileMenuTriggerRef}
-        onOpenChangePwd={() => setChangePwdOpen(true)}
+        onOpenChangePwd={handleOpenChangePwd}
         role={role}
         email={email}
         roleBadge={roleBadge}

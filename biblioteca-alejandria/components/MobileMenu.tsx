@@ -57,15 +57,19 @@ export default function MobileMenu({
     }
   };
 
-  const isFirstRenderRef = useRef(true);
+  const prevPathnameRef = useRef(pathname);
+  const prevSearchParamsRef = useRef(searchParams);
 
   // ── Auto-close on route change ──────────────────────────────────
   useEffect(() => {
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      return;
+    if (
+      prevPathnameRef.current !== pathname ||
+      prevSearchParamsRef.current !== searchParams
+    ) {
+      prevPathnameRef.current = pathname;
+      prevSearchParamsRef.current = searchParams;
+      onClose();
     }
-    onClose();
   }, [pathname, searchParams, onClose]);
 
   // ── Lock body scroll ────────────────────────────────────────────
