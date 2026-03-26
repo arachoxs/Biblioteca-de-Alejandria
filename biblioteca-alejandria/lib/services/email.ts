@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { MailSentResponse } from '../types/auth';
+import type { MailSentResponse } from '../types/auth';
 
 
 const transporterGmail = nodemailer.createTransport({
@@ -29,8 +29,10 @@ export const sendEmail = async ({ to, subject, html, text, from }: SendEmailOpti
 
   try {
     const info = await transporterGmail.sendMail(mailOptions);
-    console.log('Message sent: %s', info);
-    return { success: true, message: info.response };
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('Message sent:', info.messageId ?? info.response);
+    }
+    return { success: true, message: info.messageId || info.response || 'Correo enviado correctamente.' };
   } catch (error) {
     console.error('Error sending email:', error);
     return { success: false, message: "Error al enviar el correo." };
