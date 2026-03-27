@@ -52,7 +52,18 @@ const adminColumns: Column<AdminUserFromView>[] = [
   {
     header: "Estado",
     render: (item) => {
-      const isEnabled = item.habilitado ?? true;
+      // Manejar explícitamente el caso null/undefined para evitar marcar como habilitado por defecto
+      if (item.habilitado == null) {
+        return (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-gray-50 text-gray-700 border-gray-200"
+          >
+            Desconocido
+          </span>
+        );
+      }
+
+      const isEnabled = item.habilitado === true;
       return (
         <span 
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
