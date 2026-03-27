@@ -98,6 +98,7 @@ export default function PersonalDataFields({
                     label="Fecha de nacimiento"
                     type="date"
                     required
+                    disabled={isDisabled("fecha_nacimiento")}
                     defaultValue={defaultValues.fecha_nacimiento}
                     error={errors.fecha_nacimiento}
                 />
