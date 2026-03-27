@@ -103,16 +103,9 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                     {/* Datos personales — componente reutilizable */}
                     <PersonalDataFields
                         errors={errors}
-                        disabledFields={["dni"]}
+                        disabledFields={["dni", "fecha_nacimiento"]}
                         defaultValues={{
-                            dni: profileData.dni,
-                            nombres: profileData.nombres,
-                            apellidos: profileData.apellidos,
-                            fecha_nacimiento: profileData.fecha_nacimiento,
-                            lugar_nacimiento: profileData.lugar_nacimiento,
-                            genero: profileData.genero,
-                            direccion_formateada: profileData.direccion_formateada,
-                            direccion_place_id: profileData.direccion_place_id,
+                            ...profileData,
                             direccion_detalle: profileData.direccion_detalle ?? undefined,
                         }}
                         onPlaceSelect={(selectedPlaceId) => setPlaceId(selectedPlaceId)}
@@ -144,9 +137,6 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                                     required
                                     defaultValue={profileData.correo}
                                 />
-                                <span className="text-xs text-brand-accent italic font-light">
-                                    Este campo no puede ser modificado.
-                                </span>
                             </div>
                         </div>
                     </fieldset>
@@ -158,10 +148,10 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                             onClick={() => setChangePwdOpen(true)}
                             className="w-full sm:w-auto inline-flex items-center justify-center h-11 px-5 rounded-lg border border-brand-accent/30 text-brand-secondary text-sm font-medium hover:text-brand-primary hover:border-brand-primary hover:bg-brand-primary/5 hover:shadow-sm transition-all cursor-pointer group"
                         >
-                            <svg className="w-4 h-4 mr-2 text-brand-accent group-hover:text-brand-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <svg className="w-4 h-4 mr-2 text-brand-accent group-hover:text-brand-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                             Cambiar contraseña
                         </button>
-                        
+
                         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                             <button
                                 type="button"
@@ -201,9 +191,9 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
             {isCliente && <ClientModules />}
 
             {/* ── Modal de Cambiar Contraseña ── */}
-            <ChangePasswordModal 
-                isOpen={changePwdOpen} 
-                onClose={() => setChangePwdOpen(false)} 
+            <ChangePasswordModal
+                isOpen={changePwdOpen}
+                onClose={() => setChangePwdOpen(false)}
             />
         </div>
     );
