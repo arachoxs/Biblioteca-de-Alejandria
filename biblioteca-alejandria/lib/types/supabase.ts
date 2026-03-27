@@ -918,6 +918,7 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string | null
+          habilitado: boolean | null
           id: string | null
           nombre_completo: string | null
           rol: string | null
