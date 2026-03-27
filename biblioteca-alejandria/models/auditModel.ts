@@ -20,10 +20,10 @@ export async function insertAuditLog(payload: AuditLogPayload): Promise<void> {
     });
 
     if (error) {
-      console.error("Error al insertar registro de auditoría:", error);
+      console.error("[auditModel] Error al insertar registro de auditoría:", error);
     }
   } catch (err) {
-    console.error("Excepción al insertar registro de auditoría:", err);
+    console.error("[auditModel] Excepción al insertar registro de auditoría:", err);
   }
 }
 
