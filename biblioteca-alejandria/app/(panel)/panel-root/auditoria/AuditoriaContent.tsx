@@ -8,6 +8,8 @@ import type { Column } from "@/components/ui/Table";
 import Alert from "@/components/ui/Alert";
 import { FileClock, Loader2, AlertCircle, Search } from "lucide-react";
 
+import JsonDataDisplay from "@/components/ui/JsonDataDisplay";
+
 // ─── Columnas ──────────────────────────────────────────────────────
 
 const accionBadge: Record<string, string> = {
@@ -58,9 +60,14 @@ const auditColumns: Column<AuditoriaRow>[] = [
   {
     header: "Entidad afectada",
     render: (item) => (
-      <code className="text-xs bg-brand-bg px-2 py-1 rounded border border-brand-accent/20 text-brand-secondary break-all max-w-[220px] block truncate">
-        {JSON.stringify(item.entidad_afectada)}
-      </code>
+      <JsonDataDisplay 
+        data={item.entidad_afectada}
+        keyLabels={{
+          id_usuario_afectado: "Admin afectado",
+          id_usuario_creado: "Admin creado",
+          correo: "Correo",
+        }}
+      />
     ),
     className: "hidden lg:table-cell",
   },
