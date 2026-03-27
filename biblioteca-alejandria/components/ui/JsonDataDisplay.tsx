@@ -1,4 +1,3 @@
-import React from "react";
 import type { Json } from "@/lib/types/supabase";
 
 export interface JsonDataDisplayProps {
