@@ -18,5 +18,5 @@ FROM auth.users u
 LEFT JOIN public.usuario p ON u.id = p.id
 WHERE u.raw_app_meta_data->>'role' = 'ADMINISTRADOR';
 
--- RECUERDA: Al hacer DROP, los permisos se borran. Hay que aplicarlos de nuevo.
+-- Tras recrear la vista, se revocan explícitamente los permisos de anon y authenticated para dejarla sin acceso por parte de estos roles.
 REVOKE SELECT ON vista_administradores FROM anon, authenticated;
