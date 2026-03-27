@@ -5,7 +5,7 @@ DROP CONSTRAINT IF EXISTS "Auditoria_id_usuario_fkey";
 
 -- 2. Crear la nueva FK que apunta a 'auth.users' (esquema de Supabase Auth)
 -- Es el origen de la verdad para la identidad de cualquier actor del sistema.
-ALTER TABLE public.auditoria
+ALTER TABLE IF EXISTS public.auditoria
 ADD CONSTRAINT "auditoria_id_usuario_auth_fkey"
 FOREIGN KEY (id_usuario) REFERENCES auth.users(id)
 ON DELETE SET NULL;
