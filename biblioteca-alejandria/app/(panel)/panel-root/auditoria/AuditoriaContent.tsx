@@ -69,7 +69,6 @@ const auditColumns: Column<AuditoriaRow>[] = [
         }}
       />
     ),
-    className: "hidden lg:table-cell",
   },
 ];
 

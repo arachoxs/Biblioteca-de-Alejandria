@@ -39,7 +39,7 @@ export default function JsonDataDisplay({
             </span>
           </div>
           <div
-            className="px-2.5 py-1.5 truncate text-xs font-mono font-medium text-brand-primary bg-white w-full flex items-center"
+            className="px-2.5 py-1.5 truncate overflow-x-scroll text-xs font-mono font-medium text-brand-primary bg-white w-full flex items-center"
             title={String(value)}
           >
             {String(value)}
