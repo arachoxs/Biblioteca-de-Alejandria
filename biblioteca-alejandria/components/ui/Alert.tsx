@@ -14,7 +14,7 @@ export default function Alert({
     variant = "info",
     className = "",
     children,
-    duration = 5000,
+    duration = 2500,
     onClose,
     ...props
 }: AlertProps) {

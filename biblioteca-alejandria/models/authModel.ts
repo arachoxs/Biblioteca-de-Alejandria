@@ -95,12 +95,13 @@ export async function adminSignUp(
     };
   }
 
-  return { success: true, data: { user: data.user, session: null } as any };
+  return { success: true, data: { user: data.user, session: null } as AuthResponse["data"] };
 }
 
 /**
  * Asigna un rol distinto a `CLIENTE` en `app_metadata` usando el admin client.
  * Solo ROOT debería invocar esta operación.
+ * Es correcto que la asignacion la realice adminClient
  */
 export async function setUserRole(
   userId: string,
@@ -123,6 +124,7 @@ export async function setUserRole(
 /**
  * Elimina un usuario de Supabase Auth. Usado como rollback en caso de
  * fallo durante el flujo de registro.
+ * es correcto si se ejecuta desde el rollback debido a que es una operacion de limpieza de un usuario que no se pudo crear correctamente, y el adminClient tiene los permisos necesarios para eliminar cualquier usuario.
  */
 export async function deleteAuthUser(userId: string): Promise<void> {
   const adminClient = createAdminClient();
@@ -396,7 +398,6 @@ export async function getCurrentUserRole(): Promise<Rol | typeof VISITANTE> {
  */
 export async function getCurrentUserEmail(): Promise<string | null> {
   const user = await getCurrentUser();
-
   return user?.email ?? null;
 }
 
