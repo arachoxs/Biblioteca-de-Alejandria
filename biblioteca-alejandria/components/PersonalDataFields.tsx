@@ -109,6 +109,7 @@ export default function PersonalDataFields({
                     label="Lugar de nacimiento"
                     options={paisOptions}
                     required
+                    disabled={isDisabled("lugar_nacimiento")}
                     defaultValue={defaultValues.lugar_nacimiento}
                     error={errors.lugar_nacimiento}
                 />

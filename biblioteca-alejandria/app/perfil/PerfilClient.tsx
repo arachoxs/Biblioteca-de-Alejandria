@@ -103,7 +103,7 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                     {/* Datos personales — componente reutilizable */}
                     <PersonalDataFields
                         errors={errors}
-                        disabledFields={["dni", "fecha_nacimiento"]}
+                        disabledFields={["dni", "fecha_nacimiento", "lugar_nacimiento"]}
                         defaultValues={{
                             ...profileData,
                             direccion_detalle: profileData.direccion_detalle ?? undefined,
@@ -111,6 +111,11 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                         onPlaceSelect={(selectedPlaceId) => setPlaceId(selectedPlaceId)}
                         onFormattedAddressSelect={(addressText) => setFormattedAddress(addressText)}
                     />
+
+                    {/* Mantener valores de campos deshabilitados en el FormData */}
+                    <input type="hidden" name="dni" value={profileData.dni} />
+                    <input type="hidden" name="fecha_nacimiento" value={profileData.fecha_nacimiento} />
+                    <input type="hidden" name="lugar_nacimiento" value={profileData.lugar_nacimiento} />
 
                     {/* Datos de acceso */}
                     <fieldset className="space-y-5">
