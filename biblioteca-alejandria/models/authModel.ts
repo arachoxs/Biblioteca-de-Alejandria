@@ -235,7 +235,10 @@ export async function verifyRecoveryCode(
 
 /**
  * Establece una nueva contraseña para el usuario autenticado
- * con la sesión de recovery activa, y cierra la sesión al terminar.
+ * con la sesión de recovery activa.
+ *
+ * No cierra sesión al terminar: el usuario queda logueado
+ * y es redirigido a la app (auto-login intencional).
  */
 export async function resetPassword(
   newPassword: string
@@ -268,20 +271,9 @@ export async function resetPassword(
     };
   }
 
-  // Cerrar la sesión de recovery para forzar re-login con la nueva contraseña
-  const { error: signOutError } = await supabase.auth.signOut();
-
-  if (signOutError) {
-    console.error("Error en signOut:", signOutError.message);
-    return {
-      error:
-        "Tu contraseña se actualizó, pero no se pudo cerrar la sesión correctamente. Por seguridad, intenta cerrar sesión e iniciar nuevamente.",
-    };
-  }
-
   return {
     success: true,
-    message: "Contraseña actualizada exitosamente. Ya puedes iniciar sesión.",
+    message: "Contraseña actualizada exitosamente.",
   };
 }
 

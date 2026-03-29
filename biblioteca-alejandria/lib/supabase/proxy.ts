@@ -37,6 +37,13 @@ function redirectWithSupabaseCookies(
  * on protected panel routes.
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
+  // Server Actions (POST con header Next-Action) no deben ser redirigidas
+  // por el proxy. Si lo hacemos, Next.js recibe un redirect en vez del
+  // RSC flight stream y lanza "An unexpected response was received".
+  const isServerAction =
+    request.method === "POST" &&
+    request.headers.has("next-action");
+
   let supabaseResponse = NextResponse.next({
     request: { headers: request.headers },
   });
@@ -72,7 +79,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       pathname.startsWith(route)
     );
 
-    if (isVisitanteRoute) {
+    if (isVisitanteRoute && !isServerAction) {
       const homeUrl = request.nextUrl.clone();
       homeUrl.pathname = "/";
       return redirectWithSupabaseCookies(homeUrl, supabaseResponse);
