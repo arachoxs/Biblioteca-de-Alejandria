@@ -23,7 +23,7 @@ export default function Select({ label, id, options, className, required, error 
         className="text-sm font-semibold text-brand-primary tracking-wide"
       >
         {label}
-        {required && <span className="text-brand-primary ml-1">*</span>}
+        {required && !disabled && <span className="text-brand-primary ml-1">*</span>}
       </label>
       <div className="relative group">
         <select
