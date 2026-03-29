@@ -47,7 +47,6 @@ const adminColumns: Column<AdminUserFromView>[] = [
         {item.rol || "ADMINISTRADOR"}
       </span>
     ),
-    className: "hidden md:table-cell",
   },
   {
     header: "Estado",
@@ -86,7 +85,6 @@ const adminColumns: Column<AdminUserFromView>[] = [
         </span>
       );
     },
-    className: "hidden lg:table-cell",
   },
   {
     header: "Fecha de creación",
@@ -99,7 +97,6 @@ const adminColumns: Column<AdminUserFromView>[] = [
         day: "numeric"
       });
     },
-    className: "hidden xl:table-cell",
   },
 ];
 

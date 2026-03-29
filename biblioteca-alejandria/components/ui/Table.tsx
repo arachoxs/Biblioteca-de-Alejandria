@@ -88,9 +88,9 @@ export default function Table<T>({
 
   return (
     <div
-      className={`w-full overflow-hidden border border-brand-accent/20 rounded-xl bg-white shadow-sm flex flex-col ${className}`}
+      className={`w-full border border-brand-accent/20 rounded-xl bg-white shadow-sm flex flex-col ${className}`}
     >
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-brand-bg border-b border-brand-accent/20">
             <tr>
