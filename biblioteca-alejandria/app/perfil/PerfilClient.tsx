@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import PersonalDataFields from "@/components/PersonalDataFields";
 import Input from "@/components/ui/Input";
@@ -24,7 +24,32 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
     const [formattedAddress, setFormattedAddress] = useState(profileData.direccion_formateada);
     const [placeId, setPlaceId] = useState(profileData.direccion_place_id);
     const [resetKey, setResetKey] = useState(0);
+    const [isDirty, setIsDirty] = useState(false);
+    const formRef = useRef<HTMLFormElement>(null);
     const router = useRouter();
+
+    const checkIsDirty = useCallback((currentForm: HTMLFormElement | null) => {
+        if (!currentForm) return false;
+        const formData = new FormData(currentForm);
+        
+        return (
+            formData.get("nombres") !== profileData.nombres ||
+            formData.get("apellidos") !== profileData.apellidos ||
+            formData.get("genero") !== profileData.genero ||
+            formData.get("usuario") !== profileData.usuario ||
+            (formData.get("direccion_detalle") || "") !== (profileData.direccion_detalle || "") ||
+            formattedAddress !== profileData.direccion_formateada ||
+            placeId !== profileData.direccion_place_id
+        );
+    }, [profileData, formattedAddress, placeId]);
+
+    useEffect(() => {
+        setIsDirty(checkIsDirty(formRef.current));
+    }, [formattedAddress, placeId, checkIsDirty]);
+
+    const handleFormChange = (e: React.FormEvent<HTMLFormElement>) => {
+        setIsDirty(checkIsDirty(e.currentTarget));
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -44,6 +69,7 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
             if (response.success) {
                 setSuccess(true);
                 setErrors({});
+                setIsDirty(false);
             } else {
                 setErrors(response.errors || { form: response.message || "Error desconocido" });
             }
@@ -61,6 +87,7 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
         setFormattedAddress(profileData.direccion_formateada);
         setPlaceId(profileData.direccion_place_id);
         setResetKey(prev => prev + 1);
+        setIsDirty(false);
         router.refresh();
     };
 
@@ -85,7 +112,7 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
 
             {/* ── Form Card ── */}
             <div className="bg-white rounded-lg border border-brand-accent/25 shadow-[0_1px_3px_rgba(10,9,8,0.04),0_8px_30px_rgba(10,9,8,0.06)] p-6 md:p-8 mb-6">
-                <form key={resetKey} onSubmit={handleSubmit} className="space-y-8">
+                <form key={resetKey} ref={formRef} onChange={handleFormChange} onSubmit={handleSubmit} className="space-y-8">
 
                     {/* Mensajes de estado globales */}
                     {errors.form && (
@@ -158,17 +185,20 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                         </button>
 
                         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                            <button
-                                type="button"
-                                onClick={handleCancel}
-                                className="w-full sm:w-auto inline-flex items-center justify-center h-11 px-6 rounded-lg text-brand-secondary text-sm font-medium uppercase tracking-wider hover:bg-brand-secondary/10 hover:text-brand-primary transition-all cursor-pointer"
-                            >
-                                Cancelar
-                            </button>
+                            {isDirty && (
+                                <button
+                                    type="button"
+                                    onClick={handleCancel}
+                                    className="w-full sm:w-auto inline-flex items-center justify-center h-11 px-6 rounded-lg text-brand-secondary text-sm font-medium uppercase tracking-wider hover:bg-brand-secondary/10 hover:text-brand-primary transition-all cursor-pointer"
+                                >
+                                    Cancelar
+                                </button>
+                            )}
                             <Button
                                 type="submit"
                                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-11 px-8"
-                                disabled={loading}
+                                disabled={loading || !isDirty}
+                                title={!isDirty ? "No hay cambios para guardar" : undefined}
                             >
                                 {loading ? (
                                     <>
