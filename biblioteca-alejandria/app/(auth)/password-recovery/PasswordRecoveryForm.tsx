@@ -243,7 +243,7 @@ export default function PasswordRecoveryForm() {
     setIsPending(false);
 
     if (result.success) {
-      router.push("/login");
+      router.push("/");
     } else {
       handleActionResult(result);
     }
@@ -264,7 +264,7 @@ export default function PasswordRecoveryForm() {
         </h1>
         <div className="w-15 h-0.5 bg-brand-accent mx-auto rounded-full" />
       </div>
-    
+
       {/* Mensajes de error/éxito */}
       {error ? (
         <Alert variant="error" className="top-1">{error}</Alert>

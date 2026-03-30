@@ -20,16 +20,16 @@ Se evaluaron dos enfoques:
 
 ## Decisión
 
-Se eligió **Supabase Auth nativo con OTP de 6 dígitos** por las siguientes razones:
+Se eligió **Supabase Auth nativo con OTP de 8 dígitos** por las siguientes razones:
 
 - **Menos superficie de ataque**: no se almacenan códigos en una tabla propia; Supabase gestiona la expiración y los intentos internamente.
 - **Menos código de infraestructura**: no se necesita migración SQL, cron de limpieza de códigos expirados, ni lógica de rate-limiting manual.
 - **Consistencia**: el resto de la autenticación (signup, login) ya se delega a Supabase Auth.
-- **Compatibilidad con el CU-04**: al configurar el template de email de Supabase con `{{ .Token }}`, el sistema envía un código numérico de 6 dígitos en lugar de un magic link, manteniendo el flujo original del caso de uso.
+- **Compatibilidad con el CU-04**: al configurar el template de email de Supabase con `{{ .Token }}`, el sistema envía un código numérico de 8 dígitos en lugar de un magic link, manteniendo el flujo original del caso de uso.
 
 ### Requisito de configuración
 
-Para que Supabase envíe un código de 6 dígitos (en vez de un enlace), se debe editar el template **Reset Password** en el Dashboard de Supabase (*Authentication → Email Templates*) para usar la variable `{{ .Token }}`:
+Para que Supabase envíe un código de 8 dígitos (en vez de un enlace), se debe editar el template **Reset Password** en el Dashboard de Supabase (*Authentication → Email Templates*) para usar la variable `{{ .Token }}`:
 
 ```html
 <p style="font-size: 24px; font-family: monospace; font-weight: bold;">
@@ -48,14 +48,14 @@ Paso 1 (Correo)
   → Usuario ingresa email
   → Server Action: sendRecoveryCode()
   → Llama a supabase.auth.resetPasswordForEmail(email)
-  → Supabase envía email con código OTP de 6 dígitos
+  → Supabase envía email con código OTP de 8 dígitos
   → Respuesta genérica (no revela si el correo existe)
 
 Paso 2 (Código)
-  → Usuario ingresa código de 6 dígitos
+  → Usuario ingresa código de 8 dígitos
   → Server Action: verifyRecoveryCode()
   → Llama a supabase.auth.verifyOtp({ email, token, type: 'recovery' })
-  → Si OK: Supabase crea sesión temporal de recovery
+  → Si OK: Supabase crea sesión temporal de recovery en el browser
   → Si error: mensaje "código incorrecto" o "código expirado"
 
 Paso 3 (Nueva contraseña)
@@ -64,8 +64,7 @@ Paso 3 (Nueva contraseña)
   → Valida: coincidencia, longitud ≥ 8, mayúscula, número
   → Verifica sesión activa con supabase.auth.getUser()
   → Llama a supabase.auth.updateUser({ password })
-  → Cierra sesión con supabase.auth.signOut()
-  → Redirige a /login
+  → Redirige a / (usuario queda autenticado)
 ```
 
 ---
@@ -98,8 +97,8 @@ Paso 3 (Nueva contraseña)
 - El flujo completo de 3 pasos funciona sin tablas adicionales ni migraciones.
 - El componente `CodeInput` existente se reutiliza tal cual.
 - La expiración del código y el rate limiting son manejados por Supabase.
+- Al no cerrar sesión, el usuario entra directo a la app tras recuperar la contraseña mejorando el UX.
 
 **A tener en cuenta:**
 - La expiración del OTP es configurable en el Dashboard de Supabase (por defecto varía según plan). Si se necesita un tiempo específico, ajustar en *Authentication → Rate Limits*.
-- El `signOut()` al final del paso 3 fuerza al usuario a re-loguearse. Esto es intencional para confirmar que la nueva contraseña funciona.
 - El servicio de email `lib/services/email.ts` (Nodemailer) **no se usa** en este flujo — los correos los envía Supabase directamente vía el SMTP configurado en su Dashboard.

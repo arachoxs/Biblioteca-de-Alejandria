@@ -27,7 +27,7 @@ export async function verifyRecoveryCode(
 }
 
 /**
- * Establece una nueva contraseña y cierra la sesión.
+ * Establece una nueva contraseña para el usuario autenticado.
  * Delega al modelo de autenticación.
  */
 export async function resetPassword(
