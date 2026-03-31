@@ -38,6 +38,9 @@ interface PersonalDataFieldsProps {
     errors: Record<string, string>;
     disabledFields?: string[];
     defaultValues?: PersonalDataValues;
+    values?: PersonalDataValues;  // Valores controlados
+    //cuando se usa validaciones instantenas la fuentes de la verdad lo dan los values y no los defaultValues, por eso se pasan ambos, para poder usar el componente en ambos contextos (con o sin validaciones instantaneas)
+    onChange?: <K extends keyof PersonalDataValues>(field: K, value: PersonalDataValues[K]) => void;  // Handler para onChange
     onPlaceSelect: (placeId: string) => void;
     onFormattedAddressSelect: (address: string) => void;
 }
@@ -52,10 +55,13 @@ export default function PersonalDataFields({
     errors,
     disabledFields = [],
     defaultValues = {},
+    values, //se pasan nuevos datos para las validaciones instanteas
+    onChange,
     onPlaceSelect,
     onFormattedAddressSelect,
 }: PersonalDataFieldsProps) {
     const isDisabled = (field: string) => disabledFields.includes(field);
+    const isControlled = values !== undefined && onChange !== undefined;
 
     return (
         <fieldset className="space-y-5">
@@ -71,7 +77,10 @@ export default function PersonalDataFields({
                     placeholder="1234567890"
                     required
                     disabled={isDisabled("dni")}
-                    defaultValue={defaultValues.dni}
+                    {...(isControlled
+                        ? { value: values.dni || "", onChange: (e) => onChange!("dni", e.target.value) }
+                        : { defaultValue: defaultValues.dni }
+                    )}
                     error={errors.dni}
                 />
                 <Input
@@ -80,7 +89,10 @@ export default function PersonalDataFields({
                     label="Nombres"
                     placeholder="Juan Carlos"
                     required
-                    defaultValue={defaultValues.nombres}
+                    {...(isControlled
+                        ? { value: values.nombres || "", onChange: (e) => onChange!("nombres", e.target.value) }
+                        : { defaultValue: defaultValues.nombres }
+                    )}
                     error={errors.nombres}
                 />
                 <Input
@@ -89,7 +101,10 @@ export default function PersonalDataFields({
                     label="Apellidos"
                     placeholder="García López"
                     required
-                    defaultValue={defaultValues.apellidos}
+                    {...(isControlled
+                        ? { value: values.apellidos || "", onChange: (e) => onChange!("apellidos", e.target.value) }
+                        : { defaultValue: defaultValues.apellidos }
+                    )}
                     error={errors.apellidos}
                 />
                 <Input
@@ -99,7 +114,10 @@ export default function PersonalDataFields({
                     type="date"
                     required
                     disabled={isDisabled("fecha_nacimiento")}
-                    defaultValue={defaultValues.fecha_nacimiento}
+                    {...(isControlled
+                        ? { value: values.fecha_nacimiento || "", onChange: (e) => onChange!("fecha_nacimiento", e.target.value) }
+                        : { defaultValue: defaultValues.fecha_nacimiento }
+                    )}
                     error={errors.fecha_nacimiento}
                 />
 
@@ -110,7 +128,10 @@ export default function PersonalDataFields({
                     options={paisOptions}
                     required
                     disabled={isDisabled("lugar_nacimiento")}
-                    defaultValue={defaultValues.lugar_nacimiento}
+                    {...(isControlled
+                        ? { value: values.lugar_nacimiento || "", onChange: (e) => onChange!("lugar_nacimiento", e.target.value) }
+                        : { defaultValue: defaultValues.lugar_nacimiento }
+                    )}
                     error={errors.lugar_nacimiento}
                 />
                 <Select
@@ -119,7 +140,10 @@ export default function PersonalDataFields({
                     label="Género"
                     options={generoOptions}
                     required
-                    defaultValue={defaultValues.genero}
+                    {...(isControlled
+                        ? { value: values.genero || "", onChange: (e) => onChange!("genero", e.target.value as Genero) }
+                        : { defaultValue: defaultValues.genero }
+                    )}
                     error={errors.genero}
                 />
 
@@ -140,7 +164,10 @@ export default function PersonalDataFields({
                     name="direccion_detalle"
                     label="Detalle de la dirección"
                     placeholder="Apto 101, Piso 2"
-                    defaultValue={defaultValues.direccion_detalle}
+                    {...(isControlled
+                        ? { value: values.direccion_detalle || "", onChange: (e) => onChange!("direccion_detalle", e.target.value) }
+                        : { defaultValue: defaultValues.direccion_detalle }
+                    )}
                     error={errors.direccion_detalle}
                 />
 
