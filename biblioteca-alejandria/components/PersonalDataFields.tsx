@@ -40,7 +40,7 @@ interface PersonalDataFieldsProps {
     defaultValues?: PersonalDataValues;
     values?: PersonalDataValues;  // Valores controlados
     //cuando se usa validaciones instantenas la fuentes de la verdad lo dan los values y no los defaultValues, por eso se pasan ambos, para poder usar el componente en ambos contextos (con o sin validaciones instantaneas)
-    onChange?: (field: string, value: unknown) => void;  // Handler para onChange
+    onChange?: <K extends keyof PersonalDataValues>(field: K, value: PersonalDataValues[K]) => void;  // Handler para onChange
     onPlaceSelect: (placeId: string) => void;
     onFormattedAddressSelect: (address: string) => void;
 }

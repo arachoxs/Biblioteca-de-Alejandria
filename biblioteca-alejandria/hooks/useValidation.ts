@@ -41,16 +41,18 @@ export function useValidation<T extends Record<string, unknown>>(
    * @param value - El nuevo valor para dicho campo.
    */
   const handleChange = (field: keyof T, value: unknown) => {
-    // 1. Calculamos los nuevos valores temporalmente
-    const newValues = { ...values, [field]: value };
-    
-    // 2. Actualizamos el estado de los valores
-    setValues(newValues);
+    setValues((prevValues) => {
+      // 1. Calculamos los nuevos valores basados en el estado más reciente
+      const newValues = { ...prevValues, [field]: value };
 
-    console.log("Valores actualizados:", newValues); // Debug: Ver los nuevos valores
-    
-    // 3. Validamos usando los nuevos valores inmediatos y actualizamos los errores
-    setErrors(validateFn(newValues));
+      // 2. Validamos usando los nuevos valores inmediatos y actualizamos los errores
+      setErrors(validateFn(newValues));
+
+      console.log("Valores actualizados:", newValues); // Debug: Ver los nuevos valores
+
+      // 3. Devolvemos los nuevos valores para actualizar el estado
+      return newValues;
+    });
   };
 
   return { values, errors, handleChange, setValues };
