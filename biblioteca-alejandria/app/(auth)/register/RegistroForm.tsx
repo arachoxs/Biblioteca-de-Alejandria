@@ -132,8 +132,6 @@ export default function RegistroForm() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        console.log(formattedAddress);
-        
         // Validar que no haya errores del cliente antes de enviar
         if (Object.keys(errors).length > 0) {
             // No enviar si hay errores de validación
