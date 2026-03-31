@@ -17,7 +17,7 @@ type RegistroFormValues = {
     apellidos: string;
     fecha_nacimiento: string;
     lugar_nacimiento: string;
-    genero: string;
+    genero: Genero | "";
     direccion_detalle: string;
     usuario: string;
     correo: string;
@@ -132,6 +132,8 @@ export default function RegistroForm() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
+        console.log(formattedAddress);
+        
         // Validar que no haya errores del cliente antes de enviar
         if (Object.keys(errors).length > 0) {
             // No enviar si hay errores de validación
@@ -271,7 +273,7 @@ export default function RegistroForm() {
             </fieldset>
 
             <div className="flex gap-5 flex-col">
-                <Button type="submit" className="flex flex-row items-center justify-center gap-5"  disabled={loading /*|| Object.keys(errors).length > 0*/}>
+                <Button type="submit" className="flex flex-row items-center justify-center gap-5"  disabled={loading || Object.keys(errors).length > 0}>
                     {loading ? (
                         <>
                             <svg className="text-brand-text size-5 animate-spin" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" /></svg>

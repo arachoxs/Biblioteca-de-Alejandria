@@ -141,7 +141,7 @@ export default function PersonalDataFields({
                     options={generoOptions}
                     required
                     {...(isControlled
-                        ? { value: values.genero || "", onChange: (e) => onChange!("genero", e.target.value) }
+                        ? { value: values.genero || "", onChange: (e) => onChange!("genero", e.target.value as Genero) }
                         : { defaultValue: defaultValues.genero }
                     )}
                     error={errors.genero}
