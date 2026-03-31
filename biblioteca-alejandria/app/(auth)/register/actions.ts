@@ -2,43 +2,61 @@
 
 import { CredentialData, PersonalData, RegisterResponse, Rol } from "@/lib/types/auth";
 import { register } from "@/services/auth/registrationService";
-import { validatePasswordRule } from "@/lib/validations/auth";
+import { validatePasswordRule, validateEmail, sanitizeText } from "@/lib/validations/auth";
 import { signIn } from "@/models/authModel";
-import { validateProfileFields } from "@/lib/validations/profile";
+import { validateAndSanitizeProfile } from "@/lib/validations/profile";
 
 // ─── Validación de entrada ─────────────────────────────────────────
 
-/**
- * Valida los datos personales y de credenciales antes del registro.
- */
 function validateRegistrationData(
   credentialData: CredentialData,
   personalData: PersonalData
-): Record<string, string> {
-  const errors: Record<string, string> = validateProfileFields(personalData, { requireDni: true });
+): { errors: Record<string, string>; sanitizedPersonal: PersonalData } {
+  const profileResult = validateAndSanitizeProfile(personalData, { requireDni: true });
+  const errors = { ...profileResult.errors };
 
-  // Validar campos obligatorios de credenciales
-  for (const [key, value] of Object.entries(credentialData)) {
-    if (value === null || value === undefined || value.toString().trim() === "") {
-      errors[key] = "Este campo es obligatorio.";
-    }
+  // Sanitizar y validar email
+  const cleanEmail = sanitizeText(credentialData.correo);
+  if (!cleanEmail) {
+    errors.correo = "El correo electrónico es obligatorio.";
+  } else {
+    const emailError = validateEmail(cleanEmail);
+    if (emailError) errors.correo = emailError;
   }
 
-  if (!errors.contrasena) {
+  // Validar contraseña
+  if (!credentialData.contrasena) {
+    errors.contrasena = "La contraseña es obligatoria.";
+  } else {
     const passwordError = validatePasswordRule(credentialData.contrasena);
-    if (passwordError) {
-      errors.contrasena = passwordError;
-    }
+    if (passwordError) errors.contrasena = passwordError;
   }
 
-  if (
-    !errors.confirmar_contrasena &&
+  // Validar confirmación
+  if (!credentialData.confirmar_contrasena) {
+    errors.confirmar_contrasena = "La confirmación de contraseña es obligatoria.";
+  } else if (
+    !errors.contrasena &&
     credentialData.contrasena !== credentialData.confirmar_contrasena
   ) {
     errors.confirmar_contrasena = "Las contraseñas no coinciden.";
   }
 
-  return errors;
+  // Construir datos personales sanitizados
+  const sanitizedPersonal: PersonalData = {
+    ...personalData,
+    dni: profileResult.sanitized.dni ?? personalData.dni,
+    nombres: profileResult.sanitized.nombres,
+    apellidos: profileResult.sanitized.apellidos,
+    fecha_nacimiento: profileResult.sanitized.fecha_nacimiento,
+    lugar_nacimiento: profileResult.sanitized.lugar_nacimiento,
+    usuario: profileResult.sanitized.usuario,
+    direccion: profileResult.sanitized.direccion,
+    direccion_place_id: profileResult.sanitized.direccion_place_id ?? personalData.direccion_place_id,
+    direccion_detalle: profileResult.sanitized.direccion_detalle ?? undefined,
+  };
+
+  return { errors, sanitizedPersonal };
 }
 
 // ─── Server Action ─────────────────────────────────────────────────
@@ -47,28 +65,28 @@ export async function registerUser(
   credentialData: CredentialData,
   personalData: PersonalData
 ): Promise<RegisterResponse> {
-  // 1. Validar los datos de entrada
-  const validationErrors = validateRegistrationData(
+  const { errors, sanitizedPersonal } = validateRegistrationData(
     credentialData,
     personalData
   );
 
-  if (Object.keys(validationErrors).length > 0) {
-    return {
-      success: false,
-      errors: validationErrors,
-    };
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors };
   }
 
-  // 2. Delegar al servicio de registro
+  // Sanitizar email de credenciales
+  const sanitizedCredentials: CredentialData = {
+    ...credentialData,
+    correo: sanitizeText(credentialData.correo),
+  };
+
   try {
-    const response = await register(credentialData, personalData, Rol.CLIENTE);
+    const response = await register(sanitizedCredentials, sanitizedPersonal, Rol.CLIENTE);
 
     if (response.success) {
-      // Iniciar sesión automáticamente para establecer las cookies
-      const sessionData = await signIn(credentialData.correo, credentialData.contrasena);
+      const sessionData = await signIn(sanitizedCredentials.correo, sanitizedCredentials.contrasena);
       if (!sessionData) {
-        console.error("Auto-login falló después del registro de:", credentialData.correo);
+        console.error("Auto-login falló después del registro de:", sanitizedCredentials.correo);
       }
     }
 

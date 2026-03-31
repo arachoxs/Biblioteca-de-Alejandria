@@ -4,13 +4,24 @@ import { createAdminAccount, fetchAdminUsers, searchAdmins } from "@/services/ad
 import { type RegisterResponse, type UserStatusResult } from "@/lib/types/auth";
 import type { AdminUsersResponse, AdminSearchResponse } from "@/lib/types/profile";
 import { deshabilitarUsuario, habilitarUsuario } from "@/services/auth/authService";
+import { sanitizeText, validateEmail, isValidUUID } from "@/lib/validations/auth";
 
 /**
  * Crea un nuevo administrador.
- * Delega toda la lógica de negocio (registro + auditoría) al servicio.
  */
 export async function createAdmin(email: string): Promise<RegisterResponse> {
-    return await createAdminAccount(email);
+    const cleanEmail = sanitizeText(email);
+
+    if (!cleanEmail) {
+        return { success: false, errors: { correo: "El correo electrónico es obligatorio." } };
+    }
+
+    const emailError = validateEmail(cleanEmail);
+    if (emailError) {
+        return { success: false, errors: { correo: emailError } };
+    }
+
+    return await createAdminAccount(cleanEmail);
 }
 
 /**
@@ -36,7 +47,8 @@ export async function getAdmins(
 export async function searchAdminsByTerm(
     searchTerm: string
 ): Promise<AdminSearchResponse> {
-    return await searchAdmins(searchTerm);
+    const cleanTerm = sanitizeText(searchTerm);
+    return await searchAdmins(cleanTerm);
 }
 
 /**
@@ -56,6 +68,16 @@ export async function deshabilitarAdministradores(
         return {
             success: false,
             message: "No se proporcionaron IDs de usuarios para deshabilitar.",
+        };
+    }
+
+    // Validar formato UUID de cada ID
+    const invalidIds = ids.filter((id) => !isValidUUID(id));
+    if (invalidIds.length > 0) {
+        return {
+            success: false,
+            message: "Uno o más IDs de usuario no son válidos.",
+            errorIds: invalidIds,
         };
     }
 
@@ -79,6 +101,16 @@ export async function habilitarAdministradores(
         return {
             success: false,
             message: "No se proporcionaron IDs de usuarios para habilitar.",
+        };
+    }
+
+    // Validar formato UUID de cada ID
+    const invalidIds = ids.filter((id) => !isValidUUID(id));
+    if (invalidIds.length > 0) {
+        return {
+            success: false,
+            message: "Uno o más IDs de usuario no son válidos.",
+            errorIds: invalidIds,
         };
     }
 

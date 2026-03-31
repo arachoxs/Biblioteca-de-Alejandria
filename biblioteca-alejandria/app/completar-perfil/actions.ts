@@ -3,7 +3,7 @@
 import { getCurrentUser } from "@/models/authModel";
 import type { Genero } from "@/lib/types/auth";
 import type { ProfileUpdateResponse } from "@/lib/types/profile";
-import { validateProfileFields } from "@/lib/validations/profile";
+import { validateAndSanitizeProfile } from "@/lib/validations/profile";
 import { validatePasswordRule } from "@/lib/validations/auth";
 import { completeAdminProfile } from "@/services/profile/completeProfileService";
 
@@ -23,43 +23,32 @@ export async function completarPerfilAction(
     };
   }
 
-  // 2. Extraer campos del formulario
-  const dni = formData.get("dni") as string;
-  const nombres = formData.get("nombres") as string;
-  const apellidos = formData.get("apellidos") as string;
-  const fecha_nacimiento = formData.get("fecha_nacimiento") as string;
-  const lugar_nacimiento = formData.get("lugar_nacimiento") as string;
-  const genero = formData.get("genero") as Genero;
-  const usuario = formData.get("usuario") as string;
-  const direccion_detalle = (formData.get("direccion_detalle") as string | null) || null;
+  // 2. Extraer y validar campos
   const nueva_contrasena = formData.get("nueva_contrasena") as string;
   const confirmar_contrasena = formData.get("confirmar_contrasena") as string;
 
-  // 3. Validar campos de perfil
-  const profileErrors = validateProfileFields(
+  const { errors: profileErrors, sanitized } = validateAndSanitizeProfile(
     {
-      dni,
-      nombres,
-      apellidos,
-      fecha_nacimiento,
-      lugar_nacimiento,
-      genero,
-      usuario,
+      dni: formData.get("dni") as string,
+      nombres: formData.get("nombres") as string,
+      apellidos: formData.get("apellidos") as string,
+      fecha_nacimiento: formData.get("fecha_nacimiento") as string,
+      lugar_nacimiento: formData.get("lugar_nacimiento") as string,
+      genero: formData.get("genero") as Genero,
+      usuario: formData.get("usuario") as string,
       direccion: formattedAddress,
       direccion_place_id: placeId,
-      direccion_detalle,
+      direccion_detalle: (formData.get("direccion_detalle") as string | null) || null,
     },
     { requireDni: true }
   );
 
-  // 4. Validar contraseñas
+  // 3. Validar contraseñas
   if (!nueva_contrasena) {
     profileErrors.nueva_contrasena = "La nueva contraseña es obligatoria.";
   } else {
     const pwdError = validatePasswordRule(nueva_contrasena);
-    if (pwdError) {
-      profileErrors.nueva_contrasena = pwdError;
-    }
+    if (pwdError) profileErrors.nueva_contrasena = pwdError;
   }
 
   if (!confirmar_contrasena) {
@@ -72,19 +61,19 @@ export async function completarPerfilAction(
     return { success: false, errors: profileErrors };
   }
 
-  // 5. Delegar al servicio
+  // 4. Delegar al servicio con datos sanitizados
   try {
     return await completeAdminProfile({
-      dni,
-      nombres,
-      apellidos,
-      fecha_nacimiento,
-      lugar_nacimiento,
-      genero,
-      usuario,
-      direccion: formattedAddress,
-      direccion_place_id: placeId,
-      direccion_detalle,
+      dni: sanitized.dni!,
+      nombres: sanitized.nombres,
+      apellidos: sanitized.apellidos,
+      fecha_nacimiento: sanitized.fecha_nacimiento,
+      lugar_nacimiento: sanitized.lugar_nacimiento,
+      genero: sanitized.genero as Genero,
+      usuario: sanitized.usuario,
+      direccion: sanitized.direccion,
+      direccion_place_id: sanitized.direccion_place_id!,
+      direccion_detalle: sanitized.direccion_detalle,
       nueva_contrasena,
     });
   } catch (error: unknown) {
