@@ -5,7 +5,7 @@ import { type AuthActionResult, Rol, type UserStatusResult } from "@/lib/types/a
 import { redirect } from "next/navigation";
 import type { AuthResponse } from "@supabase/supabase-js";
 
-import { formatILIKE } from "@/lib/validations/db-utils";
+import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
 
 // ─── Tipos internos ────────────────────────────────────────────────
 
@@ -548,7 +548,7 @@ export async function deactivateUsers(
       ids.map(async (userId) => {
         try {
           // 1. Verificar el estado actual del usuario
-          const { data: user, error: getUserError } = 
+          const { data: user, error: getUserError } =
             await adminClient.auth.admin.getUserById(userId);
 
           if (getUserError) {
@@ -659,7 +659,7 @@ export async function activateUsers(
       ids.map(async (userId) => {
         try {
           // 1. Verificar el estado actual del usuario
-          const { data: user, error: getUserError } = 
+          const { data: user, error: getUserError } =
             await adminClient.auth.admin.getUserById(userId);
 
           if (getUserError) {
