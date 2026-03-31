@@ -71,8 +71,12 @@ export function validateAndSanitizeProfile(
   // Validar formato del DNI
   if (!errors.dni && sanitized.dni) {
     const dniStr = sanitized.dni;
-    const dniRegex = /^[A-Za-z0-9]{5,20}$/;
-    if (dniStr.length < MIN_DNI || !dniRegex.test(dniStr)) {
+    const dniRegex = /^[A-Za-z0-9]+$/;
+    if (
+      dniStr.length < MIN_DNI ||
+      dniStr.length > MAX_DNI ||
+      !dniRegex.test(dniStr)
+    ) {
       errors.dni = `El documento debe tener entre ${MIN_DNI} y ${MAX_DNI} caracteres alfanuméricos.`;
     }
   }
