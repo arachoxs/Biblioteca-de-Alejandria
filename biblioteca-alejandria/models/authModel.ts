@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { type AuthActionResult, Rol, type UserStatusResult } from "@/lib/types/auth";
 import { redirect } from "next/navigation";
@@ -179,11 +181,43 @@ export async function isCurrentUserRoot(): Promise<boolean> {
 
 /**
  * Envía un código de recuperación (OTP) al correo del usuario.
- * Siempre devuelve éxito para no revelar si el correo existe (CU-04, flujo alternativo 4a).
+ * Excepción de seguridad: Si la cuenta de un administrador está deshabilitada temporalmente o suspendida,
+ * revelará proactivamente un error de suspensión para mejorar la UX intencionalmente.
+ * Para el resto de los escenarios (correos inexistentes, etc.), devolverá siempre éxito
+ * para no revelar la existencia de la cuenta (CU-04, flujo alternativo 4a).
  */
 export async function sendRecoveryCode(
   email: string
 ): Promise<AuthActionResult> {
+  const adminClient = createAdminClient();
+
+  // ─── Verificación temprana: cuenta de administrador deshabilitada ───
+  // Se usa .ilike() con escape de caracteres en vez de .eq() para una comparación insensible a mayúsculas/minúsculas.
+  const { data: adminData, error: adminQueryError } = await adminClient
+    .from("vista_administradores")
+    .select("habilitado")
+    .ilike("email", escapeLikePattern(email))
+    .maybeSingle();
+
+  if (adminQueryError) {
+    // Registrar el error para trazabilidad, pero no bloquear el flujo:
+    // si la consulta falla, priorizamos disponibilidad del servicio.
+    console.error(
+      "[sendRecoveryCode] Error al consultar vista_administradores:",
+      adminQueryError
+    );
+  }
+
+  if (adminData && adminData.habilitado === false) {
+    return {
+      error:
+        "Tu cuenta ha sido deshabilitada. Si crees que esto es un error, comunícate con el administrador principal del sistema.",
+    };
+  }
+
+  // ─── Flujo estándar ─────────────────────────────────────────────────
+  // Diferimos la inicialización del cliente SSR (cookies) para evitar su overhead 
+  // en el caso en que la cuenta esté deshabilitada preventivamente.
   const supabase = await createClient();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email);
@@ -192,7 +226,7 @@ export async function sendRecoveryCode(
     console.error("Error en resetPasswordForEmail:", error);
   }
 
-  // Seguridad: siempre responder igual para no revelar si el correo existe
+  // Seguridad: siempre responder igual para no revelar si el correo existe (excepto baneados)
   return {
     success: true,
     message:
