@@ -3,7 +3,7 @@ import { type AuthActionResult, Rol, type UserStatusResult } from "@/lib/types/a
 import { redirect } from "next/navigation";
 import type { AuthResponse } from "@supabase/supabase-js";
 
-import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
+import { formatILIKE } from "@/lib/validations/db-utils";
 
 // ─── Tipos internos ────────────────────────────────────────────────
 
@@ -467,8 +467,7 @@ export async function searchAdminUsers(
 ): Promise<AdminUserFromView[]> {
   const adminClient = createAdminClient();
 
-  const cleanInput = escapeLikePattern(searchTerm);
-  const normalizedSearch = formatILIKE(cleanInput);
+  const normalizedSearch = formatILIKE(searchTerm);
 
   const { data, error } = await adminClient
     .from("vista_administradores")

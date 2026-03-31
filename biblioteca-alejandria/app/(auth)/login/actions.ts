@@ -3,30 +3,31 @@
 import { redirect } from "next/navigation";
 import { Rol, type LoginState } from "@/lib/types/auth";
 import { signIn } from "@/models/authModel";
+import { sanitizeText, validateRequiredString, validateEmail } from "@/lib/validations/auth";
 
 export async function loginAction(
   email: string,
   password: string
 ): Promise<LoginState> {
-  // Validaciones básicas
-  if (!email || !email.trim()) {
-    return { error: "El correo electrónico es obligatorio." };
-  }
+  const cleanEmail = sanitizeText(email);
 
-  if (!password || !password.trim()) {
-    return { error: "La contraseña es obligatoria." };
-  }
+  const emailReq = validateRequiredString(cleanEmail, "El correo electrónico");
+  if (emailReq) return { error: emailReq };
 
-  const data = await signIn(email.trim(), password);
+  const emailFmt = validateEmail(cleanEmail);
+  if (emailFmt) return { error: emailFmt };
+
+  const pwdReq = validateRequiredString(password, "La contraseña");
+  if (pwdReq) return { error: pwdReq };
+
+  const data = await signIn(cleanEmail, password);
 
   if (!data) {
     return { error: "Usuario o contraseña incorrectos." };
   }
 
-  // Obtener el rol del usuario desde app_metadata
   const role = data.user?.app_metadata?.role as Rol | undefined;
 
-  // Redirigir según el rol
   switch (role) {
     case Rol.ROOT:
       redirect("/panel-root");
