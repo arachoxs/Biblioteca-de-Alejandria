@@ -36,7 +36,26 @@ export interface UserProfileData {
   usuario: string; // user_metadata.username
 }
 
-// ─── Payload de actualización ──────────────────────────────────────
+// ─── Payloads de Validación y Actualización ──────────────────────────
+
+export interface ProfileFieldsPayload {
+  dni?: string;
+  nombres: string;
+  apellidos: string;
+  fecha_nacimiento: string;
+  lugar_nacimiento: string;
+  genero: Genero | string;
+  usuario: string;
+  direccion: string;
+  direccion_place_id?: string;
+  direccion_detalle?: string | null;
+}
+
+/** Resultado con datos sanitizados + errores. */
+export interface ProfileValidationResult {
+  errors: Record<string, string>;
+  sanitized: ProfileFieldsPayload;
+}
 
 /** Datos enviados para actualizar el perfil. Excluye `dni` y `correo`. */
 export interface ProfileUpdatePayload {

@@ -34,10 +34,11 @@ function generateRandomPassword(length: number): string {
 export async function createAdminAccount(
   email: string
 ): Promise<RegisterResponse> {
+  const cleanEmail = email.trim();
   const password = generateRandomPassword(12);
 
   const credentialData: CredentialData = {
-    correo: email,
+    correo: cleanEmail,
     contrasena: password,
     confirmar_contrasena: password,
   };
@@ -63,8 +64,8 @@ export async function createAdminAccount(
     await logAdminAction({
       actorId: actor.id,
       action: AccionAdministrador.CREAR,
-      description: `Se creó el administrador ${email}.`,
-      entity: { id_usuario_creado: newUserId ?? null, correo: email },
+      description: `Se creó el administrador ${cleanEmail}.`,
+      entity: { id_usuario_creado: newUserId ?? null, correo: cleanEmail },
     });
   }
 

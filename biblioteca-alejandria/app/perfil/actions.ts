@@ -3,7 +3,7 @@
 import { getCurrentUser } from "@/models/authModel";
 import type { Genero } from "@/lib/types/auth";
 import type { ProfileUpdatePayload, ProfileUpdateResponse } from "@/lib/types/profile";
-import { validateProfileFields } from "@/lib/validations/profile";
+import { validateAndSanitizeProfile } from "@/lib/validations/profile";
 import { updateProfile } from "@/services/profile/profileService";
 import { revalidatePath } from "next/cache";
 
@@ -23,8 +23,8 @@ export async function updateProfileAction(
     };
   }
 
-  // 2. Construir payload
-  const payload: ProfileUpdatePayload = {
+  // 2. Validar y sanitizar
+  const { errors, sanitized } = validateAndSanitizeProfile({
     nombres: formData.get("nombres") as string,
     apellidos: formData.get("apellidos") as string,
     fecha_nacimiento: formData.get("fecha_nacimiento") as string,
@@ -34,19 +34,28 @@ export async function updateProfileAction(
     direccion: formattedAddress,
     direccion_place_id: placeId,
     direccion_detalle: (formData.get("direccion_detalle") as string | null) || null,
-  };
+  });
 
-  // 3. Validar datos
-  const validationErrors = validateProfileFields(payload);
-  if (Object.keys(validationErrors).length > 0) {
-    return { success: false, errors: validationErrors };
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors };
   }
+
+  // 3. Construir payload con datos sanitizados
+  const payload: ProfileUpdatePayload = {
+    nombres: sanitized.nombres,
+    apellidos: sanitized.apellidos,
+    fecha_nacimiento: sanitized.fecha_nacimiento,
+    lugar_nacimiento: sanitized.lugar_nacimiento,
+    genero: sanitized.genero as Genero,
+    usuario: sanitized.usuario,
+    direccion: sanitized.direccion,
+    direccion_place_id: sanitized.direccion_place_id!,
+    direccion_detalle: sanitized.direccion_detalle ?? null,
+  };
 
   // 4. Delegar al servicio
   try {
-    const result = await updateProfile(
-      payload
-    );
+    const result = await updateProfile(payload);
 
     if (result.success) {
       revalidatePath("/perfil");

@@ -6,7 +6,7 @@ import {
   verifyRecoveryCode as verifyRecoveryCodeService,
   resetPassword as resetPasswordService,
 } from "@/services/auth/recoveryService";
-import { validatePasswordRule } from "@/lib/validations/auth";
+import { validatePasswordRule, sanitizeText, validateEmail } from "@/lib/validations/auth";
 
 // ─── Constantes de validación ──────────────────────────────────────
 
@@ -17,11 +17,14 @@ const OTP_LENGTH = 8;
 export async function sendRecoveryCode(
   email: string
 ): Promise<AuthActionResult> {
-  const trimmedEmail = email?.trim();
+  const trimmedEmail = sanitizeText(email);
 
   if (!trimmedEmail) {
     return { error: "El correo electrónico es obligatorio." };
   }
+
+  const emailError = validateEmail(trimmedEmail);
+  if (emailError) return { error: emailError };
 
   return sendRecoveryCodeService(trimmedEmail);
 }
@@ -32,7 +35,7 @@ export async function verifyRecoveryCode(
   email: string,
   code: string
 ): Promise<AuthActionResult> {
-  const trimmedEmail = email?.trim();
+  const trimmedEmail = sanitizeText(email);
   const trimmedCode = code?.trim();
 
   if (!trimmedEmail || !trimmedCode) {
@@ -56,16 +59,12 @@ export async function resetPassword(
     return { error: "Ambos campos de contraseña son obligatorios." };
   }
 
-  // Flujo alternativo 9a/10a del CU-04: contraseñas no coinciden
   if (newPassword !== confirmPassword) {
     return { error: "Las contraseñas no coinciden." };
   }
 
-  // Validar requisitos de seguridad (CU-04, paso 10)
   const passwordError = validatePasswordRule(newPassword);
-  if (passwordError) {
-    return { error: passwordError };
-  }
+  if (passwordError) return { error: passwordError };
 
   return resetPasswordService(newPassword);
 }
