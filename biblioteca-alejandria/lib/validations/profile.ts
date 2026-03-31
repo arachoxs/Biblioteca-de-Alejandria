@@ -1,4 +1,3 @@
-import type { Genero } from "@/lib/types/auth";
 import {
   sanitizeText,
   validateRequiredString,
