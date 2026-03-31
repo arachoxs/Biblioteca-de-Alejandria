@@ -7,7 +7,7 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
 import PersonalDataFields from "@/components/PersonalDataFields";
-import { CredentialData, PersonalData, Genero } from "@/lib/types/auth";
+import type { CredentialData, PersonalData, Genero } from "@/lib/types/auth";
 import { registerUser } from "./actions";
 import { useValidation } from "@/hooks/useValidation";
 
