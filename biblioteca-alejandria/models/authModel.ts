@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { type AuthActionResult, Rol, type UserStatusResult } from "@/lib/types/auth";
 import { redirect } from "next/navigation";
@@ -185,7 +187,32 @@ export async function sendRecoveryCode(
   email: string
 ): Promise<AuthActionResult> {
   const supabase = await createClient();
+  const adminClient = createAdminClient();
 
+  // ─── Verificación temprana: cuenta de administrador deshabilitada ───
+  const { data: adminData, error: adminQueryError } = await adminClient
+    .from("vista_administradores")
+    .select("habilitado")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (adminQueryError) {
+    // Registrar el error para trazabilidad, pero no bloquear el flujo:
+    // si la consulta falla, priorizamos disponibilidad del servicio.
+    console.error(
+      "[sendRecoveryCode] Error al consultar vista_administradores:",
+      adminQueryError
+    );
+  }
+
+  if (adminData && adminData.habilitado === false) {
+    return {
+      error:
+        "Tu cuenta ha sido deshabilitada. Si crees que esto es un error, comunícate con el administrador principal del sistema.",
+    };
+  }
+
+  // ─── Flujo estándar ─────────────────────────────────────────────────
   const { error } = await supabase.auth.resetPasswordForEmail(email);
 
   if (error) {
