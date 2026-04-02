@@ -139,11 +139,6 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                         onFormattedAddressSelect={(addressText) => setFormattedAddress(addressText)}
                     />
 
-                    {/* Mantener valores de campos deshabilitados en el FormData */}
-                    <input type="hidden" name="dni" value={profileData.dni} />
-                    <input type="hidden" name="fecha_nacimiento" value={profileData.fecha_nacimiento} />
-                    <input type="hidden" name="lugar_nacimiento" value={profileData.lugar_nacimiento} />
-
                     {/* Datos de acceso */}
                     <fieldset className="space-y-5">
                         <legend className="text-base md:text-lg font-bold text-brand-primary uppercase tracking-widest pb-2 border-b border-brand-secondary/30 w-full">

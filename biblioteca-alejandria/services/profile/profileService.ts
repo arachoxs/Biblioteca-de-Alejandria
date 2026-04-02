@@ -120,8 +120,6 @@ export async function updateProfile(
     const profileResult = await updateUserProfile(userId, {
       nombres: payload.nombres,
       apellidos: payload.apellidos,
-      fecha_nacimiento: payload.fecha_nacimiento,
-      lugar_nacimiento: payload.lugar_nacimiento,
       genero: payload.genero,
       id_direccion: newAddressId,
     });
@@ -151,12 +149,9 @@ export async function updateProfile(
         console.error("Error al actualizar username en auth:", error);
         
         // ROLLBACK: Restaurar perfil y dirección
-        // 1. Revertimos usuario a la dirección original
         await updateUserProfile(userId, {
           nombres: currentProfile.nombres,
           apellidos: currentProfile.apellidos,
-          fecha_nacimiento: currentProfile.fecha_nacimiento,
-          lugar_nacimiento: currentProfile.lugar_nacimiento,
           genero: currentProfile.genero,
           id_direccion: addressId,
         });

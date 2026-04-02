@@ -3,7 +3,7 @@
 import { getCurrentUser } from "@/models/authModel";
 import type { Genero } from "@/lib/types/auth";
 import type { ProfileUpdatePayload, ProfileUpdateResponse } from "@/lib/types/profile";
-import { validateAndSanitizeProfile } from "@/lib/validations/profile";
+import { validateProfileUpdate } from "@/lib/validations/profile";
 import { updateProfile } from "@/services/profile/profileService";
 import { revalidatePath } from "next/cache";
 
@@ -23,12 +23,10 @@ export async function updateProfileAction(
     };
   }
 
-  // 2. Validar y sanitizar
-  const { errors, sanitized } = validateAndSanitizeProfile({
+  // 2. Validar y sanitizar solo campos editables
+  const { errors, sanitized } = validateProfileUpdate({
     nombres: formData.get("nombres") as string,
     apellidos: formData.get("apellidos") as string,
-    fecha_nacimiento: formData.get("fecha_nacimiento") as string,
-    lugar_nacimiento: formData.get("lugar_nacimiento") as string,
     genero: formData.get("genero") as Genero,
     usuario: formData.get("usuario") as string,
     direccion: formattedAddress,
@@ -40,18 +38,8 @@ export async function updateProfileAction(
     return { success: false, errors };
   }
 
-  // 3. Construir payload con datos sanitizados
-  const payload: ProfileUpdatePayload = {
-    nombres: sanitized.nombres,
-    apellidos: sanitized.apellidos,
-    fecha_nacimiento: sanitized.fecha_nacimiento,
-    lugar_nacimiento: sanitized.lugar_nacimiento,
-    genero: sanitized.genero as Genero,
-    usuario: sanitized.usuario,
-    direccion: sanitized.direccion,
-    direccion_place_id: sanitized.direccion_place_id!,
-    direccion_detalle: sanitized.direccion_detalle ?? null,
-  };
+  // 3. Construir payload con datos sanitizados (ya tipado correctamente)
+  const payload: ProfileUpdatePayload = sanitized;
 
   // 4. Delegar al servicio
   try {
