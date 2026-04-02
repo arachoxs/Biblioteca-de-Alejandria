@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/models/authModel";
 import type { Genero } from "@/lib/types/auth";
 import type { ProfileUpdateResponse } from "@/lib/types/profile";
 import { validateAndSanitizeProfile } from "@/lib/validations/profile";
-import { validatePasswordRule } from "@/lib/validations/auth";
+import { validatePasswordRule } from "@/lib/validations/rules";
 import { completeAdminProfile } from "@/services/profile/completeProfileService";
 
 // ─── Server Action ─────────────────────────────────────────────────

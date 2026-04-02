@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
@@ -10,6 +10,18 @@ import PersonalDataFields from "@/components/PersonalDataFields";
 import type { CredentialData, PersonalData, Genero } from "@/lib/types/auth";
 import { registerUser } from "./actions";
 import { useValidation } from "@/hooks/useValidation";
+import {
+    validateFieldRules,
+    requiredRule,
+    dniRule,
+    notBlankRule,
+    ageRule,
+    emailRule,
+    passwordRule,
+    matchRule,
+    usernameRule,
+    requiredPasswordRule,
+} from "@/lib/validations/rules";
 
 type RegistroFormValues = {
     dni: string;
@@ -33,8 +45,57 @@ export default function RegistroForm() {
     const [formattedAddress, setFormattedAddress] = useState("");
     const [placeId, setPlaceId] = useState("");
 
-    // Hook de validación en tiempo real
-    const { values, errors, handleChange } = useValidation<RegistroFormValues>(
+    // Función de validación usando reglas atómicas de rules.ts
+    const validateForm = useCallback((values: RegistroFormValues): Record<string, string> => {
+        const errors: Record<string, string> = {};
+
+        // Validar DNI
+        const dniError = validateFieldRules(values.dni, [requiredRule("DNI"), dniRule()]);
+        if (dniError) errors.dni = dniError;
+
+        // Validar nombres/apellidos
+        const nombresError = validateFieldRules(values.nombres, [requiredRule("Nombres"), notBlankRule("nombres")]);
+        if (nombresError) errors.nombres = nombresError;
+
+        const apellidosError = validateFieldRules(values.apellidos, [requiredRule("Apellidos"), notBlankRule("apellidos")]);
+        if (apellidosError) errors.apellidos = apellidosError;
+
+        // Validar fecha de nacimiento (18-80 años)
+        const fechaError = validateFieldRules(values.fecha_nacimiento, [requiredRule("Fecha de nacimiento"), ageRule(18, 80)]);
+        if (fechaError) errors.fecha_nacimiento = fechaError;
+
+        // Validar lugar de nacimiento
+        const lugarError = validateFieldRules(values.lugar_nacimiento, [requiredRule("Lugar de nacimiento")]);
+        if (lugarError) errors.lugar_nacimiento = lugarError;
+
+        // Validar género
+        const generoError = validateFieldRules(values.genero, [requiredRule("Género")]);
+        if (generoError) errors.genero = generoError;
+
+        // Validar usuario
+        const usuarioError = validateFieldRules(values.usuario, [requiredRule("Nombre de usuario"), usernameRule()]);
+        if (usuarioError) errors.usuario = usuarioError;
+
+        // Validar correo
+        const correoError = validateFieldRules(values.correo, [requiredRule("Correo electrónico"), emailRule()]);
+        if (correoError) errors.correo = correoError;
+
+        // Validar contraseña
+        const contrasenaError = validateFieldRules(values.contrasena, [requiredPasswordRule(), passwordRule()]);
+        if (contrasenaError) errors.contrasena = contrasenaError;
+
+        // Validar confirmación de contraseña
+        const confirmarError = validateFieldRules(values.confirmar_contrasena, [
+            requiredRule("Confirmar contraseña"),
+            matchRule(() => values.contrasena, "Las contraseñas no coinciden."),
+        ]);
+        if (confirmarError) errors.confirmar_contrasena = confirmarError;
+
+        return errors;
+    }, []);
+
+    // Hook de validación con patrón híbrido (blur inicial + onChange en corrección)
+    const { values, errors, handleChange, handleBlur, setErrors } = useValidation<RegistroFormValues>(
         {
             dni: "",
             nombres: "",
@@ -48,77 +109,59 @@ export default function RegistroForm() {
             contrasena: "",
             confirmar_contrasena: "",
         },
-        (values) => {
-            const validationErrors: Record<string, string> = {};
-
-            // Validar DNI (5-20 caracteres alfanuméricos)
-            if (values.dni && !/^[A-Za-z0-9]{5,20}$/.test(values.dni.trim())) {
-                validationErrors.dni = "El documento debe tener entre 5 y 20 caracteres alfanuméricos.";
+        validateForm,
+        {
+            // Callback para limpiar errores del servidor cuando el usuario edita el campo
+            onFieldChange: (field) => {
+                setServerErrors((prev) => {
+                    const { [field]: _, ...rest } = prev;
+                    return rest;
+                });
             }
-
-            if(values.nombres!=null && values.nombres!== ""){ //solo realiza validacion cuando inicialmente se ponen espacios vacios
-                if(values.nombres.trim()=== ""){
-                    validationErrors.nombres = "El campo nombres no puede estar vacío.";
-                }
-            }
-
-            if(values.apellidos!=null && values.apellidos!== ""){ //solo realiza validacion cuando inicialmente se ponen espacios vacios
-                if(values.apellidos.trim()=== ""){
-                    validationErrors.apellidos = "El campo apellidos no puede estar vacío.";
-                }
-            }
-
-            // Validar fecha de nacimiento (18-80 años)
-            if (values.fecha_nacimiento) {
-                const fechaSeleccionada = new Date(values.fecha_nacimiento);
-                const hoy = new Date();
-
-                if (!isNaN(fechaSeleccionada.getTime())) {
-                    let edad = hoy.getFullYear() - fechaSeleccionada.getFullYear();
-                    const diferenciaMeses = hoy.getMonth() - fechaSeleccionada.getMonth();
-
-                    if (diferenciaMeses < 0 || (diferenciaMeses === 0 && hoy.getDate() < fechaSeleccionada.getDate())) {
-                        edad--;
-                    }
-
-                    if (fechaSeleccionada > hoy) {
-                        validationErrors.fecha_nacimiento = "No puedes haber nacido en el futuro.";
-                    } else if (edad < 18) {
-                        validationErrors.fecha_nacimiento = "Debes tener al menos 18 años.";
-                    } else if (edad > 80) {
-                        validationErrors.fecha_nacimiento = "La edad máxima permitida es 80 años.";
-                    }
-                }
-            }
-
-            /*validar es un servicio externo por ende no se realizara instanteno
-            // Validar dirección de correspondencia (debe tener place_id)
-            if (formattedAddress && !placeId) {
-                validationErrors.direccion = "Por favor selecciona una dirección válida de las sugerencias.";
-            }
-            */
-
-            // Validar correo electrónico
-            if (values.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.correo)) {
-                validationErrors.correo = "El correo electrónico no es válido.";
-            }
-
-            // Validar contraseña (mínimo 8 caracteres)
-            if (values.contrasena && values.contrasena.length < 8) {
-                validationErrors.contrasena = "La contraseña debe tener al menos 8 caracteres.";
-            }
-
-            // Validar confirmación de contraseña
-            if (values.confirmar_contrasena && values.contrasena !== values.confirmar_contrasena) {
-                validationErrors.confirmar_contrasena = "Las contraseñas no coinciden.";
-            }
-
-            return validationErrors;
         }
     );
 
     // Combinar errores de cliente y servidor
     const allErrors = { ...errors, ...serverErrors };
+    
+    // Wrapper para manejar cambios en contraseña y revalidar confirmar_contrasena
+    const handlePasswordChange = useCallback((field: keyof RegistroFormValues, value: unknown) => {
+        handleChange(field, value);
+        
+        // Si cambió contrasena Y confirmar_contrasena tiene error → revalidar inmediatamente
+        if (field === "contrasena" && errors.confirmar_contrasena) {
+            const newValues = { ...values, contrasena: value as string };
+            const confirmarError = validateFieldRules(newValues.confirmar_contrasena, [
+                requiredRule("Confirmar contraseña"),
+                matchRule(() => newValues.contrasena, "Las contraseñas no coinciden.")
+            ]);
+            
+            setErrors((prev) => {
+                if (confirmarError) {
+                    return { ...prev, confirmar_contrasena: confirmarError };
+                } else {
+                    const { confirmar_contrasena: _, ...rest } = prev;
+                    return rest;
+                }
+            });
+        }
+    }, [handleChange, errors.confirmar_contrasena, values, setErrors]);
+
+    // Validar dirección: si hay formattedAddress debe existir placeId
+    useEffect(() => {
+        if (formattedAddress && !placeId) {
+            setErrors(prev => ({ 
+                ...prev, 
+                direccion: "Por favor selecciona una dirección válida de las sugerencias." 
+            }));
+        } else if (allErrors.direccion && placeId) {
+            // Limpiar error si ahora hay placeId válido
+            setErrors(prev => {
+                const { direccion, ...rest } = prev;
+                return rest;
+            });
+        }
+    }, [formattedAddress, placeId, setErrors, allErrors.direccion]);
 
     useEffect(() => {
         if (success) {
@@ -132,11 +175,11 @@ export default function RegistroForm() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        console.log(formattedAddress);
-        
-        // Validar que no haya errores del cliente antes de enviar
-        if (Object.keys(errors).length > 0) {
-            // No enviar si hay errores de validación
+        // Validar todo el formulario antes de enviar (incluye campos sin blur)
+        const validationErrors = validateForm(values);
+        setErrors(validationErrors);
+
+        if (Object.keys(validationErrors).length > 0) {
             return;
         }
 
@@ -145,7 +188,7 @@ export default function RegistroForm() {
         setSuccess(false);
 
         try {
-            const personalData: PersonalData = { //los valores son toman del hook de validacion, que se actualizan en tiempo real con el handleChange, y ademas se le agregan los datos de direccion formateada y placeId que se obtienen del componente de google autocomplete
+            const personalData: PersonalData = {
                 dni: values.dni,
                 nombres: values.nombres,
                 apellidos: values.apellidos,
@@ -170,6 +213,7 @@ export default function RegistroForm() {
                 setSuccess(true);
                 setServerErrors({});
             } else {
+                // Inyectar errores del servidor en el hook
                 setServerErrors(response.errors || { form: response.message || "Error desconocido" });
             }
 
@@ -182,7 +226,7 @@ export default function RegistroForm() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-10 w-full my-auto relative">
+        <form onSubmit={handleSubmit} noValidate className="space-y-10 w-full my-auto relative">
 
             {/* Mensajes de estado globales */}
             {allErrors.form && (
@@ -209,7 +253,8 @@ export default function RegistroForm() {
                     genero: values.genero as Genero,
                     direccion_detalle: values.direccion_detalle,
                 }}
-                onChange={(field, value) => handleChange(field as keyof RegistroFormValues, value)} //aca es donde aparece el custom hook
+                onChange={(field, value) => handleChange(field as keyof RegistroFormValues, value)}
+                onBlur={(field) => handleBlur(field as keyof RegistroFormValues)}
                 onPlaceSelect={(selectedPlaceId) => setPlaceId(selectedPlaceId)}
                 onFormattedAddressSelect={(addressText) => setFormattedAddress(addressText)}
             />
@@ -229,6 +274,7 @@ export default function RegistroForm() {
                         required
                         value={values.usuario}
                         onChange={(e) => handleChange("usuario", e.target.value)}
+                        onBlur={() => handleBlur("usuario")}
                         error={allErrors.usuario}
                     />
                     <Input
@@ -240,6 +286,7 @@ export default function RegistroForm() {
                         required
                         value={values.correo}
                         onChange={(e) => handleChange("correo", e.target.value)}
+                        onBlur={() => handleBlur("correo")}
                         error={allErrors.correo}
                     />
                     <div>
@@ -251,7 +298,8 @@ export default function RegistroForm() {
                             placeholder="••••••••"
                             required
                             value={values.contrasena}
-                            onChange={(e) => handleChange("contrasena", e.target.value)}
+                            onChange={(e) => handlePasswordChange("contrasena", e.target.value)}
+                            onBlur={() => handleBlur("contrasena")}
                             error={allErrors.contrasena}
                         />
                         <span className={`text-xs text-brand-accent font-light mt-1 block ${allErrors.contrasena ? "invisible" : ""}`}>
@@ -267,13 +315,14 @@ export default function RegistroForm() {
                         required
                         value={values.confirmar_contrasena}
                         onChange={(e) => handleChange("confirmar_contrasena", e.target.value)}
+                        onBlur={() => handleBlur("confirmar_contrasena")}
                         error={allErrors.confirmar_contrasena}
                     />
                 </div>
             </fieldset>
 
             <div className="flex gap-5 flex-col">
-                <Button type="submit" className="flex flex-row items-center justify-center gap-5"  disabled={loading || Object.keys(errors).length > 0}>
+                <Button type="submit" className="flex flex-row items-center justify-center gap-5" disabled={loading || Object.keys(errors).length > 0}>
                     {loading ? (
                         <>
                             <svg className="text-brand-text size-5 animate-spin" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" /></svg>

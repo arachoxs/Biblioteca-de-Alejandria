@@ -9,7 +9,7 @@ import {
   MAX_DNI,
   MIN_DNI,
   MAX_DIRECCION_DETALLE,
-} from "./auth";
+} from "./rules";
 
 import type { ProfileFieldsPayload, ProfileValidationResult } from "@/lib/types/profile";
 

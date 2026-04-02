@@ -2,7 +2,7 @@
 
 import { globalSignOutModel } from "@/models/authModel";
 import { changePassword } from "@/services/auth/authService";
-import { validatePasswordRule } from "@/lib/validations/auth";
+import { validatePasswordRule } from "@/lib/validations/rules";
 import type { AuthActionResult } from "@/lib/types/auth";
 
 /**

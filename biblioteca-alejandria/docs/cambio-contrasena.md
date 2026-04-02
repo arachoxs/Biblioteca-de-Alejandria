@@ -35,7 +35,7 @@ ChangePasswordModal (client)
 
 | Archivo | Función | Tipo |
 |---|---|---|
-| `lib/validations/auth.ts` | `validatePasswordRule()` | **Nuevo** |
+| `lib/validations/rules.ts` | `validatePasswordRule()` | **Nuevo** |
 | `models/authModel.ts` | `updatePasswordWithVerification()` | **Nuevo** |
 | `services/auth/authService.ts` | `changePassword()` | **Nuevo** |
 | `app/actions/authActions.ts` | `changePasswordAction()` | **Modificado** |

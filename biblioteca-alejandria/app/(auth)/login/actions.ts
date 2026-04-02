@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { Rol, type LoginState } from "@/lib/types/auth";
 import { signIn } from "@/models/authModel";
-import { sanitizeText, validateRequiredString, validateEmail } from "@/lib/validations/auth";
+import { sanitizeText, validateRequiredString, validateEmail } from "@/lib/validations/rules";
 
 export async function loginAction(
   email: string,
