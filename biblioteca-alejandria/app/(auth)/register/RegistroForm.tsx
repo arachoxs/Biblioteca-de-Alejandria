@@ -143,8 +143,11 @@ export default function RegistroForm() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        // Validar que no haya errores del cliente antes de enviar
-        if (Object.keys(errors).length > 0) {
+        // Validar todo el formulario antes de enviar (incluye campos sin blur)
+        const validationErrors = validateForm(values);
+        setErrors(validationErrors);
+
+        if (Object.keys(validationErrors).length > 0) {
             return;
         }
 

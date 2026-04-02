@@ -22,7 +22,7 @@ interface UseValidationReturn<T> {
  *
  * ## Patrón de validación:
  * 1. **Primera interacción**: Valida solo en `onBlur` (modo paciente).
- * 2. **Corrección de errores**: Si el campo está tocado Y tiene error, valida en `onChange`.
+ * 2. **Corrección de errores**: Si el campo tiene un error actual (`errors[field]`), vuelve a validar en `onChange`.
  * 3. **Validaciones async**: Usar `useDebounce` por separado para verificaciones de unicidad.
  *
  * @template T - Interfaz que define la estructura de los campos del formulario.
@@ -59,16 +59,7 @@ export function useValidation<T extends Record<string, unknown>>(
   const validateField = useCallback(
     (field: keyof T, currentValues: T) => {
       const allErrors = validateFn(currentValues);
-      const fieldError = allErrors[field as string];
-      
-      setErrors((prev) => {
-        if (fieldError) {
-          return { ...prev, [field]: fieldError };
-        }
-        // Eliminar el error si ya no existe
-        const { [field as string]: _, ...rest } = prev;
-        return rest;
-      });
+      setErrors(allErrors);
     },
     [validateFn]
   );

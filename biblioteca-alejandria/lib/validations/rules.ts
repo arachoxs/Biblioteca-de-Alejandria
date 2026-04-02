@@ -40,7 +40,11 @@ export function validateFieldRules(
 /** Regla: campo requerido (no vacío después de trim). */
 export function requiredRule(label: string): ValidationRule {
   return (value: unknown) => {
-    if (!value || (typeof value === "string" && value.trim() === "")) {
+    if (
+      value === null ||
+      value === undefined ||
+      (typeof value === "string" && value.trim() === "")
+    ) {
       return `${label} es obligatorio.`;
     }
     return null;
