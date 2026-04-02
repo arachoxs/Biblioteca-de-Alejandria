@@ -59,7 +59,18 @@ export function useValidation<T extends Record<string, unknown>>(
   const validateField = useCallback(
     (field: keyof T, currentValues: T) => {
       const allErrors = validateFn(currentValues);
-      setErrors(allErrors);
+
+      setErrors((prevErrors => {
+        const newErrors = { ...prevErrors };
+
+        if (allErrors[field as string]) {
+          newErrors[field as string] = allErrors[field as string];
+        } else {
+          delete newErrors[field as string];
+        }
+
+        return newErrors;
+      }));
     },
     [validateFn]
   );
