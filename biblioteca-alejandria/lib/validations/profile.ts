@@ -1,33 +1,83 @@
 import {
   sanitizeText,
-  validateRequiredString,
-  validateMaxLength,
-  validateUsername,
+  validateFieldRules,
+  requiredRule,
+  maxLengthRule,
+  dniRule,
+  usernameRule,
+  ageRule,
+  placeIdRequiredRule,
+  type ValidationRule,
   MAX_NOMBRE,
   MAX_APELLIDO,
-  MAX_USUARIO,
-  MAX_DNI,
-  MIN_DNI,
   MAX_DIRECCION_DETALLE,
 } from "./rules";
 
-import type { ProfileFieldsPayload, ProfileValidationResult } from "@/lib/types/profile";
+import type {
+  FullProfilePayload,
+  FullProfileValidationResult,
+  ProfileUpdatePayload,
+  ProfileUpdateValidationResult,
+} from "@/lib/types/profile";
 
+// ─── Configuración de campos ───────────────────────────────────────
 
-/**
- * Versión completa que retorna tanto errores como datos sanitizados.
- */
-export function validateAndSanitizeProfile(
-  payload: ProfileFieldsPayload,
-  options: { requireDni?: boolean } = {}
-): ProfileValidationResult {
-  const errors: Record<string, string> = {};
-  const { requireDni = false } = options;
+interface FieldConfig {
+  label: string;
+  rules: ValidationRule[];
+  optional?: boolean;
+}
 
-  // Sanitizar todos los campos de texto
-  const sanitized: ProfileFieldsPayload = {
-    ...payload,
-    dni: payload.dni ? sanitizeText(payload.dni) : payload.dni,
+// Campos compartidos entre ambas validaciones
+const sharedFieldConfigs: Record<string, FieldConfig> = {
+  nombres: {
+    label: "Nombres",
+    rules: [requiredRule("Nombres"), maxLengthRule(MAX_NOMBRE, "Nombres")],
+  },
+  apellidos: {
+    label: "Apellidos",
+    rules: [requiredRule("Apellidos"), maxLengthRule(MAX_APELLIDO, "Apellidos")],
+  },
+  genero: {
+    label: "Género",
+    rules: [requiredRule("Género")],
+  },
+  usuario: {
+    label: "Nombre de usuario",
+    rules: [requiredRule("Nombre de usuario"), usernameRule()],
+  },
+  direccion: {
+    label: "Dirección",
+    rules: [requiredRule("Dirección")],
+  },
+  direccion_detalle: {
+    label: "Detalle de la dirección",
+    rules: [maxLengthRule(MAX_DIRECCION_DETALLE, "Detalle de la dirección")],
+    optional: true,
+  },
+};
+
+// Campos específicos del perfil completo (registro/onboarding)
+const fullProfileOnlyFields: Record<string, FieldConfig> = {
+  dni: {
+    label: "DNI",
+    rules: [requiredRule("DNI"), dniRule()],
+  },
+  fecha_nacimiento: {
+    label: "Fecha de nacimiento",
+    rules: [requiredRule("Fecha de nacimiento"), ageRule(18, 80)],
+  },
+  lugar_nacimiento: {
+    label: "Lugar de nacimiento",
+    rules: [requiredRule("Lugar de nacimiento")],
+  },
+};
+
+// ─── Helpers de sanitización ───────────────────────────────────────
+
+function sanitizeFullProfile(payload: FullProfilePayload): FullProfilePayload {
+  return {
+    dni: sanitizeText(payload.dni),
     nombres: sanitizeText(payload.nombres),
     apellidos: sanitizeText(payload.apellidos),
     fecha_nacimiento: payload.fecha_nacimiento?.trim() ?? "",
@@ -35,99 +85,91 @@ export function validateAndSanitizeProfile(
     genero: payload.genero,
     usuario: payload.usuario?.trim() ?? "",
     direccion: sanitizeText(payload.direccion),
-    direccion_place_id: payload.direccion_place_id?.trim(),
+    direccion_place_id: payload.direccion_place_id?.trim() ?? "",
     direccion_detalle: payload.direccion_detalle
       ? sanitizeText(payload.direccion_detalle)
       : payload.direccion_detalle,
   };
+}
 
-  // Campos obligatorios
-  const required: { key: keyof ProfileFieldsPayload; label: string; max?: number }[] = [
-    { key: "nombres", label: "Nombres", max: MAX_NOMBRE },
-    { key: "apellidos", label: "Apellidos", max: MAX_APELLIDO },
-    { key: "fecha_nacimiento", label: "Fecha de nacimiento" },
-    { key: "lugar_nacimiento", label: "Lugar de nacimiento" },
-    { key: "genero", label: "Género" },
-    { key: "usuario", label: "Nombre de usuario", max: MAX_USUARIO },
-    { key: "direccion", label: "Dirección" },
-  ];
+function sanitizeProfileUpdate(payload: ProfileUpdatePayload): ProfileUpdatePayload {
+  return {
+    nombres: sanitizeText(payload.nombres),
+    apellidos: sanitizeText(payload.apellidos),
+    genero: payload.genero,
+    usuario: payload.usuario?.trim() ?? "",
+    direccion: sanitizeText(payload.direccion),
+    direccion_place_id: payload.direccion_place_id?.trim() ?? "",
+    direccion_detalle: payload.direccion_detalle
+      ? sanitizeText(payload.direccion_detalle)
+      : payload.direccion_detalle,
+  };
+}
 
-  if (requireDni) {
-    required.unshift({ key: "dni", label: "DNI", max: MAX_DNI });
+// ─── Helper de validación ──────────────────────────────────────────
+
+function validateFields(
+  sanitized: FullProfilePayload | ProfileUpdatePayload,
+  fieldConfigs: Record<string, FieldConfig>,
+  errors: Record<string, string>
+): void {
+  for (const [key, config] of Object.entries(fieldConfigs)) {
+    const value = (sanitized as unknown as Record<string, unknown>)[key];
+    
+    // Saltar campos opcionales vacíos
+    if (config.optional && !value) continue;
+    
+    const error = validateFieldRules(value, config.rules);
+    if (error) errors[key] = error;
+  }
+}
+
+// ─── Validación para registro y onboarding ─────────────────────────
+
+/**
+ * Valida y sanitiza todos los campos del perfil para registro/onboarding.
+ * Incluye campos inmutables: dni, fecha_nacimiento, lugar_nacimiento.
+ */
+export function validateFullProfile(
+  payload: FullProfilePayload
+): FullProfileValidationResult {
+  const errors: Record<string, string> = {};
+  const sanitized = sanitizeFullProfile(payload);
+
+  // Validar campos específicos del perfil completo
+  validateFields(sanitized, fullProfileOnlyFields, errors);
+
+  // Validar campos compartidos
+  validateFields(sanitized, sharedFieldConfigs, errors);
+
+  // Validar place_id solo si la dirección es válida
+  if (!errors.direccion) {
+    const placeIdError = validateFieldRules(sanitized.direccion_place_id, [placeIdRequiredRule()]);
+    if (placeIdError) errors.direccion = placeIdError;
   }
 
-  for (const { key, label, max } of required) {
-    const value = sanitized[key];
-    const reqError = validateRequiredString(value, label);
-    if (reqError) {
-      errors[key] = reqError;
-    } else if (max && typeof value === "string") {
-      const lenError = validateMaxLength(value, max, label);
-      if (lenError) errors[key] = lenError;
-    }
-  }
+  return { errors, sanitized };
+}
 
-  // Validar formato del DNI
-  if (!errors.dni && sanitized.dni) {
-    const dniStr = sanitized.dni;
-    const dniRegex = /^[A-Za-z0-9]+$/;
-    if (
-      dniStr.length < MIN_DNI ||
-      dniStr.length > MAX_DNI ||
-      !dniRegex.test(dniStr)
-    ) {
-      errors.dni = `El documento debe tener entre ${MIN_DNI} y ${MAX_DNI} caracteres alfanuméricos.`;
-    }
-  }
+// ─── Validación para actualización de perfil ───────────────────────
 
-  // Validar formato del username
-  if (!errors.usuario && sanitized.usuario) {
-    const usernameError = validateUsername(sanitized.usuario);
-    if (usernameError) errors.usuario = usernameError;
-  }
+/**
+ * Valida y sanitiza únicamente los campos editables del perfil.
+ * Excluye campos inmutables: dni, fecha_nacimiento, lugar_nacimiento.
+ */
+export function validateProfileUpdate(
+  payload: ProfileUpdatePayload
+): ProfileUpdateValidationResult {
+  const errors: Record<string, string> = {};
+  const sanitized = sanitizeProfileUpdate(payload);
 
-  // Validar dirección detalle (longitud máxima, campo opcional)
-  if (sanitized.direccion_detalle) {
-    const detError = validateMaxLength(
-      sanitized.direccion_detalle,
-      MAX_DIRECCION_DETALLE,
-      "Detalle de la dirección"
-    );
-    if (detError) errors.direccion_detalle = detError;
-  }
+  // Validar solo campos compartidos (editables)
+  validateFields(sanitized, sharedFieldConfigs, errors);
 
-  // Validar fecha de nacimiento
-  if (!errors.fecha_nacimiento) {
-    const fechaSeleccionada = new Date(sanitized.fecha_nacimiento);
-    const hoy = new Date();
-
-    if (Number.isNaN(fechaSeleccionada.getTime())) {
-      errors.fecha_nacimiento = "La fecha de nacimiento no es válida.";
-    } else {
-      let edad = hoy.getFullYear() - fechaSeleccionada.getFullYear();
-      const diferenciaMeses = hoy.getMonth() - fechaSeleccionada.getMonth();
-
-      if (
-        diferenciaMeses < 0 ||
-        (diferenciaMeses === 0 && hoy.getDate() < fechaSeleccionada.getDate())
-      ) {
-        edad--;
-      }
-
-      if (fechaSeleccionada > hoy) {
-        errors.fecha_nacimiento = "No puedes haber nacido en el futuro.";
-      } else if (edad < 18) {
-        errors.fecha_nacimiento = "Debes tener al menos 18 años.";
-      } else if (edad > 80) {
-        errors.fecha_nacimiento = "La edad máxima permitida es 80 años.";
-      }
-    }
-  }
-
-  // Validar dirección con Google Places
-  if (!errors.direccion && !sanitized.direccion_place_id) {
-    errors.direccion =
-      "Por favor selecciona una dirección válida de las sugerencias.";
+  // Validar place_id solo si la dirección es válida
+  if (!errors.direccion) {
+    const placeIdError = validateFieldRules(sanitized.direccion_place_id, [placeIdRequiredRule()]);
+    if (placeIdError) errors.direccion = placeIdError;
   }
 
   return { errors, sanitized };

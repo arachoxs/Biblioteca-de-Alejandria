@@ -4,7 +4,8 @@ import { CredentialData, PersonalData, RegisterResponse, Rol } from "@/lib/types
 import { register } from "@/services/auth/registrationService";
 import { validatePasswordRule, validateEmail, sanitizeText } from "@/lib/validations/rules";
 import { signIn } from "@/models/authModel";
-import { validateAndSanitizeProfile } from "@/lib/validations/profile";
+import { validateFullProfile } from "@/lib/validations/profile";
+import type { FullProfilePayload } from "@/lib/types/profile";
 
 // ─── Validación de entrada ─────────────────────────────────────────
 
@@ -12,7 +13,21 @@ function validateRegistrationData(
   credentialData: CredentialData,
   personalData: PersonalData
 ): { errors: Record<string, string>; sanitizedPersonal: PersonalData } {
-  const profileResult = validateAndSanitizeProfile(personalData, { requireDni: true });
+  // Construir payload para validación de perfil completo
+  const profilePayload: FullProfilePayload = {
+    dni: personalData.dni,
+    nombres: personalData.nombres,
+    apellidos: personalData.apellidos,
+    fecha_nacimiento: personalData.fecha_nacimiento,
+    lugar_nacimiento: personalData.lugar_nacimiento,
+    genero: personalData.genero,
+    usuario: personalData.usuario,
+    direccion: personalData.direccion,
+    direccion_place_id: personalData.direccion_place_id,
+    direccion_detalle: personalData.direccion_detalle ?? null,
+  };
+
+  const profileResult = validateFullProfile(profilePayload);
   const errors = { ...profileResult.errors };
 
   // Sanitizar y validar email
@@ -45,14 +60,14 @@ function validateRegistrationData(
   // Construir datos personales sanitizados
   const sanitizedPersonal: PersonalData = {
     ...personalData,
-    dni: profileResult.sanitized.dni ?? personalData.dni,
+    dni: profileResult.sanitized.dni,
     nombres: profileResult.sanitized.nombres,
     apellidos: profileResult.sanitized.apellidos,
     fecha_nacimiento: profileResult.sanitized.fecha_nacimiento,
     lugar_nacimiento: profileResult.sanitized.lugar_nacimiento,
     usuario: profileResult.sanitized.usuario,
     direccion: profileResult.sanitized.direccion,
-    direccion_place_id: profileResult.sanitized.direccion_place_id ?? personalData.direccion_place_id,
+    direccion_place_id: profileResult.sanitized.direccion_place_id,
     direccion_detalle: profileResult.sanitized.direccion_detalle ?? undefined,
   };
 

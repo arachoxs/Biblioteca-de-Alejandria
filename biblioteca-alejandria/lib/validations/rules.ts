@@ -204,6 +204,16 @@ export function notBlankRule(label: string): ValidationRule {
   };
 }
 
+/** Regla: dirección debe tener place_id de Google Places. */
+export function placeIdRequiredRule(): ValidationRule {
+  return (value: unknown) => {
+    if (!value || (typeof value === "string" && value.trim() === "")) {
+      return "Por favor selecciona una dirección válida de las sugerencias.";
+    }
+    return null;
+  };
+}
+
 // ─── Utilidades de sanitización ────────────────────────────────────
 
 /** Trim + colapsar espacios múltiples internos. */
