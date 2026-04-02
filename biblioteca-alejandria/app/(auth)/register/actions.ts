@@ -2,7 +2,7 @@
 
 import { CredentialData, PersonalData, RegisterResponse, Rol } from "@/lib/types/auth";
 import { register } from "@/services/auth/registrationService";
-import { validatePasswordRule, validateEmail, sanitizeText } from "@/lib/validations/auth";
+import { validatePasswordRule, validateEmail, sanitizeText } from "@/lib/validations/rules";
 import { signIn } from "@/models/authModel";
 import { validateAndSanitizeProfile } from "@/lib/validations/profile";
 

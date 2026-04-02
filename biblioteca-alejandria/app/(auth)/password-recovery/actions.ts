@@ -6,7 +6,7 @@ import {
   verifyRecoveryCode as verifyRecoveryCodeService,
   resetPassword as resetPasswordService,
 } from "@/services/auth/recoveryService";
-import { validatePasswordRule, sanitizeText, validateEmail } from "@/lib/validations/auth";
+import { validatePasswordRule, sanitizeText, validateEmail } from "@/lib/validations/rules";
 
 // ─── Constantes de validación ──────────────────────────────────────
 

@@ -41,6 +41,7 @@ interface PersonalDataFieldsProps {
     values?: PersonalDataValues;  // Valores controlados
     //cuando se usa validaciones instantenas la fuentes de la verdad lo dan los values y no los defaultValues, por eso se pasan ambos, para poder usar el componente en ambos contextos (con o sin validaciones instantaneas)
     onChange?: <K extends keyof PersonalDataValues>(field: K, value: PersonalDataValues[K]) => void;  // Handler para onChange
+    onBlur?: (field: keyof PersonalDataValues) => void;  // Handler para onBlur (patrón híbrido de validación)
     onPlaceSelect: (placeId: string) => void;
     onFormattedAddressSelect: (address: string) => void;
 }
@@ -57,6 +58,7 @@ export default function PersonalDataFields({
     defaultValues = {},
     values, //se pasan nuevos datos para las validaciones instanteas
     onChange,
+    onBlur,
     onPlaceSelect,
     onFormattedAddressSelect,
 }: PersonalDataFieldsProps) {
@@ -81,6 +83,7 @@ export default function PersonalDataFields({
                         ? { value: values.dni || "", onChange: (e) => onChange!("dni", e.target.value) }
                         : { defaultValue: defaultValues.dni }
                     )}
+                    onBlur={onBlur ? () => onBlur("dni") : undefined}
                     error={errors.dni}
                 />
                 <Input
@@ -93,6 +96,7 @@ export default function PersonalDataFields({
                         ? { value: values.nombres || "", onChange: (e) => onChange!("nombres", e.target.value) }
                         : { defaultValue: defaultValues.nombres }
                     )}
+                    onBlur={onBlur ? () => onBlur("nombres") : undefined}
                     error={errors.nombres}
                 />
                 <Input
@@ -105,6 +109,7 @@ export default function PersonalDataFields({
                         ? { value: values.apellidos || "", onChange: (e) => onChange!("apellidos", e.target.value) }
                         : { defaultValue: defaultValues.apellidos }
                     )}
+                    onBlur={onBlur ? () => onBlur("apellidos") : undefined}
                     error={errors.apellidos}
                 />
                 <Input
@@ -118,6 +123,7 @@ export default function PersonalDataFields({
                         ? { value: values.fecha_nacimiento || "", onChange: (e) => onChange!("fecha_nacimiento", e.target.value) }
                         : { defaultValue: defaultValues.fecha_nacimiento }
                     )}
+                    onBlur={onBlur ? () => onBlur("fecha_nacimiento") : undefined}
                     error={errors.fecha_nacimiento}
                 />
 
@@ -132,6 +138,7 @@ export default function PersonalDataFields({
                         ? { value: values.lugar_nacimiento || "", onChange: (e) => onChange!("lugar_nacimiento", e.target.value) }
                         : { defaultValue: defaultValues.lugar_nacimiento }
                     )}
+                    onBlur={onBlur ? () => onBlur("lugar_nacimiento") : undefined}
                     error={errors.lugar_nacimiento}
                 />
                 <Select
@@ -144,6 +151,7 @@ export default function PersonalDataFields({
                         ? { value: values.genero || "", onChange: (e) => onChange!("genero", e.target.value as Genero) }
                         : { defaultValue: defaultValues.genero }
                     )}
+                    onBlur={onBlur ? () => onBlur("genero") : undefined}
                     error={errors.genero}
                 />
 
@@ -168,6 +176,7 @@ export default function PersonalDataFields({
                         ? { value: values.direccion_detalle || "", onChange: (e) => onChange!("direccion_detalle", e.target.value) }
                         : { defaultValue: defaultValues.direccion_detalle }
                     )}
+                    onBlur={onBlur ? () => onBlur("direccion_detalle") : undefined}
                     error={errors.direccion_detalle}
                 />
 

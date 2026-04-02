@@ -4,7 +4,7 @@ import { createAdminAccount, fetchAdminUsers, searchAdmins } from "@/services/ad
 import { type RegisterResponse, type UserStatusResult } from "@/lib/types/auth";
 import type { AdminUsersResponse, AdminSearchResponse } from "@/lib/types/profile";
 import { deshabilitarUsuario, habilitarUsuario } from "@/services/auth/authService";
-import { sanitizeText, validateEmail, isValidUUID } from "@/lib/validations/auth";
+import { sanitizeText, validateEmail, isValidUUID } from "@/lib/validations/rules";
 
 /**
  * Crea un nuevo administrador.
