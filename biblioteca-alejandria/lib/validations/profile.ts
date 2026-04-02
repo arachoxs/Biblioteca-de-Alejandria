@@ -9,6 +9,7 @@ import {
   MAX_DNI,
   MIN_DNI,
   MAX_DIRECCION_DETALLE,
+  generoRule,
 } from "./rules";
 
 import type { ProfileFieldsPayload, ProfileValidationResult } from "@/lib/types/profile";
@@ -32,7 +33,7 @@ export function validateAndSanitizeProfile(
     apellidos: sanitizeText(payload.apellidos),
     fecha_nacimiento: payload.fecha_nacimiento?.trim() ?? "",
     lugar_nacimiento: sanitizeText(payload.lugar_nacimiento),
-    genero: payload.genero,
+    genero: payload.genero, 
     usuario: payload.usuario?.trim() ?? "",
     direccion: sanitizeText(payload.direccion),
     direccion_place_id: payload.direccion_place_id?.trim(),
@@ -94,6 +95,12 @@ export function validateAndSanitizeProfile(
       "Detalle de la dirección"
     );
     if (detError) errors.direccion_detalle = detError;
+  }
+
+  //validar genero
+  if (!errors.genero) {
+    const generoError = generoRule()(sanitized.genero);
+    if (generoError) errors.genero = generoError;
   }
 
   // Validar fecha de nacimiento

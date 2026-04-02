@@ -1,3 +1,4 @@
+import { Genero } from "../types/auth";
 // ─── Constantes de validación ──────────────────────────────────────
 
 export const PASSWORD_MIN_LENGTH = 8;
@@ -181,6 +182,16 @@ export function ageRule(minAge: number, maxAge: number): ValidationRule {
     }
     return null;
   };
+}
+
+export function generoRule(): ValidationRule {
+  return (value: unknown) => {
+    if (typeof value !== "string" || !value.trim()) return null;
+    if (!Object.values(Genero).includes(value as Genero)) {
+      return "El género seleccionado no es válido.";
+    }
+    return null;
+  }
 }
 
 /** Regla: valor debe coincidir con otro (útil para confirmación de contraseña). */

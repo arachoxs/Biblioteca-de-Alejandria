@@ -17,11 +17,11 @@ import {
     notBlankRule,
     ageRule,
     emailRule,
-    passwordRule,
     matchRule,
     usernameRule,
-    requiredPasswordRule,
 } from "@/lib/validations/rules";
+
+import { validatePasswords } from "@/lib/validations/auth";
 
 type RegistroFormValues = {
     dni: string;
@@ -81,21 +81,16 @@ export default function RegistroForm() {
         if (correoError) errors.correo = correoError;
 
         // Validar contraseña
-        const contrasenaError = validateFieldRules(values.contrasena, [requiredPasswordRule(), passwordRule()]);
-        if (contrasenaError) errors.contrasena = contrasenaError;
-
-        // Validar confirmación de contraseña
-        const confirmarError = validateFieldRules(values.confirmar_contrasena, [
-            requiredRule("Confirmar contraseña"),
-            matchRule(() => values.contrasena, "Las contraseñas no coinciden."),
-        ]);
-        if (confirmarError) errors.confirmar_contrasena = confirmarError;
+        const passwordErrors = validatePasswords(values.contrasena, values.confirmar_contrasena);
+        if (passwordErrors) {
+            Object.assign(errors, passwordErrors);
+        }
 
         return errors;
     }, []);
 
     // Hook de validación con patrón híbrido (blur inicial + onChange en corrección)
-    const { values, errors, handleChange, handleBlur, setErrors } = useValidation<RegistroFormValues>(
+    const { values, errors, handleChange, handleBlur, setErrors, touched } = useValidation<RegistroFormValues>(
         {
             dni: "",
             nombres: "",
@@ -123,29 +118,22 @@ export default function RegistroForm() {
 
     // Combinar errores de cliente y servidor
     const allErrors = { ...errors, ...serverErrors };
-    
-    // Wrapper para manejar cambios en contraseña y revalidar confirmar_contrasena
-    const handlePasswordChange = useCallback((field: keyof RegistroFormValues, value: unknown) => {
-        handleChange(field, value);
-        
-        // Si cambió contrasena Y confirmar_contrasena tiene error → revalidar inmediatamente
-        if (field === "contrasena" && errors.confirmar_contrasena) {
-            const newValues = { ...values, contrasena: value as string };
-            const confirmarError = validateFieldRules(newValues.confirmar_contrasena, [
-                requiredRule("Confirmar contraseña"),
-                matchRule(() => newValues.contrasena, "Las contraseñas no coinciden.")
-            ]);
-            
-            setErrors((prev) => {
-                if (confirmarError) {
-                    return { ...prev, confirmar_contrasena: confirmarError };
-                } else {
-                    const { confirmar_contrasena: _, ...rest } = prev;
-                    return rest;
-                }
-            });
+
+    useEffect(()=>{
+        let confirmarError = null;
+
+        if(touched.confirmar_contrasena){
+            confirmarError = validateFieldRules(values.confirmar_contrasena, [
+            requiredRule("Confirmar contraseña"),
+            matchRule(() => values.contrasena, "Las contraseñas no coinciden."),]);
         }
-    }, [handleChange, errors.confirmar_contrasena, values, setErrors]);
+
+        if(confirmarError){
+            errors.confirmar_contrasena = confirmarError;
+        }
+    },[values.contrasena,values.confirmar_contrasena,errors,touched])
+    
+    
 
     // Validar dirección: si hay formattedAddress debe existir placeId
     useEffect(() => {
@@ -298,7 +286,7 @@ export default function RegistroForm() {
                             placeholder="••••••••"
                             required
                             value={values.contrasena}
-                            onChange={(e) => handlePasswordChange("contrasena", e.target.value)}
+                            onChange={(e) => handleChange("contrasena", e.target.value)}
                             onBlur={() => handleBlur("contrasena")}
                             error={allErrors.contrasena}
                         />
