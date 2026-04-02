@@ -6,6 +6,11 @@ type ValidationErrors = Record<string, string>;
 type ValidationFn<T> = (values: T) => ValidationErrors;
 type TouchedState<T> = Partial<Record<keyof T, boolean>>;
 
+interface UseValidationOptions<T> {
+  /** Callback opcional llamado cuando un campo cambia (blur o change). */
+  onFieldChange?: (field: keyof T) => void;
+}
+
 interface UseValidationReturn<T> {
   values: T;
   errors: ValidationErrors;
@@ -28,6 +33,7 @@ interface UseValidationReturn<T> {
  * @template T - Interfaz que define la estructura de los campos del formulario.
  * @param initialValues - Estado inicial de los campos.
  * @param validateFn - Función de validación que retorna errores por campo.
+ * @param options - Opciones adicionales como callback onFieldChange.
  *
  * @example
  * const { values, errors, touched, handleChange, handleBlur } = useValidation<Form>(
@@ -47,7 +53,8 @@ interface UseValidationReturn<T> {
  */
 export function useValidation<T extends Record<string, unknown>>(
   initialValues: T,
-  validateFn: ValidationFn<T>
+  validateFn: ValidationFn<T>,
+  options?: UseValidationOptions<T>
 ): UseValidationReturn<T> {
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -92,8 +99,11 @@ export function useValidation<T extends Record<string, unknown>>(
 
         return newValues;
       });
+
+      // Notificar al formulario que el campo cambió (para limpiar errores externos)
+      options?.onFieldChange?.(field);
     },
-    [errors, validateField]
+    [errors, validateField, options]
   );
 
   /**
@@ -110,8 +120,11 @@ export function useValidation<T extends Record<string, unknown>>(
         validateField(field, currentValues);
         return currentValues;
       });
+
+      // Notificar al formulario que el campo cambió (para limpiar errores externos)
+      options?.onFieldChange?.(field);
     },
-    [validateField]
+    [validateField, options]
   );
 
   /**
