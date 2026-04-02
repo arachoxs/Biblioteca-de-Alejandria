@@ -109,11 +109,43 @@ export default function RegistroForm() {
             contrasena: "",
             confirmar_contrasena: "",
         },
-        validateForm
+        validateForm,
+        {
+            // Callback para limpiar errores del servidor cuando el usuario edita el campo
+            onFieldChange: (field) => {
+                setServerErrors((prev) => {
+                    const { [field]: _, ...rest } = prev;
+                    return rest;
+                });
+            }
+        }
     );
 
     // Combinar errores de cliente y servidor
     const allErrors = { ...errors, ...serverErrors };
+    
+    // Wrapper para manejar cambios en contraseña y revalidar confirmar_contrasena
+    const handlePasswordChange = useCallback((field: keyof RegistroFormValues, value: unknown) => {
+        handleChange(field, value);
+        
+        // Si cambió contrasena Y confirmar_contrasena tiene error → revalidar inmediatamente
+        if (field === "contrasena" && errors.confirmar_contrasena) {
+            const newValues = { ...values, contrasena: value as string };
+            const confirmarError = validateFieldRules(newValues.confirmar_contrasena, [
+                requiredRule("Confirmar contraseña"),
+                matchRule(() => newValues.contrasena, "Las contraseñas no coinciden.")
+            ]);
+            
+            setErrors((prev) => {
+                if (confirmarError) {
+                    return { ...prev, confirmar_contrasena: confirmarError };
+                } else {
+                    const { confirmar_contrasena: _, ...rest } = prev;
+                    return rest;
+                }
+            });
+        }
+    }, [handleChange, errors.confirmar_contrasena, values, setErrors]);
 
     // Validar dirección: si hay formattedAddress debe existir placeId
     useEffect(() => {
@@ -266,7 +298,7 @@ export default function RegistroForm() {
                             placeholder="••••••••"
                             required
                             value={values.contrasena}
-                            onChange={(e) => handleChange("contrasena", e.target.value)}
+                            onChange={(e) => handlePasswordChange("contrasena", e.target.value)}
                             onBlur={() => handleBlur("contrasena")}
                             error={allErrors.contrasena}
                         />
