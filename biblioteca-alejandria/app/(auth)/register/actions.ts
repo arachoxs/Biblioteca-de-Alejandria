@@ -2,9 +2,10 @@
 
 import { CredentialData, PersonalData, RegisterResponse, Rol } from "@/lib/types/auth";
 import { register } from "@/services/auth/registrationService";
-import { validatePasswordRule, validateEmail, sanitizeText } from "@/lib/validations/rules";
+import { validateEmail, sanitizeText } from "@/lib/validations/rules";
 import { signIn } from "@/models/authModel";
 import { validateFullProfile } from "@/lib/validations/profile";
+import { validatePasswords } from "@/lib/validations/auth";
 import type { FullProfilePayload } from "@/lib/types/profile";
 
 // ─── Validación de entrada ─────────────────────────────────────────
@@ -28,7 +29,7 @@ function validateRegistrationData(
   };
 
   const profileResult = validateFullProfile(profilePayload);
-  const errors = { ...profileResult.errors };
+  let errors = { ...profileResult.errors };
 
   // Sanitizar y validar email
   const cleanEmail = sanitizeText(credentialData.correo);
@@ -40,21 +41,9 @@ function validateRegistrationData(
   }
 
   // Validar contraseña
-  if (!credentialData.contrasena) {
-    errors.contrasena = "La contraseña es obligatoria.";
-  } else {
-    const passwordError = validatePasswordRule(credentialData.contrasena);
-    if (passwordError) errors.contrasena = passwordError;
-  }
-
-  // Validar confirmación
-  if (!credentialData.confirmar_contrasena) {
-    errors.confirmar_contrasena = "La confirmación de contraseña es obligatoria.";
-  } else if (
-    !errors.contrasena &&
-    credentialData.contrasena !== credentialData.confirmar_contrasena
-  ) {
-    errors.confirmar_contrasena = "Las contraseñas no coinciden.";
+  const passwordErrors = validatePasswords(credentialData.contrasena, credentialData.confirmar_contrasena);
+  if (passwordErrors) {
+    errors = { ...errors, ...passwordErrors };
   }
 
   // Construir datos personales sanitizados

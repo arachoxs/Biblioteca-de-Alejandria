@@ -1,3 +1,4 @@
+import { Genero } from "../types/auth";
 // ─── Constantes de validación ──────────────────────────────────────
 
 export const PASSWORD_MIN_LENGTH = 8;
@@ -178,6 +179,21 @@ export function ageRule(minAge: number, maxAge: number): ValidationRule {
     }
     if (edad > maxAge) {
       return `La edad máxima permitida es ${maxAge} años.`;
+    }
+    return null;
+  };
+}
+
+export function generoRule(): ValidationRule {
+  return (value: unknown) => {
+    if (value == null) return null;
+    if (typeof value !== "string") {
+      return "El género seleccionado no es válido.";
+    }
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (!Object.values(Genero).includes(trimmed as Genero)) {
+      return "El género seleccionado no es válido.";
     }
     return null;
   };

@@ -11,6 +11,7 @@ import {
   MAX_NOMBRE,
   MAX_APELLIDO,
   MAX_DIRECCION_DETALLE,
+  generoRule,
 } from "./rules";
 
 import type {
@@ -40,7 +41,7 @@ const sharedFieldConfigs: Record<string, FieldConfig> = {
   },
   genero: {
     label: "Género",
-    rules: [requiredRule("Género")],
+    rules: [requiredRule("Género"), generoRule()],
   },
   usuario: {
     label: "Nombre de usuario",
@@ -82,7 +83,7 @@ function sanitizeFullProfile(payload: FullProfilePayload): FullProfilePayload {
     apellidos: sanitizeText(payload.apellidos),
     fecha_nacimiento: payload.fecha_nacimiento?.trim() ?? "",
     lugar_nacimiento: sanitizeText(payload.lugar_nacimiento),
-    genero: payload.genero,
+    genero: payload.genero, 
     usuario: payload.usuario?.trim() ?? "",
     direccion: sanitizeText(payload.direccion),
     direccion_place_id: payload.direccion_place_id?.trim() ?? "",
