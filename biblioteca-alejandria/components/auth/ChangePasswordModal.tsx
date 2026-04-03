@@ -1,13 +1,16 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
+import PasswordStrengthIndicator from "@/components/ui/PasswordStrengthIndicator";
 import { changePasswordAction } from "@/app/actions/authActions";
+import { useValidation } from "@/hooks/useValidation";
+import { validatePasswords, isPasswordValid } from "@/lib/validations/auth";
 
 // ─── Iconos ────────────────────────────────────────────────────────
 
@@ -44,6 +47,14 @@ const spinnerIcon = (
   </svg>
 );
 
+// ─── Tipos ─────────────────────────────────────────────────────────
+
+type ChangePasswordFormValues = {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+};
+
 // ─── Componente ────────────────────────────────────────────────────
 
 export default function ChangePasswordModal({
@@ -55,26 +66,63 @@ export default function ChangePasswordModal({
 }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitCount, setSubmitCount] = useState(0);
 
+  // Función de validación
+  const validateForm = useCallback((values: ChangePasswordFormValues): Record<string, string> => {
+    const errors: Record<string, string> = {};
+
+    // Validar nueva contraseña y confirmación (usar indicador visual)
+    const passwordErrors = validatePasswords(values.new_password, values.confirm_password, true);
+    if (passwordErrors) {
+      Object.assign(errors, passwordErrors);
+      // Mapear los nombres de campo al formulario actual
+      if (passwordErrors.contrasena) {
+        errors.new_password = passwordErrors.contrasena;
+        delete errors.contrasena;
+      }
+      if (passwordErrors.confirmar_contrasena) {
+        errors.confirm_password = passwordErrors.confirmar_contrasena;
+        delete errors.confirmar_contrasena;
+      }
+    }
+
+    return errors;
+  }, []);
+
+  // Hook de validación
+  const { values, errors, handleChange, handleBlur, setErrors, touched } = useValidation<ChangePasswordFormValues>(
+    {
+      current_password: "",
+      new_password: "",
+      confirm_password: "",
+    },
+    validateForm
+  );
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
+    setServerError(null);
     setSuccess(false);
     setSubmitCount((prev) => prev + 1);
 
-    const formData = new FormData(e.currentTarget);
-    const newPassword = formData.get("new_password") as string;
-    const confirmPassword = formData.get("confirm_password") as string;
+    // Validar todo el formulario antes de enviar
+    const validationErrors = validateForm(values);
+    setErrors(validationErrors);
 
-    // Validación client-side rápida
-    if (newPassword !== confirmPassword) {
-      setError("Las contraseñas nuevas no coinciden.");
+    // Verificar que la nueva contraseña sea válida
+    if (!isPasswordValid(values.new_password)) {
+      setServerError("Por favor, completa todos los requisitos de la contraseña.");
       return;
     }
 
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+
+    const formData = new FormData(e.currentTarget);
     setIsPending(true);
     const result = await changePasswordAction(formData);
     setIsPending(false);
@@ -87,7 +135,7 @@ export default function ChangePasswordModal({
         router.push("/login");
       }, 1500);
     } else {
-      setError(result.error ?? "Error desconocido.");
+      setServerError(result.error ?? "Error desconocido.");
     }
   };
 
@@ -103,13 +151,13 @@ export default function ChangePasswordModal({
         </div>
 
         {/* Alertas */}
-        {error && (
+        {serverError && (
           <Alert
             key={`error-${submitCount}`}
             variant="error"
             className="top-1"
           >
-            {error}
+            {serverError}
           </Alert>
         )}
         {success && (
@@ -132,6 +180,9 @@ export default function ChangePasswordModal({
           required
           autoComplete="current-password"
           disabled={isPending || success}
+          value={values.current_password}
+          onChange={(e) => handleChange("current_password", e.target.value)}
+          onBlur={() => handleBlur("current_password")}
         />
 
         <div>
@@ -144,10 +195,13 @@ export default function ChangePasswordModal({
             required
             autoComplete="new-password"
             disabled={isPending || success}
+            value={values.new_password}
+            onChange={(e) => handleChange("new_password", e.target.value)}
+            onBlur={() => handleBlur("new_password")}
           />
-          <span className="text-xs text-brand-accent font-light mt-1 block">
-            Mínimo 8 caracteres.
-          </span>
+          <div className="mt-3">
+            <PasswordStrengthIndicator password={values.new_password} />
+          </div>
         </div>
 
         <Input
@@ -159,6 +213,10 @@ export default function ChangePasswordModal({
           required
           autoComplete="new-password"
           disabled={isPending || success}
+          value={values.confirm_password}
+          onChange={(e) => handleChange("confirm_password", e.target.value)}
+          onBlur={() => handleBlur("confirm_password")}
+          error={errors.confirm_password}
         />
 
         {/* Botón de envío */}
