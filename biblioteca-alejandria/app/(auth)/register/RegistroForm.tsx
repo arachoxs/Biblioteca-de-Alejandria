@@ -119,19 +119,25 @@ export default function RegistroForm() {
     // Combinar errores de cliente y servidor
     const allErrors = { ...errors, ...serverErrors };
 
-    useEffect(()=>{
-        let confirmarError = null;
+    useEffect(() => {
+        if (touched.confirmar_contrasena) {
+            const confirmarError = validateFieldRules(values.confirmar_contrasena, [
+                requiredRule("Confirmar contraseña"),
+                matchRule(() => values.contrasena, "Las contraseñas no coinciden."),
+            ]);
 
-        if(touched.confirmar_contrasena){
-            confirmarError = validateFieldRules(values.confirmar_contrasena, [
-            requiredRule("Confirmar contraseña"),
-            matchRule(() => values.contrasena, "Las contraseñas no coinciden."),]);
+            setErrors(prev => {
+                if (confirmarError) {
+                    if (prev.confirmar_contrasena === confirmarError) return prev;
+                    return { ...prev, confirmar_contrasena: confirmarError };
+                } else {
+                    if (!prev.confirmar_contrasena) return prev;
+                    const { confirmar_contrasena, ...rest } = prev;
+                    return rest;
+                }
+            });
         }
-
-        if(confirmarError){
-            errors.confirmar_contrasena = confirmarError;
-        }
-    },[values.contrasena,values.confirmar_contrasena,errors,touched])
+    }, [values.contrasena, values.confirmar_contrasena, touched.confirmar_contrasena, setErrors]);
     
     // Validar dirección: si hay formattedAddress debe existir placeId
     useEffect(() => {
