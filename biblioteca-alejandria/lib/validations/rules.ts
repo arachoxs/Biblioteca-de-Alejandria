@@ -186,12 +186,17 @@ export function ageRule(minAge: number, maxAge: number): ValidationRule {
 
 export function generoRule(): ValidationRule {
   return (value: unknown) => {
-    if (typeof value !== "string" || !value.trim()) return null;
-    if (!Object.values(Genero).includes(value as Genero)) {
+    if (value == null) return null;
+    if (typeof value !== "string") {
+      return "El género seleccionado no es válido.";
+    }
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (!Object.values(Genero).includes(trimmed as Genero)) {
       return "El género seleccionado no es válido.";
     }
     return null;
-  }
+  };
 }
 
 /** Regla: valor debe coincidir con otro (útil para confirmación de contraseña). */
