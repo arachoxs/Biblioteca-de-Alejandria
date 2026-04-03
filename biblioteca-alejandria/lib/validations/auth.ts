@@ -1,7 +1,7 @@
 import { matchRule, passwordRule, requiredPasswordRule, requiredRule, validateFieldRules } from "./rules";
 
 
-export function validatePasswords(contrasena: string, confirmar_contrasena: string): object | null {
+export function validatePasswords(contrasena: string, confirmar_contrasena: string): Record<string, string> | null {
     const errors: Record<string, string> = {};
 
 // Validar contraseña
