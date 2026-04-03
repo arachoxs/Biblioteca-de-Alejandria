@@ -21,7 +21,6 @@ import { Rol } from "@/lib/types/auth";
 import { globalSignOutAction } from "@/app/actions/authActions";
 import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 import MobileMenu from "@/components/MobileMenu";
-import { getBrandHref } from "@/lib/utils/navbar";
 
 // ── Tipos ───────────────────────────────────────────────────────────
 
@@ -99,9 +98,6 @@ export default function NavbarClient({
     }
   }, [menuOpen]);
 
-  // ── Resolve brand link based on role ──────────────────────────────
-  const brandHref = getBrandHref(role, profileComplete);
-
   // ── Search handler ────────────────────────────────────────────────
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -160,7 +156,7 @@ export default function NavbarClient({
     <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-10 py-4 bg-brand-text border-b-4 border-brand-primary">
       {/* ── Brand ─────────────────────────────────────────────────── */}
       <Link
-        href={brandHref}
+        href="/"
         className="flex items-center gap-3 text-brand-bg hover:opacity-90 transition-opacity"
       >
         <Image
