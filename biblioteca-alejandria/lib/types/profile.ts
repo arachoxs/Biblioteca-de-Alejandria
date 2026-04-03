@@ -38,8 +38,12 @@ export interface UserProfileData {
 
 // ─── Payloads de Validación y Actualización ──────────────────────────
 
-export interface ProfileFieldsPayload {
-  dni?: string;
+/**
+ * Payload completo para registro y onboarding.
+ * Incluye todos los campos del perfil, incluyendo los inmutables.
+ */
+export interface FullProfilePayload {
+  dni: string;
   nombres: string;
   apellidos: string;
   fecha_nacimiento: string;
@@ -47,29 +51,34 @@ export interface ProfileFieldsPayload {
   genero: Genero | string;
   usuario: string;
   direccion: string;
-  direccion_place_id?: string;
+  direccion_place_id: string;
   direccion_detalle?: string | null;
 }
 
-/** Resultado con datos sanitizados + errores. */
-export interface ProfileValidationResult {
-  errors: Record<string, string>;
-  sanitized: ProfileFieldsPayload;
-}
-
-/** Datos enviados para actualizar el perfil. Excluye `dni` y `correo`. */
+/**
+ * Payload para actualización de perfil.
+ * Excluye campos inmutables: `dni`, `fecha_nacimiento`, `lugar_nacimiento`.
+ */
 export interface ProfileUpdatePayload {
   nombres: string;
   apellidos: string;
-  fecha_nacimiento: string;
-  lugar_nacimiento: string;
   genero: Genero;
   usuario: string;
-
-  // Dirección
   direccion: string;
   direccion_place_id: string;
   direccion_detalle?: string | null;
+}
+
+/** Resultado de validación con datos sanitizados + errores. */
+export interface FullProfileValidationResult {
+  errors: Record<string, string>;
+  sanitized: FullProfilePayload;
+}
+
+/** Resultado de validación para actualización de perfil. */
+export interface ProfileUpdateValidationResult {
+  errors: Record<string, string>;
+  sanitized: ProfileUpdatePayload;
 }
 
 // ─── Respuesta del server action ───────────────────────────────────

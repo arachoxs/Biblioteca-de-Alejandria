@@ -133,8 +133,6 @@ export default function RegistroForm() {
         }
     },[values.contrasena,values.confirmar_contrasena,errors,touched])
     
-    
-
     // Validar dirección: si hay formattedAddress debe existir placeId
     useEffect(() => {
         if (formattedAddress && !placeId) {
