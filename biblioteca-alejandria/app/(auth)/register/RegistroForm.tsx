@@ -6,6 +6,7 @@ import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
+import PasswordStrengthIndicator from "@/components/ui/PasswordStrengthIndicator";
 import PersonalDataFields from "@/components/PersonalDataFields";
 import type { CredentialData, PersonalData, Genero } from "@/lib/types/auth";
 import { registerUser } from "./actions";
@@ -21,7 +22,7 @@ import {
     usernameRule,
 } from "@/lib/validations/rules";
 
-import { validatePasswords } from "@/lib/validations/auth";
+import { validatePasswords, isPasswordValid } from "@/lib/validations/auth";
 
 type RegistroFormValues = {
     dni: string;
@@ -80,14 +81,14 @@ export default function RegistroForm() {
         const correoError = validateFieldRules(values.correo, [requiredRule("Correo electrónico"), emailRule()]);
         if (correoError) errors.correo = correoError;
 
-        // Validar contraseña
-        const passwordErrors = validatePasswords(values.contrasena, values.confirmar_contrasena);
+        // Validar contraseña (usar indicador visual)
+        const passwordErrors = validatePasswords(values.contrasena, values.confirmar_contrasena, true);
         if (passwordErrors) {
             Object.assign(errors, passwordErrors);
         }
 
         return errors;
-    }, []);
+    }, [formattedAddress]);
 
     // Hook de validación con patrón híbrido (blur inicial + onChange en corrección)
     const { values, errors, handleChange, handleBlur, setErrors, touched } = useValidation<RegistroFormValues>(
@@ -170,6 +171,12 @@ export default function RegistroForm() {
         // Validar todo el formulario antes de enviar (incluye campos sin blur)
         const validationErrors = validateForm(values);
         setErrors(validationErrors);
+
+        // Verificar que la contraseña sea válida
+        if (!isPasswordValid(values.contrasena)) {
+            setServerErrors({ form: "Por favor, completa todos los requisitos de la contraseña." });
+            return;
+        }
 
         if (Object.keys(validationErrors).length > 0) {
             return;
@@ -294,9 +301,9 @@ export default function RegistroForm() {
                             onBlur={() => handleBlur("contrasena")}
                             error={allErrors.contrasena}
                         />
-                        <span className={`text-xs text-brand-accent font-light mt-1 block ${allErrors.contrasena ? "invisible" : ""}`}>
-                            Mínimo 8 caracteres.
-                        </span>
+                        <div className="mt-3">
+                            <PasswordStrengthIndicator password={values.contrasena} />
+                        </div>
                     </div>
                     <Input
                         id="confirmar_contrasena"

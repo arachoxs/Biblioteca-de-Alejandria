@@ -1,7 +1,7 @@
 import { Genero } from "../types/auth";
 // ─── Constantes de validación ──────────────────────────────────────
 
-export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 128;
 export const MAX_NOMBRE = 100;
 export const MAX_APELLIDO = 100;
@@ -95,19 +95,50 @@ export function emailRule(): ValidationRule {
   };
 }
 
-/** Regla: contraseña válida (min 8, max 128, sin espacios). */
+/** 
+ * Regla: contraseña válida.
+ * Requisitos:
+ * - Mínimo 12 caracteres
+ * - Al menos una letra minúscula
+ * - Al menos una letra mayúscula
+ * - Al menos un dígito o carácter especial
+ * - Sin espacios en blanco
+ * Regex: /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\d\W])\S{12,}$/
+ */
 export function passwordRule(): ValidationRule {
   return (value: unknown) => {
     if (typeof value !== "string" || !value) return null;
+    
+    // Validar longitud mínima
     if (value.length < PASSWORD_MIN_LENGTH) {
       return `La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`;
     }
+    
+    // Validar longitud máxima
     if (value.length > PASSWORD_MAX_LENGTH) {
       return `La contraseña no puede exceder ${PASSWORD_MAX_LENGTH} caracteres.`;
     }
+    
+    // Validar al menos una minúscula
+    if (!/[a-z]/.test(value)) {
+      return "La contraseña debe contener al menos una letra minúscula.";
+    }
+    
+    // Validar al menos una mayúscula
+    if (!/[A-Z]/.test(value)) {
+      return "La contraseña debe contener al menos una letra mayúscula.";
+    }
+    
+    // Validar al menos un dígito o carácter especial
+    if (!/[^\sa-zA-Z]/.test(value)) {
+      return "La contraseña debe contener al menos un dígito o carácter especial.";
+    }
+    
+    // Validar sin espacios en blanco
     if (/\s/.test(value)) {
       return "La contraseña no puede contener espacios en blanco.";
     }
+    
     return null;
   };
 }

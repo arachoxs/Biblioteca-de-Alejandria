@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, useCallback } from "react";
+import { useState, useEffect, FormEvent, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Stepper from "@/components/ui/Stepper";
@@ -9,12 +9,16 @@ import CodeInput from "@/components/ui/CodeInput";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
+import PasswordStrengthIndicator from "@/components/ui/PasswordStrengthIndicator";
 import {
   sendRecoveryCode,
   verifyRecoveryCode,
   resetPassword,
 } from "./actions";
 import type { AuthActionResult } from "@/lib/types/auth";
+import { useValidation } from "@/hooks/useValidation";
+import { validatePasswords, isPasswordValid } from "@/lib/validations/auth";
+import { validateFieldRules, requiredRule, matchRule } from "@/lib/validations/rules";
 
 // ─── Constantes ────────────────────────────────────────────────────
 
@@ -165,6 +169,46 @@ export default function PasswordRecoveryForm() {
     return result.success ?? false;
   };
 
+  // ─── Validaciones Hook ─────────────────────────────────────────
+
+  const validateForm = useCallback((v: { new_password: string; confirm_password: string }) => {
+    const errs: Record<string, string> = {};
+    // Usar indicador visual para la contraseña principal, solo validar confirmación
+    const passwordErrors = validatePasswords(v.new_password, v.confirm_password, true);
+    if (passwordErrors) {
+      if (passwordErrors.contrasena) errs.new_password = passwordErrors.contrasena;
+      if (passwordErrors.confirmar_contrasena) errs.confirm_password = passwordErrors.confirmar_contrasena;
+    }
+    return errs;
+  }, []);
+
+  const { values, errors, handleChange, handleBlur, setErrors, touched } = useValidation(
+    { new_password: "", confirm_password: "" },
+    validateForm,
+    {
+      onFieldChange: () => clearMessages()
+    }
+  );
+
+  useEffect(() => {
+    if (touched.confirm_password) {
+      const confirmError = validateFieldRules(values.confirm_password, [
+        requiredRule("Confirmar contraseña"),
+        matchRule(() => values.new_password, "Las contraseñas no coinciden.")
+      ]);
+      setErrors(prev => {
+        if (confirmError) {
+          if (prev.confirm_password === confirmError) return prev;
+          return { ...prev, confirm_password: confirmError };
+        } else {
+          if (!prev.confirm_password) return prev;
+          const { confirm_password, ...rest } = prev;
+          return rest;
+        }
+      });
+    }
+  }, [values.new_password, values.confirm_password, touched.confirm_password, setErrors]);
+
   // ─── Step 1: Enviar código ────────────────────────────────────
 
   const handleStepOne = async (e: FormEvent<HTMLFormElement>) => {
@@ -228,18 +272,22 @@ export default function PasswordRecoveryForm() {
     e.preventDefault();
     clearMessages();
 
-    const fd = new FormData(e.currentTarget);
-    const newPassword = fd.get("new_password") as string;
-    const confirmPassword = fd.get("confirm_password") as string;
+    // Validar con hook antes del submit
+    const validationErrors = validateForm(values);
+    setErrors(validationErrors);
 
-    // Validación client-side rápida (el servidor valida de nuevo)
-    if (newPassword !== confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+    // Verificar que la contraseña sea válida (aunque no genere error visible, bloquear submit)
+    if (!isPasswordValid(values.new_password)) {
+      setError("Por favor, completa todos los requisitos de la contraseña.");
+      return;
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
       return;
     }
 
     setIsPending(true);
-    const result = await resetPassword(newPassword, confirmPassword);
+    const result = await resetPassword(values.new_password, values.confirm_password);
     setIsPending(false);
 
     if (result.success) {
@@ -389,6 +437,7 @@ export default function PasswordRecoveryForm() {
         <form
           onSubmit={handleStepThree}
           autoComplete="off"
+          noValidate
           className="space-y-6"
         >
           <Stepper steps={STEPS} currentStep={3} />
@@ -402,10 +451,13 @@ export default function PasswordRecoveryForm() {
                 type="password"
                 placeholder="••••••••"
                 required
+                value={values.new_password}
+                onChange={(e) => handleChange("new_password", e.target.value)}
+                onBlur={() => handleBlur("new_password")}
               />
-              <span className="text-xs text-brand-accent font-light mt-1 block">
-                Mínimo 8 caracteres.
-              </span>
+              <div className="mt-3">
+                <PasswordStrengthIndicator password={values.new_password} />
+              </div>
             </div>
 
             <Input
@@ -415,12 +467,16 @@ export default function PasswordRecoveryForm() {
               type="password"
               placeholder="••••••••"
               required
+              value={values.confirm_password}
+              onChange={(e) => handleChange("confirm_password", e.target.value)}
+              onBlur={() => handleBlur("confirm_password")}
+              error={errors.confirm_password}
             />
           </div>
 
           <Button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || Object.keys(errors).length > 0}
             className="flex items-center justify-center gap-2"
           >
             {isPending ? (
