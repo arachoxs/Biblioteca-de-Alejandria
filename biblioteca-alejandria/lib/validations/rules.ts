@@ -218,7 +218,7 @@ export function ageRule(minAge: number, maxAge: number): ValidationRule {
 export function generoRule(): ValidationRule {
   return (value: unknown) => {
     if (value == null) return null;
-    if (typeof value !== "string") {
+    if (typeof value !== "string" || value.trim() === "") {
       return "El género seleccionado no es válido.";
     }
     const trimmed = value.trim();

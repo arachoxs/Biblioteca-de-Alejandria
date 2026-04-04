@@ -41,7 +41,7 @@ const sharedFieldConfigs: Record<string, FieldConfig> = {
   },
   genero: {
     label: "Género",
-    rules: [requiredRule("Género"), generoRule()],
+    rules: [requiredRule("Género"), generoRule()], //aunque pase "" se verifica que no sea un valor no permitido, el rule de genero permite "" pero solo si es opcional, en este caso no lo es porque el perfil completo también lo requiere, entonces se fuerza a que siempre tenga un valor válido y no se permita el vacío
   },
   usuario: {
     label: "Nombre de usuario",
