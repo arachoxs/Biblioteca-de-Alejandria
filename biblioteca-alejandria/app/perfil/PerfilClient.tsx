@@ -166,6 +166,7 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                 setSuccess(true);
                 setServerErrors({});
                 setIsDirty(false);
+                router.refresh();
             } else {
                 setServerErrors(response.errors || { form: response.message || "Error desconocido" });
             }
