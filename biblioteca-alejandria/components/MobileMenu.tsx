@@ -15,7 +15,6 @@ import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Rol } from "@/lib/types/auth";
 import { globalSignOutAction } from "@/app/actions/authActions";
-import { getBrandHref } from "@/lib/utils/navbar";
 
 // ── Tipos ───────────────────────────────────────────────────────────
 
@@ -94,9 +93,6 @@ export default function MobileMenu({
   }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
-
-  // ── Resolve brand link ──────────────────────────────────────────
-  const brandHref = getBrandHref(role, profileComplete);
 
   return (
     <div
@@ -244,7 +240,7 @@ export default function MobileMenu({
         {/* ── Footer ───────────────────────────────────────────────── */}
         <div className="px-5 py-4 border-t border-brand-accent/10">
           <Link
-            href={brandHref}
+            href="/"
             className="text-xs text-brand-accent hover:text-brand-text transition-colors"
             onClick={handleClose}
           >
