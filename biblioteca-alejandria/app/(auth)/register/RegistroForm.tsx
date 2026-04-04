@@ -50,11 +50,6 @@ export default function RegistroForm() {
     const validateForm = useCallback((values: RegistroFormValues): Record<string, string> => {
         const errors: Record<string, string> = {};
 
-        // Validar dirección (requerida)
-        if (!formattedAddress) {
-            errors.direccion = "La dirección es obligatoria.";
-        }
-
         // Validar DNI
         const dniError = validateFieldRules(values.dni, [requiredRule("DNI"), dniRule()]);
         if (dniError) errors.dni = dniError;
