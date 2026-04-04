@@ -50,6 +50,11 @@ export default function CompletarPerfilAdmin() {
     const validateForm = useCallback((values: CompletarPerfilFormValues): Record<string, string> => {
         const errors: Record<string, string> = {};
 
+        // Validar dirección (requerida)
+        if (!formattedAddress) {
+            errors.direccion = "La dirección es obligatoria.";
+        }
+
         // Validar DNI
         const dniError = validateFieldRules(values.dni, [requiredRule("DNI"), dniRule()]);
         if (dniError) errors.dni = dniError;
@@ -79,18 +84,12 @@ export default function CompletarPerfilAdmin() {
 
         // Validar contraseñas (nueva_contrasena y confirmar_contrasena) - usar indicador visual
         const passwordErrors = validatePasswords(values.nueva_contrasena, values.confirmar_contrasena, true);
-        if (passwordErrors) {
-            // Mapear los errores de contrasena → nueva_contrasena
-            if (passwordErrors.contrasena) {
-                errors.nueva_contrasena = passwordErrors.contrasena;
-            }
-            if (passwordErrors.confirmar_contrasena) {
-                errors.confirmar_contrasena = passwordErrors.confirmar_contrasena;
-            }
+        if (passwordErrors?.confirmar_contrasena) {
+            errors.confirmar_contrasena = passwordErrors.confirmar_contrasena;
         }
 
         return errors;
-    }, []);
+    }, [formattedAddress]);
 
     // Hook de validación con patrón híbrido (blur inicial + onChange en corrección)
     const { values, errors, handleChange, handleBlur, setErrors, touched } = useValidation<CompletarPerfilFormValues>(
@@ -323,7 +322,7 @@ export default function CompletarPerfilAdmin() {
                         <Button
                             type="submit"
                             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-11 px-8"
-                            disabled={loading || Object.keys(errors).length > 0}
+                            disabled={loading || success || Object.keys(errors).length > 0}
                         >
                             {loading ? (
                                 <>

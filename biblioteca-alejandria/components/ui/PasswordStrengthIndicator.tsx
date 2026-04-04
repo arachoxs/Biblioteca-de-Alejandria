@@ -41,12 +41,12 @@ function getPasswordRequirements(password: string): PasswordRequirement[] {
     {
       id: "special",
       label: "Un dígito o carácter especial",
-      met: /[\d\W]/.test(password),
+      met: /[^\sa-zA-Z]/.test(password),
     },
     {
       id: "no-spaces",
       label: "Sin espacios en blanco",
-      met: !/\s/.test(password),
+      met: password.length > 0 && !/\s/.test(password),
     },
   ];
 }
@@ -62,13 +62,13 @@ function getStrengthLevel(metCount: number, total: number): {
   if (percentage === 0) {
     return { level: 0, label: "", color: "text-gray-400", bgColor: "bg-gray-300" };
   }
-  if (percentage < 40) {
+  if (percentage <= 40) {
     return { level: 1, label: "Débil", color: "text-red-600", bgColor: "bg-red-500" };
   }
-  if (percentage < 70) {
+  if (percentage <= 60) {
     return { level: 2, label: "Media", color: "text-amber-600", bgColor: "bg-amber-500" };
   }
-  if (percentage < 100) {
+  if (percentage <= 80) {
     return { level: 3, label: "Buena", color: "text-blue-600", bgColor: "bg-blue-500" };
   }
   return { level: 4, label: "Excelente", color: "text-green-600", bgColor: "bg-green-500" };
@@ -107,11 +107,6 @@ export default function PasswordStrengthIndicator({
   const total = requirements.length;
   const strength = getStrengthLevel(metCount, total);
   const percentage = (metCount / total) * 100;
-
-  // No mostrar nada si no hay contraseña
-  if (!password) {
-    return null;
-  }
 
   return (
     <div className={`space-y-3 ${className}`}>

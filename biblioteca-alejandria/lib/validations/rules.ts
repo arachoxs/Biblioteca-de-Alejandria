@@ -130,7 +130,7 @@ export function passwordRule(): ValidationRule {
     }
     
     // Validar al menos un dígito o carácter especial
-    if (!/[\d\W]/.test(value)) {
+    if (!/[^\sa-zA-Z]/.test(value)) {
       return "La contraseña debe contener al menos un dígito o carácter especial.";
     }
     

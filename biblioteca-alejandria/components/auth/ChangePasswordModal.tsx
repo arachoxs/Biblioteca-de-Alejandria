@@ -74,19 +74,10 @@ export default function ChangePasswordModal({
   const validateForm = useCallback((values: ChangePasswordFormValues): Record<string, string> => {
     const errors: Record<string, string> = {};
 
-    // Validar nueva contraseña y confirmación (usar indicador visual)
+    // Validar confirmación de contraseña (indicador visual maneja la principal)
     const passwordErrors = validatePasswords(values.new_password, values.confirm_password, true);
-    if (passwordErrors) {
-      Object.assign(errors, passwordErrors);
-      // Mapear los nombres de campo al formulario actual
-      if (passwordErrors.contrasena) {
-        errors.new_password = passwordErrors.contrasena;
-        delete errors.contrasena;
-      }
-      if (passwordErrors.confirmar_contrasena) {
-        errors.confirm_password = passwordErrors.confirmar_contrasena;
-        delete errors.confirmar_contrasena;
-      }
+    if (passwordErrors?.confirmar_contrasena) {
+      errors.confirm_password = passwordErrors.confirmar_contrasena;
     }
 
     return errors;

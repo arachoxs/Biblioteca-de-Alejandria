@@ -50,6 +50,11 @@ export default function RegistroForm() {
     const validateForm = useCallback((values: RegistroFormValues): Record<string, string> => {
         const errors: Record<string, string> = {};
 
+        // Validar dirección (requerida)
+        if (!formattedAddress) {
+            errors.direccion = "La dirección es obligatoria.";
+        }
+
         // Validar DNI
         const dniError = validateFieldRules(values.dni, [requiredRule("DNI"), dniRule()]);
         if (dniError) errors.dni = dniError;
@@ -88,7 +93,7 @@ export default function RegistroForm() {
         }
 
         return errors;
-    }, []);
+    }, [formattedAddress]);
 
     // Hook de validación con patrón híbrido (blur inicial + onChange en corrección)
     const { values, errors, handleChange, handleBlur, setErrors, touched } = useValidation<RegistroFormValues>(
@@ -299,6 +304,7 @@ export default function RegistroForm() {
                             value={values.contrasena}
                             onChange={(e) => handleChange("contrasena", e.target.value)}
                             onBlur={() => handleBlur("contrasena")}
+                            error={allErrors.contrasena}
                         />
                         <div className="mt-3">
                             <PasswordStrengthIndicator password={values.contrasena} />
