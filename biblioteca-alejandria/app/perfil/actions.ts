@@ -2,15 +2,14 @@
 
 import { getCurrentUser } from "@/models/authModel";
 import type { Genero } from "@/lib/types/auth";
-import type { ProfileUpdatePayload, ProfileUpdateResponse } from "@/lib/types/profile";
+import type { ProfileUpdatePayload, ProfileUpdateResponse, EditPerfilFormValues } from "@/lib/types/profile";
 import { validateProfileUpdate } from "@/lib/validations/profile";
 import { updateProfile } from "@/services/profile/profileService";
 import { revalidatePath } from "next/cache";
-
 // ─── Server Action ─────────────────────────────────────────────────
 
 export async function updateProfileAction(
-  formData: FormData,
+  formData: EditPerfilFormValues,
   formattedAddress: string,
   placeId: string
 ): Promise<ProfileUpdateResponse> {
@@ -24,22 +23,25 @@ export async function updateProfileAction(
   }
 
   // 2. Validar y sanitizar solo campos editables
-  const { errors, sanitized } = validateProfileUpdate({
-    nombres: formData.get("nombres") as string,
-    apellidos: formData.get("apellidos") as string,
-    genero: formData.get("genero") as Genero,
-    usuario: formData.get("usuario") as string,
+  const { errors, sanitized } = validateProfileUpdate({ //se manda a verificar solo los campos editables, el payload se construye en la acción a partir de esos valores y de los otros datos como la dirección
+    nombres: formData.nombres,
+    apellidos: formData.apellidos,
+    genero: formData.genero as Genero,
+    usuario: formData.usuario,  
     direccion: formattedAddress,
     direccion_place_id: placeId,
-    direccion_detalle: (formData.get("direccion_detalle") as string | null) || null,
+    direccion_detalle: formData.direccion_detalle,
   });
 
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
 
-  // 3. Construir payload con datos sanitizados (ya tipado correctamente)
-  const payload: ProfileUpdatePayload = sanitized;
+  // 3. Construir payload con datos sanitizados
+  const payload: ProfileUpdatePayload = {
+    ...sanitized,
+    genero: sanitized.genero as Genero, // Type assertion: la validación garantiza que no es ""
+  }; 
 
   // 4. Delegar al servicio
   try {

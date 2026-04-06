@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import PersonalDataFields from "@/components/PersonalDataFields";
 import Input from "@/components/ui/Input";
@@ -9,83 +9,185 @@ import Alert from "@/components/ui/Alert";
 import ClientModules from "@/components/profile/ClientModules";
 import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 import { updateProfileAction } from "./actions";
-import type { UserProfileData } from "@/lib/types/profile";
+import { useValidation } from "@/hooks/useValidation";
+import type { UserProfileData , EditPerfilFormValues} from "@/lib/types/profile";
+import type { Genero } from "@/lib/types/auth";
+import {
+    validateFieldRules,
+    requiredRule,
+    maxLengthRule,
+    usernameRule,
+    placeIdRequiredRule,
+    generoRule,
+    MAX_NOMBRE,
+    MAX_APELLIDO,
+    MAX_DIRECCION_DETALLE,
+} from "@/lib/validations/rules";
 
 interface PerfilClientProps {
     profileData: UserProfileData;
     isCliente: boolean;
 }
 
+
 export default function PerfilClient({ profileData, isCliente }: PerfilClientProps) {
     const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
     const [success, setSuccess] = useState(false);
     const [changePwdOpen, setChangePwdOpen] = useState(false);
     const [formattedAddress, setFormattedAddress] = useState(profileData.direccion_formateada);
     const [placeId, setPlaceId] = useState(profileData.direccion_place_id);
     const [resetKey, setResetKey] = useState(0);
     const [isDirty, setIsDirty] = useState(false);
-    const formRef = useRef<HTMLFormElement>(null);
     const router = useRouter();
 
-    const checkIsDirty = useCallback((currentForm: HTMLFormElement | null) => {
-        if (!currentForm) return false;
-        const formData = new FormData(currentForm);
-        
+    const initialValues: EditPerfilFormValues = {
+        nombres: profileData.nombres,
+        apellidos: profileData.apellidos,
+        genero: profileData.genero,
+        direccion_detalle: profileData.direccion_detalle ?? "",
+        usuario: profileData.usuario,
+    };
+
+    const validateForm = useCallback((values: EditPerfilFormValues): Record<string, string> => {
+        const errors: Record<string, string> = {};
+
+        const nombresError = validateFieldRules(values.nombres, [
+            requiredRule("Nombres"),
+            maxLengthRule(MAX_NOMBRE, "Nombres"),
+        ]);
+        if (nombresError) errors.nombres = nombresError;
+
+        const apellidosError = validateFieldRules(values.apellidos, [
+            requiredRule("Apellidos"),
+            maxLengthRule(MAX_APELLIDO, "Apellidos"),
+        ]);
+        if (apellidosError) errors.apellidos = apellidosError;
+
+        const generoError = validateFieldRules(values.genero, [requiredRule("Género"), generoRule()]);
+        if (generoError) errors.genero = generoError;
+
+        const usuarioError = validateFieldRules(values.usuario, [requiredRule("Nombre de usuario"), usernameRule()]);
+        if (usuarioError) errors.usuario = usuarioError;
+
+        const direccionDetalleError = validateFieldRules(values.direccion_detalle, [
+            maxLengthRule(MAX_DIRECCION_DETALLE, "Detalle de la dirección"),
+        ]);
+        if (direccionDetalleError) errors.direccion_detalle = direccionDetalleError;
+
+        return errors;
+    }, []);
+
+    const { values, errors, handleChange, handleBlur, setErrors, setValues } = useValidation<EditPerfilFormValues>(
+        initialValues,
+        validateForm,
+        {
+            onFieldChange: (field) => {
+                setServerErrors((prev) => {
+                    const next = { ...prev };
+                    delete next[field as string];
+                    return next;
+                });
+            }
+        }
+    );
+
+    const allErrors = { ...errors, ...serverErrors };
+
+    const checkIsDirty = useCallback((currentValues: EditPerfilFormValues) => {
         return (
-            formData.get("nombres") !== profileData.nombres ||
-            formData.get("apellidos") !== profileData.apellidos ||
-            formData.get("genero") !== profileData.genero ||
-            formData.get("usuario") !== profileData.usuario ||
-            (formData.get("direccion_detalle") || "") !== (profileData.direccion_detalle || "") ||
+            currentValues.nombres !== profileData.nombres ||
+            currentValues.apellidos !== profileData.apellidos ||
+            currentValues.genero !== profileData.genero ||
+            currentValues.usuario !== profileData.usuario ||
+            (currentValues.direccion_detalle || "") !== (profileData.direccion_detalle || "") ||
             formattedAddress !== profileData.direccion_formateada ||
             placeId !== profileData.direccion_place_id
         );
     }, [profileData, formattedAddress, placeId]);
 
     useEffect(() => {
-        setIsDirty(checkIsDirty(formRef.current));
-    }, [formattedAddress, placeId, checkIsDirty]);
+        setIsDirty(checkIsDirty(values));
+    }, [values, checkIsDirty]);
 
-    const handleFormChange = (e: React.FormEvent<HTMLFormElement>) => {
-        setIsDirty(checkIsDirty(e.currentTarget));
+    const getDireccionError = (address: string, id: string | null) => {
+        const error = validateFieldRules(address, [requiredRule("Dirección")]);
+        return error || (id ? null : validateFieldRules(id, [placeIdRequiredRule()]));
     };
+
+    useEffect(() => {
+        const nextDireccionError = getDireccionError(formattedAddress, placeId);
+
+        setErrors((prev) => {
+            if (nextDireccionError) {
+                if (prev.direccion === nextDireccionError) return prev;
+                return { ...prev, direccion: nextDireccionError };
+            }
+
+            if (!prev.direccion) return prev;
+            const next = { ...prev };
+            delete next.direccion;
+            return next;
+        });
+
+        setServerErrors((prev) => {
+            if (!prev.direccion) return prev;
+            const next = { ...prev };
+            delete next.direccion;
+            return next;
+        });
+    }, [formattedAddress, placeId, setErrors]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        const validationErrors = validateForm(values);
+
+        const direccionError = getDireccionError(formattedAddress, placeId);
+        if (direccionError) {
+            validationErrors.direccion = direccionError;
+        }
+
+        setErrors(validationErrors);
+
+        if (Object.keys(validationErrors).length > 0) {
+            return;
+        }
+
         setLoading(true);
-        setErrors({});
+        setServerErrors({});
         setSuccess(false);
 
         try {
-            const formData = new FormData(e.currentTarget);
-
             const response = await updateProfileAction(
-                formData,
+                values, //se manda los valores ya que son los que tienen la información actualizada, el payload se construye en la acción a partir de esos valores y de los otros datos como la dirección
                 formattedAddress,
                 placeId
             );
 
             if (response.success) {
                 setSuccess(true);
-                setErrors({});
+                setServerErrors({});
                 setIsDirty(false);
+                router.refresh();
             } else {
-                setErrors(response.errors || { form: response.message || "Error desconocido" });
+                setServerErrors(response.errors || { form: response.message || "Error desconocido" });
             }
         } catch (err: unknown) {
             console.error(err);
-            setErrors({ form: "Ocurrió un error inesperado." });
+            setServerErrors({ form: "Ocurrió un error inesperado." });
         } finally {
             setLoading(false);
         }
     };
 
     const handleCancel = () => {
+        setServerErrors({});
         setErrors({});
         setSuccess(false);
         setFormattedAddress(profileData.direccion_formateada);
         setPlaceId(profileData.direccion_place_id);
+        setValues(initialValues);
         setResetKey(prev => prev + 1);
         setIsDirty(false);
         router.refresh();
@@ -112,12 +214,12 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
 
             {/* ── Form Card ── */}
             <div className="bg-white rounded-lg border border-brand-accent/25 shadow-[0_1px_3px_rgba(10,9,8,0.04),0_8px_30px_rgba(10,9,8,0.06)] p-6 md:p-8 mb-6">
-                <form key={resetKey} ref={formRef} onChange={handleFormChange} onSubmit={handleSubmit} className="space-y-8">
+                <form key={resetKey} onSubmit={handleSubmit} className="space-y-8">
 
                     {/* Mensajes de estado globales */}
-                    {errors.form && (
+                    {allErrors.form && (
                         <Alert variant="error">
-                            {errors.form}
+                            {allErrors.form}
                         </Alert>
                     )}
 
@@ -129,12 +231,23 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
 
                     {/* Datos personales — componente reutilizable */}
                     <PersonalDataFields
-                        errors={errors}
+                        errors={allErrors}
                         disabledFields={["dni", "fecha_nacimiento", "lugar_nacimiento"]}
                         defaultValues={{
                             ...profileData,
                             direccion_detalle: profileData.direccion_detalle ?? undefined,
                         }}
+                        values={{
+                            dni: profileData.dni,
+                            nombres: values.nombres,
+                            apellidos: values.apellidos,
+                            fecha_nacimiento: profileData.fecha_nacimiento,
+                            lugar_nacimiento: profileData.lugar_nacimiento,
+                            genero: values.genero as Genero,
+                            direccion_detalle: values.direccion_detalle,
+                        }}
+                        onChange={(field, value) => handleChange(field as keyof EditPerfilFormValues, value)}
+                        onBlur={(field) => handleBlur(field as keyof EditPerfilFormValues)}
                         onPlaceSelect={(selectedPlaceId) => setPlaceId(selectedPlaceId)}
                         onFormattedAddressSelect={(addressText) => setFormattedAddress(addressText)}
                     />
@@ -151,8 +264,10 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                                 label="Nombre de usuario"
                                 placeholder="juangarcia"
                                 required
-                                defaultValue={profileData.usuario}
-                                error={errors.usuario}
+                                value={values.usuario}
+                                onChange={(e) => handleChange("usuario", e.target.value)}
+                                onBlur={() => handleBlur("usuario")}
+                                error={allErrors.usuario}
                             />
                             <div className="flex flex-col gap-1.5">
                                 <Input
@@ -192,7 +307,7 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
                             <Button
                                 type="submit"
                                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-11 px-8"
-                                disabled={loading || !isDirty}
+                                disabled={loading || !isDirty || Object.keys(errors).length > 0}
                                 title={!isDirty ? "No hay cambios para guardar" : undefined}
                             >
                                 {loading ? (

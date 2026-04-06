@@ -41,7 +41,7 @@ const sharedFieldConfigs: Record<string, FieldConfig> = {
   },
   genero: {
     label: "Género",
-    rules: [requiredRule("Género"), generoRule()],
+    rules: [requiredRule("Género"), generoRule()], //aunque pase "" se verifica que no sea un valor no permitido, el rule de genero permite "" pero solo si es opcional, en este caso no lo es porque el perfil completo también lo requiere, entonces se fuerza a que siempre tenga un valor válido y no se permita el vacío
   },
   usuario: {
     label: "Nombre de usuario",
@@ -76,6 +76,12 @@ const fullProfileOnlyFields: Record<string, FieldConfig> = {
 
 // ─── Helpers de sanitización ───────────────────────────────────────
 
+function normalizeOptionalText(value: string | null | undefined): string | null | undefined {
+  if (value == null) return value;
+  const sanitized = sanitizeText(value);
+  return sanitized === "" ? null : sanitized;
+}
+
 function sanitizeFullProfile(payload: FullProfilePayload): FullProfilePayload {
   return {
     dni: sanitizeText(payload.dni),
@@ -87,9 +93,7 @@ function sanitizeFullProfile(payload: FullProfilePayload): FullProfilePayload {
     usuario: payload.usuario?.trim() ?? "",
     direccion: sanitizeText(payload.direccion),
     direccion_place_id: payload.direccion_place_id?.trim() ?? "",
-    direccion_detalle: payload.direccion_detalle
-      ? sanitizeText(payload.direccion_detalle)
-      : payload.direccion_detalle,
+    direccion_detalle: normalizeOptionalText(payload.direccion_detalle),
   };
 }
 
@@ -101,9 +105,7 @@ function sanitizeProfileUpdate(payload: ProfileUpdatePayload): ProfileUpdatePayl
     usuario: payload.usuario?.trim() ?? "",
     direccion: sanitizeText(payload.direccion),
     direccion_place_id: payload.direccion_place_id?.trim() ?? "",
-    direccion_detalle: payload.direccion_detalle
-      ? sanitizeText(payload.direccion_detalle)
-      : payload.direccion_detalle,
+    direccion_detalle: normalizeOptionalText(payload.direccion_detalle),
   };
 }
 

@@ -69,6 +69,15 @@ export interface ProfileUpdatePayload {
   direccion_detalle?: string | null;
 }
 
+export type EditPerfilFormValues = {
+    nombres: string;
+    apellidos: string;
+    genero: Genero | "";
+    direccion_detalle: string;
+    usuario: string;
+};
+
+
 /** Resultado de validación con datos sanitizados + errores. */
 export interface FullProfileValidationResult {
   errors: Record<string, string>;

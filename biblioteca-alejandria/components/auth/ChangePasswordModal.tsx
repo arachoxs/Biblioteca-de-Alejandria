@@ -213,7 +213,7 @@ export default function ChangePasswordModal({
         {/* Botón de envío */}
         <Button
           type="submit"
-          disabled={isPending || success}
+          disabled={isPending || success || Object.keys(errors).length > 0 || !values.current_password || !values.new_password || !values.confirm_password}
           className="flex items-center justify-center gap-2 mt-2"
         >
           {isPending ? (
