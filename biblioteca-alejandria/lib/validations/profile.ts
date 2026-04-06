@@ -76,6 +76,12 @@ const fullProfileOnlyFields: Record<string, FieldConfig> = {
 
 // ─── Helpers de sanitización ───────────────────────────────────────
 
+function normalizeOptionalText(value: string | null | undefined): string | null | undefined {
+  if (value == null) return value;
+  const sanitized = sanitizeText(value);
+  return sanitized === "" ? null : sanitized;
+}
+
 function sanitizeFullProfile(payload: FullProfilePayload): FullProfilePayload {
   return {
     dni: sanitizeText(payload.dni),
@@ -87,9 +93,7 @@ function sanitizeFullProfile(payload: FullProfilePayload): FullProfilePayload {
     usuario: payload.usuario?.trim() ?? "",
     direccion: sanitizeText(payload.direccion),
     direccion_place_id: payload.direccion_place_id?.trim() ?? "",
-    direccion_detalle: payload.direccion_detalle
-      ? sanitizeText(payload.direccion_detalle)
-      : payload.direccion_detalle,
+    direccion_detalle: normalizeOptionalText(payload.direccion_detalle),
   };
 }
 
@@ -101,9 +105,7 @@ function sanitizeProfileUpdate(payload: ProfileUpdatePayload): ProfileUpdatePayl
     usuario: payload.usuario?.trim() ?? "",
     direccion: sanitizeText(payload.direccion),
     direccion_place_id: payload.direccion_place_id?.trim() ?? "",
-    direccion_detalle: payload.direccion_detalle
-      ? sanitizeText(payload.direccion_detalle)
-      : payload.direccion_detalle,
+    direccion_detalle: normalizeOptionalText(payload.direccion_detalle),
   };
 }
 

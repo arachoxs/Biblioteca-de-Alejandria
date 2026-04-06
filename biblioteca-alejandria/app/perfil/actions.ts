@@ -2,11 +2,10 @@
 
 import { getCurrentUser } from "@/models/authModel";
 import type { Genero } from "@/lib/types/auth";
-import type { ProfileUpdatePayload, ProfileUpdateResponse } from "@/lib/types/profile";
+import type { ProfileUpdatePayload, ProfileUpdateResponse, EditPerfilFormValues } from "@/lib/types/profile";
 import { validateProfileUpdate } from "@/lib/validations/profile";
 import { updateProfile } from "@/services/profile/profileService";
 import { revalidatePath } from "next/cache";
-import { EditPerfilFormValues } from "./PerfilClient";
 // ─── Server Action ─────────────────────────────────────────────────
 
 export async function updateProfileAction(

@@ -10,7 +10,7 @@ import ClientModules from "@/components/profile/ClientModules";
 import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 import { updateProfileAction } from "./actions";
 import { useValidation } from "@/hooks/useValidation";
-import type { UserProfileData } from "@/lib/types/profile";
+import type { UserProfileData , EditPerfilFormValues} from "@/lib/types/profile";
 import type { Genero } from "@/lib/types/auth";
 import {
     validateFieldRules,
@@ -29,13 +29,6 @@ interface PerfilClientProps {
     isCliente: boolean;
 }
 
-export type EditPerfilFormValues = {
-    nombres: string;
-    apellidos: string;
-    genero: Genero | "";
-    direccion_detalle: string;
-    usuario: string;
-};
 
 export default function PerfilClient({ profileData, isCliente }: PerfilClientProps) {
     const [loading, setLoading] = useState(false);
@@ -117,10 +110,13 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
         setIsDirty(checkIsDirty(values));
     }, [values, checkIsDirty]);
 
+    const getDireccionError = (address: string, id: string | null) => {
+        const error = validateFieldRules(address, [requiredRule("Dirección")]);
+        return error || (id ? null : validateFieldRules(id, [placeIdRequiredRule()]));
+    };
+
     useEffect(() => {
-        const direccionError = validateFieldRules(formattedAddress, [requiredRule("Dirección")]);
-        const placeIdError = !direccionError ? validateFieldRules(placeId, [placeIdRequiredRule()]) : null;
-        const nextDireccionError = direccionError || placeIdError;
+        const nextDireccionError = getDireccionError(formattedAddress, placeId);
 
         setErrors((prev) => {
             if (nextDireccionError) {
@@ -146,7 +142,14 @@ export default function PerfilClient({ profileData, isCliente }: PerfilClientPro
         e.preventDefault();
 
         const validationErrors = validateForm(values);
+
+        const direccionError = getDireccionError(formattedAddress, placeId);
+        if (direccionError) {
+            validationErrors.direccion = direccionError;
+        }
+
         setErrors(validationErrors);
+
         if (Object.keys(validationErrors).length > 0) {
             return;
         }
