@@ -74,6 +74,7 @@ export interface LoginState {
 /**
  * Resultado de operaciones masivas sobre usuarios.
  */
-export interface UserStatusResult extends ActionResponse {
+export type UserStatusResult = Omit<ActionResponse, "message"> & {
+    message: string;
     errorIds?: string[];
 }
