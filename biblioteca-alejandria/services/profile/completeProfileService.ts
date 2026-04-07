@@ -8,21 +8,12 @@ import {
 import { createAddress, deleteAddress } from "@/models/addressModel";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { PersonalData, Genero } from "@/lib/types/auth";
-import type { ProfileUpdateResponse } from "@/lib/types/profile";
+import type { ProfileUpdateResponse, FullProfilePayload } from "@/lib/types/profile";
 
 // ─── Tipos ─────────────────────────────────────────────────────────
 
-interface CompleteAdminProfileInput {
-  dni: string;
-  nombres: string;
-  apellidos: string;
-  fecha_nacimiento: string;
-  lugar_nacimiento: string;
-  genero: Genero;
-  usuario: string;
-  direccion: string;
-  direccion_place_id: string;
-  direccion_detalle?: string | null;
+interface CompleteAdminProfileInput extends FullProfilePayload {
+  genero: Genero; // Override: en este flujo siempre es Genero, no string
   nueva_contrasena: string;
 }
 

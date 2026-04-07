@@ -6,10 +6,7 @@ import { redirect } from "next/navigation";
 import type { AuthResponse } from "@supabase/supabase-js";
 
 import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
-
-// ─── Tipos internos ────────────────────────────────────────────────
-
-/** Respuesta interna de operaciones de registro en Supabase Auth. */
+import type { ModelResult } from "@/lib/types/common";
 import type { AuthSignUpResult } from "@/lib/types/auth";
 import { AdminUserFromView, PaginatedAdminUsers } from "@/lib/types/profile";
 
@@ -108,7 +105,7 @@ export async function adminSignUp(
 export async function setUserRole(
   userId: string,
   rol: Rol
-): Promise<{ success: boolean; error?: string }> {
+): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient.auth.admin.updateUserById(userId, {

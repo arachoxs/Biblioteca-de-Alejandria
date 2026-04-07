@@ -1,11 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type { PersonalData, Genero } from "@/lib/types/auth";
-// ─── Tipos internos ────────────────────────────────────────────────
-
-interface ModelResult {
-  success: boolean;
-  error?: string;
-}
+import type { ModelResult } from "@/lib/types/common";
 
 /** Datos crudos del perfil obtenidos por join usuario + dirección. */
 export interface RawUserProfile {

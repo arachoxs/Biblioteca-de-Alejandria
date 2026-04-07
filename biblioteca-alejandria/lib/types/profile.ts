@@ -1,5 +1,6 @@
 import type { Genero } from "./auth";
-import type { Database } from "@/lib/types/supabase"; // Importa el tipo Database generado por Supabase
+import type { ActionResponse, DataResponse, Paginated, PaginatedResponse } from "./common";
+import type { Database } from "@/lib/types/supabase";
 
 
 
@@ -92,32 +93,27 @@ export interface ProfileUpdateValidationResult {
 
 // ─── Respuesta del server action ───────────────────────────────────
 
-export interface ProfileUpdateResponse {
-  success: boolean;
-  errors?: Record<string, string>;
-  message?: string;
-}
+/**
+ * Respuesta de actualización de perfil.
+ * @alias ActionResponse - Semánticamente igual.
+ */
+export type ProfileUpdateResponse = ActionResponse;
 
 // ─── Datos de usuarios administradores (lectura) ─────────────────────────
-export interface PaginatedAdminUsers {
-  data: AdminUserFromView[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
 
-export interface AdminUsersResponse {
-  success: boolean;
-  data?: PaginatedAdminUsers;
-  errors?: Record<string, string>;
-  message?: string;
-}
+/**
+ * Datos paginados de administradores.
+ */
+export type PaginatedAdminUsers = Paginated<AdminUserFromView>;
+
+/**
+ * Respuesta de listado paginado de administradores.
+ */
+export type AdminUsersResponse = PaginatedResponse<AdminUserFromView>;
 
 // ─── Búsqueda de administradores ─────────────────────────────────────
-export interface AdminSearchResponse {
-  success: boolean;
-  data?: AdminUserFromView[];
-  errors?: Record<string, string>;
-  message?: string;
-}
+
+/**
+ * Respuesta de búsqueda de administradores (sin paginación).
+ */
+export type AdminSearchResponse = DataResponse<AdminUserFromView[]>;

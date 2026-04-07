@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import type { ModelResult, ModelResultWithId } from "@/lib/types/common";
 
 // ─── Tipos internos ────────────────────────────────────────────────
 
@@ -6,12 +7,6 @@ interface AddressInput {
   direccion: string;
   placeId: string;
   detalle?: string;
-}
-
-interface CreateAddressResult {
-  success: boolean;
-  id?: number;
-  error?: string;
 }
 
 // ─── Operaciones CRUD ──────────────────────────────────────────────
@@ -22,7 +17,7 @@ interface CreateAddressResult {
  */
 export async function createAddress(
   input: AddressInput
-): Promise<CreateAddressResult> {
+): Promise<ModelResultWithId> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -65,7 +60,7 @@ export async function deleteAddress(id: number): Promise<void> {
 export async function updateAddress(
   id: number,
   input: AddressInput
-): Promise<{ success: boolean; error?: string }> {
+): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient

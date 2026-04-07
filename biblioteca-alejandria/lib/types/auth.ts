@@ -1,4 +1,5 @@
 import type { AuthResponse } from "@supabase/supabase-js";
+import type { ActionResponse, DataResponse } from "./common";
 
 export enum Genero {
     Masculino = "masculino",
@@ -31,37 +32,49 @@ export interface PersonalData {
     usuario: string;
 }
 
-export interface AuthSignUpResult {
-    success: boolean;
-    errors?: Record<string, string>;
-    message?: string;
-    data?: AuthResponse["data"];
-}
+/**
+ * Resultado de signup en Supabase Auth.
+ * Extiende DataResponse con los datos específicos de AuthResponse.
+ */
+export type AuthSignUpResult = DataResponse<AuthResponse["data"]>;
 
+/**
+ * Respuesta de envío de email.
+ * Solo necesita success y message (sin errors por campo).
+ */
 export interface MailSentResponse {
     success: boolean;
     message: string;
 }
 
-export interface RegisterResponse { //respuesta que se envia al frontend
-    success: boolean;
-    errors?: Record<string, string>;
-    message?: string | null;
-}
+/**
+ * Respuesta genérica de registro (server action).
+ * @alias ActionResponse - Semánticamente igual.
+ */
+export type RegisterResponse = ActionResponse;
 
+/**
+ * Resultado de acciones de autenticación (login, recovery, etc).
+ * Usa 'error' singular para mensajes globales (sin campos).
+ */
 export interface AuthActionResult {
     error?: string;
     success?: boolean;
     message?: string;
 }
 
+/**
+ * Estado de login (para formularios).
+ */
 export interface LoginState {
     error?: string;
     success?: boolean;
 }
 
-export interface UserStatusResult {
-    success: boolean;
+/**
+ * Resultado de operaciones masivas sobre usuarios.
+ */
+export type UserStatusResult = Omit<ActionResponse, "message"> & {
     message: string;
-    errorIds?: string[]; // IDs de usuarios que fallaron en la operación
+    errorIds?: string[];
 }
