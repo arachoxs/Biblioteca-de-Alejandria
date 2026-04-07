@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { Rol } from "@/lib/types/auth";
+import { signOutModel } from "@/models/authModel";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -86,10 +87,26 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     }
   }
 
+  //handle banned unitl
+  
+  if(user?.banned_until){
+    const signOutError = await signOutModel();
+    if (signOutError) {
+      console.error("Error al cerrar sesión globalmente:", signOutError);
+    }
+
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("banned", "true");
+    return redirectWithSupabaseCookies(loginUrl, supabaseResponse);
+  }
+  
+
   // 2. Protected routes check (Role-based access)
   for (const [prefix, requiredRole] of Object.entries(PROTECTED_ROUTES)) {
     if (pathname.startsWith(prefix)) {
       // Not logged in → redirect to login.
+
       if (!user) {
         const loginUrl = request.nextUrl.clone();
         loginUrl.pathname = "/login";
@@ -103,7 +120,6 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
         homeUrl.pathname = "/";
         return redirectWithSupabaseCookies(homeUrl, supabaseResponse);
       }
-
       // Authorized — fall through.
       break;
     }
