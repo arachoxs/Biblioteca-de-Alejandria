@@ -78,7 +78,6 @@ export type EditPerfilFormValues = {
     usuario: string;
 };
 
-
 /** Resultado de validación con datos sanitizados + errores. */
 export interface FullProfileValidationResult {
   errors: Record<string, string>;
