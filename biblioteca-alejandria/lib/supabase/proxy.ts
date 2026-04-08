@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { Rol } from "@/lib/types/auth";
-import { signOutModel } from "@/models/authModel";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -87,12 +86,17 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     }
   }
 
-  //handle banned unitl
+  //handle banned until
   
   if(user?.banned_until){
-    const signOutError = await signOutModel();
-    if (signOutError) {
-      console.error("Error al cerrar sesión globalmente:", signOutError);
+    const { error } = await supabase.auth.signOut();
+  
+    if (error) {
+      console.error("Error al cerrar sesión globalmente:", error);
+    }
+
+    if (isServerAction) {
+      return supabaseResponse;
     }
 
     const loginUrl = request.nextUrl.clone();
