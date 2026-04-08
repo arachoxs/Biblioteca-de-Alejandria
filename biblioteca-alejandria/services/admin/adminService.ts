@@ -1,11 +1,10 @@
-import { getAdminUsers, searchAdminUsers, getCurrentUser, isCurrentUserRoot } from "@/models/authModel";
+import { getAdminUsers, searchAdminUsers, getCurrentUser } from "@/models/authModel";
 import { registerAuthUser } from "@/services/auth/registrationService";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
 import { Rol } from "@/lib/types/auth";
 import type { AdminUsersResponse, AdminSearchResponse } from "@/lib/types/profile";
 import type { CredentialData, RegisterResponse } from "@/lib/types/auth";
-import { ActionResponse } from "@/lib/types/common";
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -22,20 +21,6 @@ function generateRandomPassword(length: number): string {
   return password;
 }
 
-async function requireRootRole(): Promise<ActionResponse>{
-  const isRoot =await  isCurrentUserRoot();
-  
-  if (!isRoot) {
-    return {
-      success: false,
-      message: "No tienes permisos para realizar esta acción.",
-    } as ActionResponse;
-  }
-  
-  return { success: true } as ActionResponse;
-}
-
-
 // ─── Escritura ──────────────────────────────────────────────────────
 
 /**
@@ -49,15 +34,6 @@ async function requireRootRole(): Promise<ActionResponse>{
 export async function createAdminAccount(
   email: string
 ): Promise<RegisterResponse> {
-  const roleCheck = await requireRootRole();
-
-  if (!roleCheck.success) {
-    return {
-      ...roleCheck
-    };
-  }
-
-
   const cleanEmail = email.trim();
   const password = generateRandomPassword(12);
 
@@ -115,13 +91,6 @@ export async function fetchAdminUsers(
   pageSize: number = 10
 ): Promise<AdminUsersResponse> {
   try {
-    const roleCheck = await requireRootRole();
-    
-    if (!roleCheck.success) {
-      return {
-        ...roleCheck}
-    };
-
     const result = await getAdminUsers(page, pageSize);
     
     return {
@@ -152,14 +121,6 @@ export async function searchAdmins(
   searchTerm: string
 ): Promise<AdminSearchResponse> {
   try {
-    const roleCheck = await requireRootRole();
-
-    if (!roleCheck.success) {
-      return {
-        ...roleCheck
-      };
-    }
-    
     // Validación básica del término de búsqueda
     if (!searchTerm || searchTerm.trim().length === 0) {
       return {
