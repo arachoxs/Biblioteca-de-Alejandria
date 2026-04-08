@@ -86,10 +86,31 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     }
   }
 
+  //handle banned until
+  
+  if(user?.banned_until){
+    const { error } = await supabase.auth.signOut();
+  
+    if (error) {
+      console.error("Error al cerrar sesión globalmente:", error);
+    }
+
+    if (isServerAction) {
+      return supabaseResponse;
+    }
+
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("banned", "true");
+    return redirectWithSupabaseCookies(loginUrl, supabaseResponse);
+  }
+  
+
   // 2. Protected routes check (Role-based access)
   for (const [prefix, requiredRole] of Object.entries(PROTECTED_ROUTES)) {
     if (pathname.startsWith(prefix)) {
       // Not logged in → redirect to login.
+
       if (!user) {
         const loginUrl = request.nextUrl.clone();
         loginUrl.pathname = "/login";
@@ -103,7 +124,6 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
         homeUrl.pathname = "/";
         return redirectWithSupabaseCookies(homeUrl, supabaseResponse);
       }
-
       // Authorized — fall through.
       break;
     }

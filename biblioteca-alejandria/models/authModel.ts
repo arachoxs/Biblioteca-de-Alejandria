@@ -3,7 +3,7 @@ import "server-only";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { type AuthActionResult, Rol, type UserStatusResult } from "@/lib/types/auth";
 import { redirect } from "next/navigation";
-import type { AuthResponse } from "@supabase/supabase-js";
+import type { AuthError, AuthResponse } from "@supabase/supabase-js";
 
 import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
 import type { ModelResult } from "@/lib/types/common";
@@ -431,15 +431,27 @@ export async function getCurrentUserEmail(): Promise<string | null> {
  * y redirige a la página principal.
  */
 export async function globalSignOutModel(): Promise<void> {
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signOut({ scope: "global" });
+  const signOutError = await signOutModel();
 
-  if (error) {
-    console.error("Error al cerrar sesión globalmente:", error);
-    throw error;
+  if(signOutError){
+    throw new Error("Error al cerrar sesión globalmente: " + signOutError.message);
   }
 
   redirect("/");
+}
+
+// singout dedicado
+
+export async function signOutModel(): Promise<AuthError | null> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    console.error("Error al cerrar sesión:", error);
+    return error;
+  }
+
+  return null
 }
 
 //obtencion de usuarios administradores paginados para el panel de administradores
