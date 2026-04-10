@@ -16,7 +16,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     setMounted(true);
   }, []);
 
