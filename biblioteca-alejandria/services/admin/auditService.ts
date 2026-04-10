@@ -7,10 +7,7 @@ import type { Json } from "@/lib/types/supabase";
 
 /**
  * Registra una acción administrativa en la tabla de auditoría.
- * Recibe el ID del actor (admin que ejecuta), la acción, una descripción
- * legible y un snapshot de la entidad afectada.
- *
- * Nunca lanza — la auditoría no debe romper el flujo principal.
+ * Nunca lanza — fallos de auditoría no deben romper el flujo principal.
  */
 export async function logAdminAction(params: {
   actorId: string;
@@ -18,13 +15,18 @@ export async function logAdminAction(params: {
   description: string;
   entity: Json;
 }): Promise<void> {
-  await insertAuditLog({
-    fecha: new Date().toISOString(),
-    accion: params.action,
-    descripcion: params.description,
-    entidad_afectada: params.entity,
-    id_usuario: params.actorId,
-  });
+  try {
+    await insertAuditLog({
+      fecha: new Date().toISOString(),
+      accion: params.action,
+      descripcion: params.description,
+      entidad_afectada: params.entity,
+      id_usuario: params.actorId,
+    });
+  } catch (error) {
+    // Auditoría es best-effort: loguear pero no propagar
+    console.error("[auditService] Error al registrar acción de auditoría:", error);
+  }
 }
 
 // ─── Lectura ───────────────────────────────────────────────────────
