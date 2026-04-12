@@ -270,6 +270,26 @@ export function sanitizeText(value: string | null | undefined): string {
   return value.trim().replace(/\s+/g, " ");
 }
 
+/** Sanitiza texto y normaliza nulos/undefined/vacío a null. */
+export function sanitizeNullableText(
+  value: string | null | undefined,
+): string | null {
+  const sanitized = sanitizeText(value);
+  return sanitized === "" ? null : sanitized;
+}
+
+/** Normaliza un número para usarlo como entero positivo seguro con fallback. */
+export function toSafePositiveInt(value: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  const intValue = Math.trunc(value);
+  return intValue > 0 ? intValue : fallback;
+}
+
+/** Valida que el valor sea un entero positivo (ID válido). */
+export function isValidPositiveInteger(value: number): boolean {
+  return Number.isInteger(value) && value > 0;
+}
+
 // ─── Validadores legacy (wrappers para compatibilidad con servidor) ─
 
 /** @deprecated Usar requiredRule(label) en su lugar */

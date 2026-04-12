@@ -2,10 +2,25 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type {
   CategoryCreateInput,
   CategoryRow,
+  CategoryWithBookCount,
   CategoryUpdateInput,
 } from "@/lib/types/category";
 import type { ModelResult, ModelResultWithId, Paginated } from "@/lib/types/common";
 import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
+
+function normalizeCategoryWithBookCount(
+  row: CategoryRow & Record<string, unknown>
+): CategoryWithBookCount {
+  const libroArr = row.libro as { count: number }[] | undefined;
+
+  return {
+    id: row.id,
+    nombre: row.nombre,
+    descripcion: row.descripcion,
+    deleted_at: row.deleted_at,
+    libro_count: libroArr?.[0]?.count ?? 0,
+  };
+}
 
 // ─── Operaciones CRUD (sin validaciones de negocio) ─────────────────
 
@@ -44,7 +59,7 @@ export async function createCategory(
 export async function getCategories(
   page: number = 1,
   pageSize: number = 10
-): Promise<Paginated<CategoryRow>> {
+): Promise<Paginated<CategoryWithBookCount>> {
   const adminClient = createAdminClient();
 
   const safePage = Math.max(1, page);
@@ -54,15 +69,19 @@ export async function getCategories(
 
   const { data, error, count } = await adminClient
     .from("categoria")
-    .select("*", { count: "exact" })
+    .select("*, libro(count)", { count: "exact" })
     .is("deleted_at", null)
     .range(from, to)
     .order("id", { ascending: false });
 
   if (error) throw error;
 
+  const normalized = (data ?? []).map((row) =>
+    normalizeCategoryWithBookCount(row as CategoryRow & Record<string, unknown>)
+  );
+
   return {
-    data: data ?? [],
+    data: normalized,
     total: count || 0,
     page: safePage,
     pageSize: safePageSize,
@@ -76,14 +95,14 @@ export async function getCategories(
 export async function searchCategoriesByName(
   searchTerm: string,
   limit: number = 20
-): Promise<CategoryRow[]> {
+): Promise<CategoryWithBookCount[]> {
   const adminClient = createAdminClient();
   const normalizedSearch = formatILIKE(searchTerm);
   const safeLimit = Math.max(1, limit);
 
   const { data, error } = await adminClient
     .from("categoria")
-    .select("*")
+    .select("*, libro(count)")
     .is("deleted_at", null)
     .ilike("nombre", normalizedSearch)
     .order("nombre", { ascending: true })
@@ -94,7 +113,9 @@ export async function searchCategoriesByName(
     throw error;
   }
 
-  return data ?? [];
+  return (data ?? []).map((row) =>
+    normalizeCategoryWithBookCount(row as CategoryRow & Record<string, unknown>)
+  );
 }
 
 /**
