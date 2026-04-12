@@ -1,7 +1,8 @@
 "use client";
 
 import Table from "@/components/ui/Table";
-import { Search, BookOpen, Loader2, Pencil, Trash2 } from "lucide-react";
+import RowActions from "@/components/ui/RowActions";
+import { Search, BookOpen, Loader2 } from "lucide-react";
 import type { AuthorWithBookCount } from "@/lib/types/author";
 import type { Column } from "@/components/ui/Table";
 
@@ -148,41 +149,16 @@ export default function AutoresTable({
           header: "Acciones",
           render: (item) => {
             const isDeleting = deletingIds.has(item.id);
+            const handleEdit = onEdit ? () => onEdit(item) : (onRowClick ? () => onRowClick(item) : undefined);
 
             return (
-              <div className="flex items-center gap-2">
-                {(onEdit || onRowClick) && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onEdit) onEdit(item);
-                      else if (onRowClick) onRowClick(item);
-                    }}
-                    title="Editar autor"
-                    className="flex items-center justify-center p-2 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary transition-all cursor-pointer ring-1 ring-brand-primary/20 shadow-sm"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                )}
-
-                {onDelete && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(item);
-                    }}
-                    disabled={isDeleting}
-                    title="Eliminar autor"
-                    className="flex items-center justify-center p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 hover:text-red-700 transition-all cursor-pointer ring-1 ring-red-500/20 shadow-sm disabled:opacity-50"
-                  >
-                    {isDeleting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                  </button>
-                )}
-              </div>
+              <RowActions
+                onEdit={handleEdit}
+                onDelete={onDelete ? () => onDelete(item) : undefined}
+                isDeleting={isDeleting}
+                editTitle="Editar autor"
+                deleteTitle="Eliminar autor"
+              />
             );
           },
         },
