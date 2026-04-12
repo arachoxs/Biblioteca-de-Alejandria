@@ -89,7 +89,7 @@ export async function createAdminAccount(
       actorId: actor.id,
       action: AccionAdministrador.CREAR,
       description: `Se creó el administrador ${cleanEmail}.`,
-      entity: { id_usuario_creado: newUserId ?? null, correo: cleanEmail },
+      entity: { id: newUserId ?? "desconocido", entity_type: "administrador", display_name: cleanEmail },
     });
   }
 

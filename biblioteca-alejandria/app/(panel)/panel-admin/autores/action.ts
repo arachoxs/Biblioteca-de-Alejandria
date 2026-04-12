@@ -81,12 +81,12 @@ export async function actualizarAutor(
 /**
  * Server Action: elimina un autor (borrado lógico).
  */
-export async function eliminarAutor(id: number): Promise<AuthorActionResponse> {
+export async function eliminarAutor(id: number, nombre: string): Promise<AuthorActionResponse> {
   if (!id || id <= 0) {
     return { success: false, message: "ID de autor no válido." };
   }
 
-  return await removeAuthor(id);
+  return await removeAuthor(id, nombre);
 }
 
 // ─── Lectura ───────────────────────────────────────────────────────
