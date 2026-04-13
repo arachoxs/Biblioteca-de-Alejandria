@@ -13,7 +13,7 @@ interface RowActionsProps {
 
 /**
  * Componente reutilizable para los botones de acción en las filas de las tablas (Editar/Eliminar).
- * 
+ *
  * @param onEdit Callback invocado al hacer click en Editar
  * @param onDelete Callback invocado al hacer click en Eliminar
  * @param isDeleting Indica si la fila está en proceso de eliminación (muestra loader)
@@ -37,8 +37,7 @@ export default function RowActions({
             onEdit();
           }}
           title={editTitle}
-          className="flex items-center justify-center p-2 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary transition-all cursor-pointer ring-1 ring-brand-primary/20 shadow-sm"
-        >
+          className="flex items-center justify-center p-2 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary transition-all cursor-pointer ring-1 ring-brand-primary/20 shadow-sm">
           <Pencil className="w-4 h-4" />
         </button>
       )}
@@ -52,8 +51,7 @@ export default function RowActions({
           }}
           disabled={isDeleting}
           title={deleteTitle}
-          className="flex items-center justify-center p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 hover:text-red-700 transition-all cursor-pointer ring-1 ring-red-500/20 shadow-sm disabled:opacity-50"
-        >
+          className="flex items-center justify-center p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 hover:text-red-700 transition-all cursor-pointer ring-1 ring-red-500/20 shadow-sm disabled:opacity-50">
           {isDeleting ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
