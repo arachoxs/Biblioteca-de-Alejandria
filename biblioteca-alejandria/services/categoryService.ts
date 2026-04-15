@@ -13,11 +13,12 @@ import type {
   CategoryCreateInput,
   CategoryWithBookCount,
   CategoryUpdateInput,
+  CategoryListResponse,
+  CategorySearchResponse,
+  CategoryActionResponse,
 } from "@/lib/types/category";
 import type {
-  ActionResponse,
   DataResponse,
-  Paginated,
 } from "@/lib/types/common";
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { sanitizeNullableText, sanitizeText } from "@/lib/validations/rules";
@@ -45,7 +46,7 @@ function isSameName(left: string, right: string): boolean {
 export async function fetchCategories(
   page: number = 1,
   pageSize: number = 10,
-): Promise<DataResponse<Paginated<CategoryWithBookCount>>> {
+): Promise<CategoryListResponse> {
   try {
     const roleCheck = await requireAdminRole();
     if (!roleCheck.success) return roleCheck;
@@ -72,7 +73,7 @@ export async function fetchCategories(
  */
 export async function createCategory(
   input: CategoryCreateInput,
-): Promise<ActionResponse> {
+): Promise<CategoryActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 
@@ -129,7 +130,7 @@ export async function createCategory(
 export async function updateCategory(
   categoryId: number,
   input: CategoryUpdateInput,
-): Promise<ActionResponse> {
+): Promise<CategoryActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 
@@ -216,7 +217,7 @@ export async function updateCategory(
  */
 export async function deleteCategory(
   categoryId: number,
-): Promise<ActionResponse> {
+): Promise<CategoryActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 
@@ -270,7 +271,7 @@ export async function deleteCategory(
 export async function searchCategoriesByName(
   searchTerm: string,
   limit: number = 20,
-): Promise<DataResponse<CategoryWithBookCount[]>> {
+): Promise<CategorySearchResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 

@@ -18,8 +18,10 @@ import type {
   CategoryCreateInput,
   CategoryUpdateInput,
   CategoryWithBookCount,
+  CategoryListResponse,
+  CategorySearchResponse,
+  CategoryActionResponse,
 } from "@/lib/types/category";
-import type { ActionResponse, DataResponse, Paginated } from "@/lib/types/common";
 
 /**
  * Server Action: obtiene categorías activas paginadas.
@@ -27,7 +29,7 @@ import type { ActionResponse, DataResponse, Paginated } from "@/lib/types/common
 export async function getCategoriesAction(
   page: number = 1,
   pageSize: number = 10,
-): Promise<DataResponse<Paginated<CategoryWithBookCount>>> {
+): Promise<CategoryListResponse> {
   const safePage = toSafePositiveInt(page, 1);
   const safePageSize = toSafePositiveInt(pageSize, 10);
   return await fetchCategories(safePage, safePageSize);
@@ -38,7 +40,7 @@ export async function getCategoriesAction(
  */
 export async function searchCategoriesAction(
   searchTerm: string,
-): Promise<DataResponse<CategoryWithBookCount[]>> {
+): Promise<CategorySearchResponse> {
   const cleanTerm = sanitizeText(searchTerm);
   return await searchCategoriesByName(cleanTerm);
 }
@@ -48,7 +50,7 @@ export async function searchCategoriesAction(
  */
 export async function createCategoryAction(
   input: CategoryCreateInput,
-): Promise<ActionResponse> {
+): Promise<CategoryActionResponse> {
   const sanitized: CategoryCreateInput = {
     nombre: sanitizeText(input.nombre),
     descripcion: sanitizeNullableText(input.descripcion),
@@ -72,7 +74,7 @@ export async function createCategoryAction(
 export async function updateCategoryAction(
   categoryId: number,
   input: CategoryUpdateInput,
-): Promise<ActionResponse> {
+): Promise<CategoryActionResponse> {
   if (!isValidPositiveInteger(categoryId)) {
     return {
       success: false,
@@ -116,7 +118,7 @@ export async function updateCategoryAction(
  */
 export async function deleteCategoryAction(
   categoryId: number,
-): Promise<ActionResponse> {
+): Promise<CategoryActionResponse> {
   if (!isValidPositiveInteger(categoryId)) {
     return {
       success: false,
