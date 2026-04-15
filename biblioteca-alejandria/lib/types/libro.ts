@@ -18,7 +18,13 @@ export interface InsertLibroPayload {
   titulo: string;
   isbn: string;
   idioma: string;
-  sipnosis: string;
+  /**
+   * Resumen o descripción breve del libro.
+   * NOTA: Este campo se expone como `sinopsis` en el nivel de aplicación,
+   * pero internamente debe mapearse a la columna `sipnosis` al persistir
+   * en la base de datos debido a un typo heredado en el esquema.
+   */
+  sinopsis: string;
   paginas: number;
   precio: number;
   ano_publicacion: string;
@@ -35,7 +41,13 @@ export interface UpdateLibroPayload {
   titulo?: string;
   isbn?: string;
   idioma?: string;
-  sipnosis?: string;
+  /**
+   * Resumen o descripción breve del libro.
+   * NOTA: Este campo se expone como `sinopsis` en el nivel de aplicación,
+   * pero internamente debe mapearse a la columna `sipnosis` al persistir
+   * en la base de datos debido a un typo heredado en el esquema.
+   */
+  sinopsis?: string;
   paginas?: number;
   precio?: number;
   ano_publicacion?: string;
