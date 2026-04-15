@@ -4,7 +4,7 @@ import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
 import { Plus, CheckCircle, UserX, Loader2, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getAdmins, searchAdminsByTerm, habilitarAdministradores, deshabilitarAdministradores  } from "./action";
+import { getAdminUsersAction, habilitarAdministradores, deshabilitarAdministradores  } from "./action";
 import Alert from "@/components/ui/Alert";
 import type { AdminUserFromView } from "@/lib/types/profile";
 import CreateAdminModal from "./CreateAdminModal";
@@ -35,13 +35,13 @@ export default function AdministradoresContent() {
   // Usar el hook de debounce para el término de búsqueda
   const debouncedSearchTerm = useDebounce(searchTerm, 700);
 
-  // Cargar administradores desde el servidor
-  const loadAdmins = async (page: number = 1) => {
+  // Cargar administradores paginados desde el servidor
+  const loadAdmins = async (page: number = 1, term: string = "") => {
     setIsLoadingAdmins(true);
     setErrorLoadingAdmins(null);
     
     try {
-      const response = await getAdmins(page, itemsPerPage);
+      const response = await getAdminUsersAction(page, itemsPerPage, term);
       
       if (response.success && response.data) {
         setAdminsData(response.data.data);
@@ -60,63 +60,9 @@ export default function AdministradoresContent() {
     }
   };
 
-  const refreshAdmins = async () => {
-  if (!debouncedSearchTerm.trim()) {
-    // Si no hay búsqueda, carga normal
-    await loadAdmins(currentPage);
-  } else {
-    // Si hay búsqueda, repite la búsqueda para actualizar los datos
-    setIsLoadingAdmins(true);
-    try {
-      const response = await searchAdminsByTerm(debouncedSearchTerm);
-      if (response.success && response.data) {
-        setAdminsData(response.data);
-        setTotalPages(1);
-        setTotalItems(response.data.length);
-      }
-    } catch (error) {
-      console.error("Error al refrescar búsqueda:", error);
-    } finally {
-      setIsLoadingAdmins(false);
-    }
-  }
-};
-
-  // Cargar o buscar administradores cuando cambie la página o el término de búsqueda
+  // Cargar administradores cuando cambie la página o el término de búsqueda
   useEffect(() => {
-    const performSearch = async () => {
-      if (!debouncedSearchTerm.trim()) {
-        // Si no hay término de búsqueda, cargar la lista paginada completa
-        await loadAdmins(currentPage);
-        return;
-      }
-
-      // Si hay término de búsqueda, realizar búsqueda
-      setIsLoadingAdmins(true);
-      setErrorLoadingAdmins(null);
-
-      try {
-        const response = await searchAdminsByTerm(debouncedSearchTerm);
-        
-        if (response.success && response.data) {
-          setAdminsData(response.data);
-          // Resetear paginación cuando hay búsqueda
-          setTotalPages(1);
-          setTotalItems(response.data.length);
-        } else {
-          setErrorLoadingAdmins(response.message || "Error al buscar administradores");
-          setAdminsData([]);
-        }
-      } catch (error) {
-        console.error("Error buscando administradores:", error);
-        setErrorLoadingAdmins("Error inesperado al buscar administradores");
-        setAdminsData([]);
-      } finally {
-        setIsLoadingAdmins(false);
-      }
-    };
-
-    performSearch();
+    loadAdmins(currentPage, debouncedSearchTerm);
   }, [debouncedSearchTerm, currentPage]);
 
   // Filtrar datos localmente (solo si no hay búsqueda del servidor)
@@ -151,7 +97,7 @@ export default function AdministradoresContent() {
 
       if (result.success) {
         // Recargar la lista de administradores
-        await refreshAdmins();
+        await loadAdmins(currentPage, debouncedSearchTerm);
         
         // Si hay IDs que fallaron, mantenerlos seleccionados
         if (result.errorIds && result.errorIds.length > 0) {
@@ -198,7 +144,7 @@ export default function AdministradoresContent() {
       
       if (result.success) {
         // Recargar la lista de administradores
-        await refreshAdmins();
+        await loadAdmins(currentPage, debouncedSearchTerm);
         
         // Si hay IDs que fallaron, mantenerlos seleccionados
         if (result.errorIds && result.errorIds.length > 0) {
@@ -226,7 +172,7 @@ export default function AdministradoresContent() {
 
   const handleAdminCreated = async () => {
     // Recargar la lista de administradores después de crear uno nuevo
-    await loadAdmins(currentPage);
+    await loadAdmins(currentPage, debouncedSearchTerm);
   };
 
   const handleSearchChange = (value: string) => {

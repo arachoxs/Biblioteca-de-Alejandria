@@ -58,7 +58,8 @@ export async function createCategory(
  */
 export async function getCategories(
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  searchTerm?: string
 ): Promise<Paginated<CategoryWithBookCount>> {
   const adminClient = createAdminClient();
 
@@ -67,12 +68,19 @@ export async function getCategories(
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
-  const { data, error, count } = await adminClient
+  let query = adminClient
     .from("categoria")
     .select("*, libro(count)", { count: "exact" })
     .is("deleted_at", null)
     .range(from, to)
     .order("id", { ascending: false });
+
+  if (searchTerm && searchTerm.trim() !== "") {
+    const normalizedSearch = formatILIKE(searchTerm);
+    query = query.ilike("nombre", normalizedSearch);
+  }
+
+  const { data, error, count } = await query;
 
   if (error) throw error;
 
@@ -87,35 +95,6 @@ export async function getCategories(
     pageSize: safePageSize,
     totalPages: Math.ceil((count || 0) / safePageSize),
   };
-}
-
-/**
- * Busca categorías activas por coincidencia parcial de nombre.
- */
-export async function searchCategoriesByName(
-  searchTerm: string,
-  limit: number = 20
-): Promise<CategoryWithBookCount[]> {
-  const adminClient = createAdminClient();
-  const normalizedSearch = formatILIKE(searchTerm);
-  const safeLimit = Math.max(1, limit);
-
-  const { data, error } = await adminClient
-    .from("categoria")
-    .select("*, libro(count)")
-    .is("deleted_at", null)
-    .ilike("nombre", normalizedSearch)
-    .order("nombre", { ascending: true })
-    .limit(safeLimit);
-
-  if (error) {
-    console.error("Error al buscar categorías por nombre:", error);
-    throw error;
-  }
-
-  return (data ?? []).map((row) =>
-    normalizeCategoryWithBookCount(row as CategoryRow & Record<string, unknown>)
-  );
 }
 
 /**

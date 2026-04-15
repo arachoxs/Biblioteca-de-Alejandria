@@ -4,9 +4,8 @@ import {
   createCategory,
   deleteCategory,
   fetchCategories,
-  searchCategoriesByName,
   updateCategory,
-} from "@/services/categoryService";
+} from "@/services/categories/categoryService";
 import { validateCategory } from "@/lib/validations/category";
 import {
   isValidPositiveInteger,
@@ -17,9 +16,7 @@ import {
 import type {
   CategoryCreateInput,
   CategoryUpdateInput,
-  CategoryWithBookCount,
   CategoryListResponse,
-  CategorySearchResponse,
   CategoryActionResponse,
 } from "@/lib/types/category";
 
@@ -29,20 +26,12 @@ import type {
 export async function getCategoriesAction(
   page: number = 1,
   pageSize: number = 10,
+  searchTerm?: string,
 ): Promise<CategoryListResponse> {
   const safePage = toSafePositiveInt(page, 1);
   const safePageSize = toSafePositiveInt(pageSize, 10);
-  return await fetchCategories(safePage, safePageSize);
-}
-
-/**
- * Server Action: busca categorías activas por nombre.
- */
-export async function searchCategoriesAction(
-  searchTerm: string,
-): Promise<CategorySearchResponse> {
-  const cleanTerm = sanitizeText(searchTerm);
-  return await searchCategoriesByName(cleanTerm);
+  const cleanTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
+  return await fetchCategories(safePage, safePageSize, cleanTerm);
 }
 
 /**

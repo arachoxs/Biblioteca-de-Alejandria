@@ -1,10 +1,10 @@
-import { getAdminUsers, searchAdminUsers, getCurrentUser } from "@/models/authModel";
+import { getAdminUsers, getCurrentUser } from "@/models/authModel";
 import { requireRootRole } from "@/lib/validations/server-auth";
 import { registerAuthUser } from "@/services/auth/registrationService";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
 import { Rol } from "@/lib/types/auth";
-import type { AdminUsersResponse, AdminSearchResponse } from "@/lib/types/profile";
+import type { AdminUsersResponse } from "@/lib/types/profile";
 import type { CredentialData, RegisterResponse } from "@/lib/types/auth";
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -98,7 +98,8 @@ export async function createAdminAccount(
  */
 export async function fetchAdminUsers(
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  searchTerm?: string
 ): Promise<AdminUsersResponse> {
   try {
     const roleCheck = await requireRootRole();
@@ -108,7 +109,7 @@ export async function fetchAdminUsers(
         ...roleCheck}
     };
 
-    const result = await getAdminUsers(page, pageSize);
+    const result = await getAdminUsers(page, pageSize, searchTerm);
     
     return {
       success: true,
@@ -126,49 +127,3 @@ export async function fetchAdminUsers(
   }
 }
 
-/**
- * Servicio para buscar usuarios administradores por correo, nombre o apellidos.
- * 
- * Orquesta la llamada al modelo y maneja posibles errores.
- * 
- * @param searchTerm - Término de búsqueda para filtrar administradores
- * @returns Respuesta con listado de usuarios administradores que coinciden con la búsqueda
- */
-export async function searchAdmins(
-  searchTerm: string
-): Promise<AdminSearchResponse> {
-  try {
-    const roleCheck = await requireRootRole();
-
-    if (!roleCheck.success) {
-      return {
-        ...roleCheck
-      };
-    }
-    
-    // Validación básica del término de búsqueda
-    if (!searchTerm || searchTerm.trim().length === 0) {
-      return {
-        success: false,
-        errors: { search: "El término de búsqueda no puede estar vacío." },
-        message: "Por favor ingresa un término de búsqueda válido.",
-      };
-    }
-
-    const result = await searchAdminUsers(searchTerm);
-    
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (error: unknown) {
-    console.error("Error al buscar usuarios administradores:", error);
-    const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    
-    return {
-      success: false,
-      errors: { form: errorMessage },
-      message: "No se pudo realizar la búsqueda de administradores.",
-    };
-  }
-}
