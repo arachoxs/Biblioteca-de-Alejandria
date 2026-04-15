@@ -3,8 +3,8 @@ import {
   adminSignUp,
   setUserRole,
   deleteAuthUser,
-  isCurrentUserRoot,
 } from "@/models/authModel";
+import { isCurrentUserRoot } from "@/lib/validations/server-auth";
 import {
   checkDniExists,
   checkUsernameExists,
