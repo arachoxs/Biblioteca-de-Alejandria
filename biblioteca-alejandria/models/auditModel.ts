@@ -15,7 +15,7 @@ export async function insertAuditLog(payload: AuditLogPayload): Promise<void> {
       fecha: payload.fecha,
       accion: payload.accion,
       descripcion: payload.descripcion,
-      entidad_afectada: payload.entidad_afectada as any, // Cast a Json
+      entidad_afectada: payload.entidad_afectada,
       id_usuario: payload.id_usuario,
     });
 

@@ -1,12 +1,15 @@
-import type { Json } from "./supabase";
+import type { Database, Json } from "@/lib/types/supabase";
 import type { Paginated, PaginatedResponse } from "./common";
+
+/** Fila base de la tabla `auditoria` desde tipos generados de Supabase. */
+type AuditoriaDbRow = Database["public"]["Tables"]["auditoria"]["Row"];
 
 /** Snapshot genérico de la entidad auditada */
 export interface AuditEntitySnapshot {
   id: string;
   entity_type: string;
   display_name: string;
-  [key: string]: any;
+  [key: string]: Json | undefined;
 }
 
 /** Enum principal de las acciones auditables (refleja el enum de DB) */
@@ -24,15 +27,10 @@ export interface AuditLogPayload {
     id_usuario: string | null;
 }
 
-export interface AuditoriaRow {
-    id: number;
-    fecha: string;
-    accion: AccionAdministrador;
-    descripcion: string;
+export type AuditoriaRow = Omit<AuditoriaDbRow, "entidad_afectada"> & {
     entidad_afectada: AuditEntitySnapshot;
-    id_usuario: string | null;
     actor_email?: string; // Resuelto en tiempo de lectura
-}
+};
 
 /**
  * Datos paginados de auditoría.
