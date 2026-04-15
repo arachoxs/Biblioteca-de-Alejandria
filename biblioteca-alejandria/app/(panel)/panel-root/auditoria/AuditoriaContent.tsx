@@ -42,6 +42,14 @@ const auditColumns: Column<AuditoriaRow>[] = [
     },
   },
   {
+    header: "Actor",
+    render: (item) => (
+      <span className="text-sm font-medium text-brand-text truncate block max-w-xs" title={item.actor_email || item.id_usuario || "Desconocido"}>
+        {item.actor_email || "Desconocido"}
+      </span>
+    ),
+  },
+  {
     header: "Acción",
     render: (item) => (
       <span
@@ -63,9 +71,9 @@ const auditColumns: Column<AuditoriaRow>[] = [
       <JsonDataDisplay 
         data={item.entidad_afectada}
         keyLabels={{
-          id_usuario_afectado: "Admin afectado",
-          id_usuario_creado: "Admin creado",
-          correo: "Correo",
+          id: "ID",
+          entity_type: "Tipo",
+          display_name: "Nombre/Email",
         }}
       />
     ),

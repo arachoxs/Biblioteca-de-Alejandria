@@ -63,7 +63,7 @@ export async function createAuthor(
       actorId: actor.id,
       action: AccionAdministrador.CREAR,
       description: `Se creó el autor "${data.nombre}" (${data.nacionalidad}).`,
-      entity: { nombre: data.nombre, nacionalidad: data.nacionalidad },
+      entity: { id: "desconocido", entity_type: "autor", display_name: data.nombre },
     });
   }
 
@@ -115,7 +115,7 @@ export async function editAuthor(
       actorId: actor.id,
       action: AccionAdministrador.MODIFICAR,
       description: `Se actualizó el autor ID ${id}: "${data.nombre}".`,
-      entity: { id, nombre: data.nombre, nacionalidad: data.nacionalidad },
+      entity: { id: String(id), entity_type: "autor", display_name: data.nombre },
     });
   }
 
@@ -130,7 +130,8 @@ export async function editAuthor(
  * 4. Registra en auditoría.
  */
 export async function removeAuthor(
-  id: number
+  id: number,
+  nombre: string
 ): Promise<AuthorActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
@@ -165,8 +166,8 @@ export async function removeAuthor(
     await logAdminAction({
       actorId: actor.id,
       action: AccionAdministrador.ELIMINAR,
-      description: `Se eliminó (borrado lógico) el autor ID ${id}.`,
-      entity: { id },
+      description: `Se eliminó (borrado lógico) el autor "${nombre}".`,
+      entity: { id: String(id), entity_type: "autor", display_name: nombre },
     });
   }
 

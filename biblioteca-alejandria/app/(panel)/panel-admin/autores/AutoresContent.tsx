@@ -111,7 +111,7 @@ export default function AutoresContent() {
     setActionResponse(null);
 
     try {
-      const response = await eliminarAutor(author.id);
+      const response = await eliminarAutor(author.id, author.nombre || "Desconocido");
       setActionResponse(response);
 
       if (response.success) {

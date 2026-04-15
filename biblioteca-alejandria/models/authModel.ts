@@ -159,21 +159,6 @@ export async function signIn(
   return data;
 }
 
-// ─── Verificación de permisos ──────────────────────────────────────
-
-/**
- * Verifica que el usuario actual tenga rol ROOT.
- * Retorna `true` si es ROOT, `false` de lo contrario.
- */
-export async function isCurrentUserRoot(): Promise<boolean> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return user?.app_metadata?.role === Rol.ROOT;
-}
-
 // ─── Recuperación de contraseña ────────────────────────────────────
 
 /**

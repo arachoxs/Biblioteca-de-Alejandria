@@ -18,12 +18,12 @@ export async function changePassword(
 // ─── Helpers internos ──────────────────────────────────────────────
 
 /**
- * Calcula los IDs procesados exitosamente comparando
- * la lista original contra los que fallaron.
+ * Calcula los usuarios procesados exitosamente comparando
+ * la lista original contra los IDs que fallaron.
  */
-function getSuccessfulIds(allIds: string[], result: UserStatusResult): string[] {
+function getSuccessfulUsers(allUsers: {id: string, email: string}[], result: UserStatusResult): {id: string, email: string}[] {
   const errorSet = new Set(result.errorIds ?? []);
-  return allIds.filter((id) => !errorSet.has(id));
+  return allUsers.filter((u) => !errorSet.has(u.id));
 }
 
 /**
@@ -32,16 +32,16 @@ function getSuccessfulIds(allIds: string[], result: UserStatusResult): string[] 
  */
 async function auditBulkAction(
   actorId: string,
-  successIds: string[],
+  successUsers: {id: string, email: string}[],
   description: string
 ): Promise<void> {
   await Promise.all(
-    successIds.map((id) =>
+    successUsers.map((u) =>
       logAdminAction({
         actorId,
         action: AccionAdministrador.MODIFICAR,
         description,
-        entity: { id_usuario_afectado: id },
+        entity: { id: u.id, entity_type: "administrador", display_name: u.email },
       })
     )
   );
@@ -49,8 +49,9 @@ async function auditBulkAction(
 
 // ─── Deshabilitación / Habilitación ────────────────────────────────
 
-export async function deshabilitarUsuario(userIds: string[]): Promise<UserStatusResult> {
+export async function deshabilitarUsuario(users: {id: string, email: string}[]): Promise<UserStatusResult> {
   const actor = await getCurrentUser();
+  const userIds = users.map(u => u.id);
 
   if (!actor || actor.app_metadata?.role !== Rol.ROOT) {
     return {
@@ -64,15 +65,16 @@ export async function deshabilitarUsuario(userIds: string[]): Promise<UserStatus
 
   // ── Auditoría ─────────────────────────────────────────────────
   if (result.success) {
-    const successIds = getSuccessfulIds(userIds, result);
-    await auditBulkAction(actor.id, successIds, "Se deshabilitó al administrador.");
+    const successUsers = getSuccessfulUsers(users, result);
+    await auditBulkAction(actor.id, successUsers, "Se deshabilitó al administrador.");
   }
 
   return result;
 }
 
-export async function habilitarUsuario(userIds: string[]): Promise<UserStatusResult> {
+export async function habilitarUsuario(users: {id: string, email: string}[]): Promise<UserStatusResult> {
   const actor = await getCurrentUser();
+  const userIds = users.map(u => u.id);
 
   if (!actor || actor.app_metadata?.role !== Rol.ROOT) {
     return {
@@ -86,8 +88,8 @@ export async function habilitarUsuario(userIds: string[]): Promise<UserStatusRes
 
   // ── Auditoría ─────────────────────────────────────────────────
   if (result.success) {
-    const successIds = getSuccessfulIds(userIds, result);
-    await auditBulkAction(actor.id, successIds, "Se habilitó al administrador.");
+    const successUsers = getSuccessfulUsers(users, result);
+    await auditBulkAction(actor.id, successUsers, "Se habilitó al administrador.");
   }
 
   return result;

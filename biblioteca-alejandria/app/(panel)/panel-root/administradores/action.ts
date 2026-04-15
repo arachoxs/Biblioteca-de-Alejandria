@@ -56,23 +56,21 @@ export async function searchAdminsByTerm(
  * 
  * Solo usuarios con rol ROOT pueden ejecutar esta acción.
  * 
- * @param userIds - ID o array de IDs de usuarios a deshabilitar
+ * @param users - Array de objetos con el ID y correo de los usuarios a deshabilitar
  * @returns Resultado de la operación con errorIds si aplica
  */
 export async function deshabilitarAdministradores(
-    userIds: string | string[]
+    users: { id: string, email: string }[]
 ): Promise<UserStatusResult> {
-    const ids = Array.isArray(userIds) ? userIds : [userIds];
-
-    if (ids.length === 0) {
+    if (!users || users.length === 0) {
         return {
             success: false,
-            message: "No se proporcionaron IDs de usuarios para deshabilitar.",
+            message: "No se proporcionaron usuarios para deshabilitar.",
         };
     }
 
     // Validar formato UUID de cada ID
-    const invalidIds = ids.filter((id) => !isValidUUID(id));
+    const invalidIds = users.map(u => u.id).filter((id) => !isValidUUID(id));
     if (invalidIds.length > 0) {
         return {
             success: false,
@@ -81,7 +79,7 @@ export async function deshabilitarAdministradores(
         };
     }
 
-    return await deshabilitarUsuario(ids);
+    return await deshabilitarUsuario(users);
 }
 
 /**
@@ -89,23 +87,21 @@ export async function deshabilitarAdministradores(
  * 
  * Solo usuarios con rol ROOT pueden ejecutar esta acción.
  * 
- * @param userIds - ID o array de IDs de usuarios a habilitar
+ * @param users - Array de objetos con el ID y correo de los usuarios a habilitar
  * @returns Resultado de la operación con errorIds si aplica
  */
 export async function habilitarAdministradores(
-    userIds: string | string[]
+    users: { id: string, email: string }[]
 ): Promise<UserStatusResult> {
-    const ids = Array.isArray(userIds) ? userIds : [userIds];
-
-    if (ids.length === 0) {
+    if (!users || users.length === 0) {
         return {
             success: false,
-            message: "No se proporcionaron IDs de usuarios para habilitar.",
+            message: "No se proporcionaron usuarios para habilitar.",
         };
     }
 
     // Validar formato UUID de cada ID
-    const invalidIds = ids.filter((id) => !isValidUUID(id));
+    const invalidIds = users.map(u => u.id).filter((id) => !isValidUUID(id));
     if (invalidIds.length > 0) {
         return {
             success: false,
@@ -114,5 +110,5 @@ export async function habilitarAdministradores(
         };
     }
 
-    return await habilitarUsuario(ids);
+    return await habilitarUsuario(users);
 }
