@@ -45,8 +45,13 @@ export interface RangoHorario {
 
 // ─── Tipos con datos derivados ─────────────────────────────────────
 
+/** Fila de tienda para lectura con `horario` fuertemente tipado. */
+export type TiendaRead = Omit<TiendaRow, "horario"> & {
+  horario: TiendaHorario;
+};
+
 /** Tienda con la dirección formateada (para listados). */
-export interface TiendaWithDireccion extends TiendaRow {
+export interface TiendaWithDireccion extends TiendaRead {
   direccion_formateada: string;
 }
 
