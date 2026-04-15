@@ -137,8 +137,14 @@ export default function AdministradoresContent() {
     setChangeStateUserResponse(null);
     
     try {
-      const idsAsStrings = selectedIds.map(id => String(id));
-      const result = await habilitarAdministradores(idsAsStrings);
+      const usersToEnable = selectedIds
+        .map(id => {
+          const u = adminsData.find(a => a.id === id);
+          return u ? { id: String(u.id), email: String(u.email) } : null;
+        })
+        .filter((u): u is { id: string; email: string } => u !== null);
+
+      const result = await habilitarAdministradores(usersToEnable);
       
       // Guardar la respuesta para mostrar el alert
       setChangeStateUserResponse(result);
@@ -178,8 +184,14 @@ export default function AdministradoresContent() {
     setChangeStateUserResponse(null);
     
     try {
-      const idsAsStrings = selectedIds.map(id => String(id));
-      const result = await deshabilitarAdministradores(idsAsStrings);
+      const usersToDisable = selectedIds
+        .map(id => {
+          const u = adminsData.find(a => a.id === id);
+          return u ? { id: String(u.id), email: String(u.email) } : null;
+        })
+        .filter((u): u is { id: string; email: string } => u !== null);
+
+      const result = await deshabilitarAdministradores(usersToDisable);
       
       // Guardar la respuesta para mostrar el alert
       setChangeStateUserResponse(result);

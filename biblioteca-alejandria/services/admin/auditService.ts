@@ -1,7 +1,6 @@
 import { insertAuditLog, getAuditLogs } from "@/models/auditModel";
-import type { AccionAdministrador } from "@/lib/types/audit";
+import type { AccionAdministrador, AuditEntitySnapshot } from "@/lib/types/audit";
 import type { AuditoriaResponse } from "@/lib/types/audit";
-import type { Json } from "@/lib/types/supabase";
 
 // ─── Escritura ─────────────────────────────────────────────────────
 
@@ -13,7 +12,7 @@ export async function logAdminAction(params: {
   actorId: string;
   action: AccionAdministrador;
   description: string;
-  entity: Json;
+  entity: AuditEntitySnapshot;
 }): Promise<void> {
   try {
     await insertAuditLog({
