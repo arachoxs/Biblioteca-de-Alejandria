@@ -1,5 +1,5 @@
 import type { Database } from "@/lib/types/supabase";
-import type { ActionResponse, DataResponse, PaginatedResponse } from "./common";
+import type { ActionResponse, PaginatedResponse } from "./common";
 
 /** Fila de la tabla `categoria`. */
 export type CategoryRow = Database["public"]["Tables"]["categoria"]["Row"];
@@ -25,9 +25,6 @@ export interface CategoryUpdateInput {
 
 /** Respuesta de listado de categorías paginada. */
 export type CategoryListResponse = PaginatedResponse<CategoryWithBookCount>;
-
-/** Respuesta para búsqueda de categorías no paginada. */
-export type CategorySearchResponse = DataResponse<CategoryWithBookCount[]>;
 
 /** Respuesta de mutación de categoría (crear/editar/eliminar). */
 export type CategoryActionResponse = ActionResponse;

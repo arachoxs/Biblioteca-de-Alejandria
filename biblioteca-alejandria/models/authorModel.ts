@@ -6,16 +6,9 @@ import type {
   UpdateAuthorPayload,
 } from "@/lib/types/author";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
+import { buildOrILikeFilter, escapeLikePattern } from "@/lib/validations/db-utils";
 
 // ─── Constantes ────────────────────────────────────────────────────
-
-/**
- * Escapa caracteres especiales de PostgREST/ilike (_ y %) para evitar
- * comportamiento de wildcard no intencional.
- */
-function escapeLikeWildcards(value: string): string {
-  return value.replace(/%/g, "\\%").replace(/_/g, "\\_");
-}
 
 // ─── Escritura ─────────────────────────────────────────────────────
 
@@ -117,10 +110,7 @@ export async function getAuthors(
     .order("nombre", { ascending: true });
 
   if (searchTerm && searchTerm.trim() !== "") {
-    const escaped = escapeLikeWildcards(searchTerm.trim());
-    const term = `%${escaped}%`;
-    // Usar filtros separados con .or() requiere comillas alrededor de cada valor
-    query = query.or(`nombre.ilike."${term}",nacionalidad.ilike."${term}"`);
+    query = query.or(buildOrILikeFilter(["nombre", "nacionalidad"], searchTerm));
   }
 
   const { data, error, count } = await query;
@@ -171,8 +161,8 @@ export async function checkAuthorExists(
 ): Promise<boolean> {
   const adminClient = createAdminClient();
 
-  const escapedNombre = escapeLikeWildcards(nombre.trim());
-  const escapedNacionalidad = escapeLikeWildcards(nacionalidad.trim());
+  const escapedNombre = escapeLikePattern(nombre.trim());
+  const escapedNacionalidad = escapeLikePattern(nacionalidad.trim());
 
   let query = adminClient
     .from("autor")

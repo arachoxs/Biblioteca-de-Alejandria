@@ -15,7 +15,6 @@ import {
   createCategoryAction,
   deleteCategoryAction,
   getCategoriesAction,
-  searchCategoriesAction,
   updateCategoryAction,
 } from "./action";
 import CategoriasTable from "./CategoriasTable";
@@ -37,12 +36,12 @@ export default function CategoriasContent() {
   const itemsPerPage = 10;
   const debouncedSearchTerm = useDebounce(searchTerm, 700);
 
-  const loadCategories = async (page: number = 1) => {
+  const loadCategories = async (page: number = 1, term: string = "") => {
     setIsLoadingCategorias(true);
     setErrorLoadingCategorias(null);
 
     try {
-      const response = await getCategoriesAction(page, itemsPerPage);
+      const response = await getCategoriesAction(page, itemsPerPage, term);
 
       if (response.success && response.data) {
         setCategoriasData(response.data.data);
@@ -62,59 +61,8 @@ export default function CategoriasContent() {
     }
   };
 
-  const refreshCategories = async () => {
-    if (!debouncedSearchTerm.trim()) {
-      await loadCategories(currentPage);
-      return;
-    }
-
-    setIsLoadingCategorias(true);
-    try {
-      const response = await searchCategoriesAction(debouncedSearchTerm);
-      if (response.success && response.data) {
-        setCategoriasData(response.data);
-        setTotalPages(1);
-        setTotalItems(response.data.length);
-      }
-    } catch (error: unknown) {
-      console.error("Error al refrescar búsqueda de categorías:", error);
-    } finally {
-      setIsLoadingCategorias(false);
-    }
-  };
-
   useEffect(() => {
-    const performSearch = async () => {
-      if (!debouncedSearchTerm.trim()) {
-        await loadCategories(currentPage);
-        return;
-      }
-
-      setIsLoadingCategorias(true);
-      setErrorLoadingCategorias(null);
-
-      try {
-        const response = await searchCategoriesAction(debouncedSearchTerm);
-
-        if (response.success && response.data) {
-          setCategoriasData(response.data);
-          setTotalPages(1);
-          setTotalItems(response.data.length);
-          return;
-        }
-
-        setErrorLoadingCategorias(response.message || "Error al buscar categorías");
-        setCategoriasData([]);
-      } catch (error: unknown) {
-        console.error("Error buscando categorías:", error);
-        setErrorLoadingCategorias("Error inesperado al buscar categorías");
-        setCategoriasData([]);
-      } finally {
-        setIsLoadingCategorias(false);
-      }
-    };
-
-    performSearch();
+    loadCategories(currentPage, debouncedSearchTerm);
   }, [debouncedSearchTerm, currentPage]);
 
   const handleCreateCategory = async (
@@ -159,10 +107,10 @@ export default function CategoriasContent() {
 
       if (!response.success) return;
 
-      if (!debouncedSearchTerm.trim() && categoriasData.length === 1 && currentPage > 1) {
+      if (categoriasData.length === 1 && currentPage > 1) {
         setCurrentPage((prev) => prev - 1);
       } else {
-        await refreshCategories();
+        await loadCategories(currentPage, debouncedSearchTerm);
       }
     } finally {
       setDeletingId(null);
@@ -175,7 +123,7 @@ export default function CategoriasContent() {
   };
 
   const handleCategorySaved = async () => {
-    await refreshCategories();
+    await loadCategories(currentPage, debouncedSearchTerm);
   };
 
   return (

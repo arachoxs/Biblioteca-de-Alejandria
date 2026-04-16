@@ -5,7 +5,7 @@ import { type AuthActionResult, Rol, type UserStatusResult } from "@/lib/types/a
 import { redirect } from "next/navigation";
 import type { AuthError, AuthResponse } from "@supabase/supabase-js";
 
-import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
+import { buildOrILikeFilter, escapeLikePattern } from "@/lib/validations/db-utils";
 import type { ModelResult } from "@/lib/types/common";
 import type { AuthSignUpResult } from "@/lib/types/auth";
 import { AdminUserFromView, PaginatedAdminUsers } from "@/lib/types/profile";
@@ -450,7 +450,8 @@ export async function signOutModel(): Promise<AuthError | null> {
  */
 export async function getAdminUsers(
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  searchTerm?: string
 ): Promise<PaginatedAdminUsers> {
   const adminClient = createAdminClient();
 
@@ -460,12 +461,22 @@ export async function getAdminUsers(
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
-  // ¡Consultamos la VISTA como si fuera una tabla normal!
-  const { data, error, count } = await adminClient
+  let query = adminClient
     .from("vista_administradores") // El nombre que le dimos en SQL
     .select("*", { count: "exact" })
     .range(from, to)
     .order("created_at", { ascending: false });
+
+  if (searchTerm && searchTerm.trim() !== "") {
+    const searchFilter = buildOrILikeFilter(
+      ["email", "nombre_completo"],
+      searchTerm
+    );
+    query = query.or(searchFilter);
+  }
+
+  // ¡Consultamos la VISTA como si fuera una tabla normal!
+  const { data, error, count } = await query;
 
   if (error) throw error;
 
@@ -482,37 +493,6 @@ export async function getAdminUsers(
     pageSize: safePageSize,
     totalPages: Math.ceil((count || 0) / safePageSize),
   };
-}
-
-/**
- * Busca administradores por correo, nombre o apellidos.
- * 
- * @param searchTerm - Término de búsqueda a aplicar en email, nombres o apellidos
- * @returns Listado de administradores que coinciden con el término de búsqueda
- */
-export async function searchAdminUsers(
-  searchTerm: string
-): Promise<AdminUserFromView[]> {
-  const adminClient = createAdminClient();
-
-  const normalizedSearch = formatILIKE(searchTerm);
-
-  const { data, error } = await adminClient
-    .from("vista_administradores")
-    .select("*")
-    .or(
-      `email.ilike.${normalizedSearch},nombre_completo.ilike.${normalizedSearch}`
-    )
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-
-  // Filtramos filas con id null
-  const safeData = (data || []).filter(
-    (row): row is AdminUserFromView => row.id !== null
-  );
-
-  return safeData;
 }
 
 // ─── Activación/Desactivación de usuarios ─────────────────────────────

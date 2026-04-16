@@ -5,21 +5,15 @@ import {
   getActiveCategoryByExactNameExcludingId,
   getActiveCategoryById,
   hasActiveBooksForCategory,
-  searchCategoriesByName as searchCategoriesByNameModel,
   softDeleteCategoryById,
   updateCategoryById,
 } from "@/models/categoryModel";
 import type {
   CategoryCreateInput,
-  CategoryWithBookCount,
   CategoryUpdateInput,
   CategoryListResponse,
-  CategorySearchResponse,
   CategoryActionResponse,
 } from "@/lib/types/category";
-import type {
-  DataResponse,
-} from "@/lib/types/common";
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { sanitizeNullableText, sanitizeText } from "@/lib/validations/rules";
 
@@ -46,12 +40,18 @@ function isSameName(left: string, right: string): boolean {
 export async function fetchCategories(
   page: number = 1,
   pageSize: number = 10,
+  searchTerm?: string,
 ): Promise<CategoryListResponse> {
   try {
     const roleCheck = await requireAdminRole();
     if (!roleCheck.success) return roleCheck;
 
-    const data = await getCategoriesModel(page, pageSize);
+    const normalizedSearch = searchTerm ? normalizeCategoryName(searchTerm) : "";
+    const data = await getCategoriesModel(
+      page,
+      pageSize,
+      normalizedSearch || undefined,
+    );
     return {
       success: true,
       data,
@@ -265,39 +265,3 @@ export async function deleteCategory(
   }
 }
 
-/**
- * Busca categorías activas por nombre.
- */
-export async function searchCategoriesByName(
-  searchTerm: string,
-  limit: number = 20,
-): Promise<CategorySearchResponse> {
-  const roleCheck = await requireAdminRole();
-  if (!roleCheck.success) return roleCheck;
-
-  try {
-    const normalizedSearchTerm = normalizeCategoryName(searchTerm ?? "");
-    if (!normalizedSearchTerm) {
-      return {
-        success: false,
-        errors: { search: "El término de búsqueda no puede estar vacío." },
-        message: "Por favor ingresa un término de búsqueda válido.",
-      };
-    }
-
-    const data = await searchCategoriesByNameModel(normalizedSearchTerm, limit);
-    return {
-      success: true,
-      data,
-    };
-  } catch (error: unknown) {
-    console.error("Error inesperado al buscar categorías:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Error desconocido";
-    return {
-      success: false,
-      errors: { form: errorMessage },
-      message: "No se pudo realizar la búsqueda de categorías.",
-    };
-  }
-}

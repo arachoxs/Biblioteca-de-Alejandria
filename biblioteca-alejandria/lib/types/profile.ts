@@ -1,5 +1,5 @@
 import type { Genero } from "./auth";
-import type { ActionResponse, DataResponse, Paginated, PaginatedResponse } from "./common";
+import type { ActionResponse, Paginated, PaginatedResponse } from "./common";
 import type { Database } from "@/lib/types/supabase";
 
 
@@ -111,9 +111,3 @@ export type PaginatedAdminUsers = Paginated<AdminUserFromView>;
  */
 export type AdminUsersResponse = PaginatedResponse<AdminUserFromView>;
 
-// ─── Búsqueda de administradores ─────────────────────────────────────
-
-/**
- * Respuesta de búsqueda de administradores (sin paginación).
- */
-export type AdminSearchResponse = DataResponse<AdminUserFromView[]>;

@@ -1,8 +1,8 @@
 "use server";
 
-import { createAdminAccount, fetchAdminUsers, searchAdmins } from "@/services/admin/adminService";
+import { createAdminAccount, fetchAdminUsers } from "@/services/admin/adminService";
 import { type RegisterResponse, type UserStatusResult } from "@/lib/types/auth";
-import type { AdminUsersResponse, AdminSearchResponse } from "@/lib/types/profile";
+import type { AdminUsersResponse } from "@/lib/types/profile";
 import { deshabilitarUsuario, habilitarUsuario } from "@/services/auth/authService";
 import { sanitizeText, validateEmail, isValidUUID } from "@/lib/validations/rules";
 
@@ -31,24 +31,13 @@ export async function createAdmin(email: string): Promise<RegisterResponse> {
  * @param pageSize - Cantidad de resultados por página
  * @returns Respuesta con datos paginados de administradores
  */
-export async function getAdmins(
+export async function getAdminUsersAction(
     page: number = 1,
-    pageSize: number = 10
+    pageSize: number = 10,
+    searchTerm?: string
 ): Promise<AdminUsersResponse> {
-    return await fetchAdminUsers(page, pageSize);
-}
-
-/**
- * Busca administradores por correo electrónico, nombre o apellidos.
- * 
- * @param searchTerm - Término de búsqueda para filtrar administradores
- * @returns Respuesta con listado de administradores que coinciden con la búsqueda
- */
-export async function searchAdminsByTerm(
-    searchTerm: string
-): Promise<AdminSearchResponse> {
-    const cleanTerm = sanitizeText(searchTerm);
-    return await searchAdmins(cleanTerm);
+    const cleanTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
+    return await fetchAdminUsers(page, pageSize, cleanTerm);
 }
 
 /**
