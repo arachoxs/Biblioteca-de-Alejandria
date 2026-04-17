@@ -3,9 +3,10 @@
 import Table from "@/components/ui/Table";
 import RowActions from "@/components/ui/RowActions";
 import type { Column } from "@/components/ui/Table";
-import type { TiendaDia, TiendaWithDireccion } from "@/lib/types/tienda";
-import { TIENDA_DIA_LABELS, TIENDA_DIAS } from "@/lib/types/tienda";
+import type { TiendaHorario, TiendaWithDireccion } from "@/lib/types/tienda";
+import { TIENDA_DIAS } from "@/lib/types/tienda";
 import { Loader2, Search, Store } from "lucide-react";
+import JsonDataDisplay from "@/components/ui/JsonDataDisplay";
 
 interface TiendasTableProps {
   data: TiendaWithDireccion[];
@@ -23,29 +24,19 @@ interface TiendasTableProps {
   };
 }
 
-function buildHorarioSummary(tienda: TiendaWithDireccion): string {
-  const openDays = TIENDA_DIAS.filter((day) => tienda.horario[day] !== null);
+function buildHorarioObject(horario: TiendaHorario): Record<string, string> {
+  const formatedTextPerDay: Record<string, string> = {};
 
-  if (openDays.length === 0) {
-    return "Sin atención";
-  }
-
-  if (openDays.length === 7) {
-    const baseRange = tienda.horario.lunes;
-    if (baseRange) {
-      return `Todos los días · ${baseRange.apertura} - ${baseRange.cierre}`;
+  for (const dia of TIENDA_DIAS) {
+    const diaInfo = horario[dia];
+    if (diaInfo) {
+      formatedTextPerDay[dia] = `${diaInfo.apertura} - ${diaInfo.cierre}`;
     }
-    return "Todos los días";
   }
 
-  const firstDay = openDays[0] as TiendaDia;
-  const firstRange = tienda.horario[firstDay];
-  const firstDayLabel = TIENDA_DIA_LABELS[firstDay];
-  if (!firstRange) {
-    return `${openDays.length} días habilitados`;
-  }
+  console.log(formatedTextPerDay);
 
-  return `${openDays.length} días · ${firstDayLabel}: ${firstRange.apertura} - ${firstRange.cierre}`;
+  return formatedTextPerDay;
 }
 
 export default function TiendasTable({
@@ -90,9 +81,7 @@ export default function TiendasTable({
       header: "Horario",
       className: "whitespace-normal",
       render: (item) => (
-        <span className="text-xs md:text-sm text-brand-secondary/90 leading-relaxed">
-          {buildHorarioSummary(item)}
-        </span>
+        <JsonDataDisplay data={buildHorarioObject(item.horario)} />
       ),
     },
     {
