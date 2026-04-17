@@ -91,6 +91,7 @@ export type TiendaRead = Omit<TiendaRow, "horario"> & {
 /** Tienda con la dirección formateada (para listados). */
 export interface TiendaWithDireccion extends TiendaRead {
   direccion_formateada: string;
+  direccion_place_id: string;
 }
 
 // ─── Respuestas de Server Actions ──────────────────────────────────

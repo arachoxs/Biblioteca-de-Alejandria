@@ -18,7 +18,7 @@ interface ModelResultWithStringId extends ModelResult {
 type TiendaListRow = TiendaRow & {
   direccion: Pick<
     Database["public"]["Tables"]["direccion"]["Row"],
-    "direccion_formateada"
+    "direccion_formateada" | "place_id"
   > | null;
 };
 
@@ -38,6 +38,7 @@ function normalizeTiendaWithDireccion(row: TiendaListRow): TiendaWithDireccion {
   return {
     ...normalizeTiendaRow(row),
     direccion_formateada: row.direccion?.direccion_formateada ?? "",
+    direccion_place_id: row.direccion?.place_id ?? "",
   };
 }
 
@@ -85,9 +86,12 @@ export async function getTiendas(
 
   let query = adminClient
     .from("tienda")
-    .select(`${TIENDA_BASE_COLUMNS}, direccion (direccion_formateada)`, {
-      count: "exact",
-    })
+    .select(
+      `${TIENDA_BASE_COLUMNS}, direccion (direccion_formateada, place_id)`,
+      {
+        count: "exact",
+      },
+    )
     .is("deleted_at", null)
     .range(from, to)
     .order("nombre", { ascending: true });
@@ -140,7 +144,10 @@ export async function updateTiendaById(
   };
 
   if (Object.keys(payload).length === 0) {
-    return { success: false, error: "Debes enviar al menos un campo para actualizar." };
+    return {
+      success: false,
+      error: "Debes enviar al menos un campo para actualizar.",
+    };
   }
 
   const { data, error } = await adminClient
@@ -166,7 +173,9 @@ export async function updateTiendaById(
 /**
  * Realiza eliminación lógica de una tienda activa por su ID.
  */
-export async function softDeleteTiendaById(tiendaId: string): Promise<ModelResult> {
+export async function softDeleteTiendaById(
+  tiendaId: string,
+): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
