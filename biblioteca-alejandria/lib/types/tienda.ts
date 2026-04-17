@@ -1,6 +1,30 @@
 import type { Database } from "@/lib/types/supabase";
 import type { ActionResponse, PaginatedResponse } from "./common";
 
+// ─── Constantes reutilizables ────────────────────────────────────────
+
+export const TIENDA_DIAS = [
+  "lunes",
+  "martes",
+  "miercoles",
+  "jueves",
+  "viernes",
+  "sabado",
+  "domingo",
+] as const;
+
+export type TiendaDia = (typeof TIENDA_DIAS)[number];
+
+export const TIENDA_DIA_LABELS: Record<TiendaDia, string> = {
+  lunes: "Lunes",
+  martes: "Martes",
+  miercoles: "Miércoles",
+  jueves: "Jueves",
+  viernes: "Viernes",
+  sabado: "Sábado",
+  domingo: "Domingo",
+};
+
 // ─── Fila base desde Supabase ──────────────────────────────────────
 
 /** Fila completa de la tabla `tienda` (lectura). */
@@ -21,6 +45,20 @@ export interface UpdateTiendaPayload {
   horario?: TiendaHorario;
   id_direccion?: number;
 }
+
+/** Datos de dirección capturados desde Google Autocomplete. */
+export interface TiendaAddressPayload {
+  direccion: string;
+  direccion_place_id: string;
+}
+
+/** Payload de creación desde la vista (sin exponer id_direccion). */
+export type CreateTiendaInput = Omit<InsertTiendaPayload, "id_direccion"> &
+  TiendaAddressPayload;
+
+/** Payload de edición desde la vista. */
+export type UpdateTiendaInput = Omit<UpdateTiendaPayload, "id_direccion"> &
+  Partial<TiendaAddressPayload>;
 
 // ─── Tipos auxiliares ──────────────────────────────────────────────
 
