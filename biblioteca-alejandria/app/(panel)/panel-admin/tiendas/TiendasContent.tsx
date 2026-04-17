@@ -6,7 +6,10 @@ import FilterActionBar from "@/components/ui/FilterActionBar";
 import Alert from "@/components/ui/Alert";
 import { AlertCircle, CheckCircle, Loader2, Plus } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
-import type { TiendaActionResponse, TiendaWithDireccion } from "@/lib/types/tienda";
+import type {
+  TiendaActionResponse,
+  TiendaWithDireccion,
+} from "@/lib/types/tienda";
 import { deleteTiendaAction, getTiendasAction } from "./action";
 import TiendasTable from "./TiendasTable";
 import TiendaFormModal from "./TiendaFormModal";
@@ -16,13 +19,17 @@ export default function TiendasContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [tiendasData, setTiendasData] = useState<TiendaWithDireccion[]>([]);
   const [isLoadingTiendas, setIsLoadingTiendas] = useState(true);
-  const [errorLoadingTiendas, setErrorLoadingTiendas] = useState<string | null>(null);
+  const [errorLoadingTiendas, setErrorLoadingTiendas] = useState<string | null>(
+    null,
+  );
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTienda, setEditingTienda] = useState<TiendaWithDireccion | null>(null);
+  const [editingTienda, setEditingTienda] =
+    useState<TiendaWithDireccion | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
-  const [actionResponse, setActionResponse] = useState<TiendaActionResponse | null>(null);
+  const [actionResponse, setActionResponse] =
+    useState<TiendaActionResponse | null>(null);
 
   const itemsPerPage = 10;
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -127,10 +134,7 @@ export default function TiendasContent() {
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
       {errorLoadingTiendas && (
-        <Alert
-          variant="error"
-          className="mb-6 flex items-center gap-2 !relative !left-0 !translate-x-0"
-        >
+        <Alert variant="error" className="mb-6 flex items-center gap-2">
           <AlertCircle className="w-4 h-4" />
           {errorLoadingTiendas}
         </Alert>
@@ -139,9 +143,8 @@ export default function TiendasContent() {
       {actionResponse?.success && actionResponse.message && (
         <Alert
           variant="success"
-          className="mb-6 flex items-center gap-2 !relative !left-0 !translate-x-0"
-          onClose={() => setActionResponse(null)}
-        >
+          className="mb-6 flex items-center gap-2"
+          onClose={() => setActionResponse(null)}>
           <CheckCircle className="w-4 h-4" />
           {actionResponse.message}
         </Alert>
@@ -150,9 +153,8 @@ export default function TiendasContent() {
       {!actionResponse?.success && actionResponse?.message && (
         <Alert
           variant="error"
-          className="mb-6 flex items-center gap-2 !relative !left-0 !translate-x-0"
-          onClose={() => setActionResponse(null)}
-        >
+          className="mb-6 flex items-center gap-2"
+          onClose={() => setActionResponse(null)}>
           <AlertCircle className="w-4 h-4" />
           {actionResponse.message}
         </Alert>
@@ -180,8 +182,7 @@ export default function TiendasContent() {
 
         <Button
           className="flex items-center justify-center gap-2 w-full md:w-auto min-w-56 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30 transition-shadow"
-          onClick={handleOpenCreate}
-        >
+          onClick={handleOpenCreate}>
           <Plus className="w-4 h-4" />
           Nueva Tienda
         </Button>
