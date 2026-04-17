@@ -277,7 +277,7 @@ export async function softDeleteLibroById(libroId: string): Promise<ModelResult>
     .eq("id", libroId)
     .is("deleted_at", null)
     .select("id")
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("[libroModel] Error al eliminar libro:", error);
