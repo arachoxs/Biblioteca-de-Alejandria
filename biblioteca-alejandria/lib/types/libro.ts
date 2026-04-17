@@ -64,7 +64,7 @@ export interface UpdateLibroPayload {
 /** Libro con nombre de autor y categoría (para listados). */
 export interface LibroWithRelations extends LibroRow {
   autor_nombre: string | null;
-  categoria_nombre: string;
+  categoria_nombre: string | null;
 }
 
 // ─── Respuestas de Server Actions ──────────────────────────────────
