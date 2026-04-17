@@ -25,18 +25,16 @@ interface TiendasTableProps {
 }
 
 function buildHorarioObject(horario: TiendaHorario): Record<string, string> {
-  const formatedTextPerDay: Record<string, string> = {};
+  const formattedTextPerDay: Record<string, string> = {};
 
   for (const dia of TIENDA_DIAS) {
     const diaInfo = horario[dia];
     if (diaInfo) {
-      formatedTextPerDay[dia] = `${diaInfo.apertura} - ${diaInfo.cierre}`;
+      formattedTextPerDay[dia] = `${diaInfo.apertura} - ${diaInfo.cierre}`;
     }
   }
 
-  console.log(formatedTextPerDay);
-
-  return formatedTextPerDay;
+  return formattedTextPerDay;
 }
 
 export default function TiendasTable({
@@ -80,9 +78,19 @@ export default function TiendasTable({
     {
       header: "Horario",
       className: "whitespace-normal",
-      render: (item) => (
-        <JsonDataDisplay data={buildHorarioObject(item.horario)} />
-      ),
+      render: (item) => {
+        const horario = buildHorarioObject(item.horario);
+
+        if (Object.keys(horario).length === 0) {
+          return (
+            <span className="text-sm text-brand-secondary/90">
+              Sin horario registrado
+            </span>
+          );
+        }
+
+        return <JsonDataDisplay data={horario} />;
+      },
     },
     {
       header: "Acciones",

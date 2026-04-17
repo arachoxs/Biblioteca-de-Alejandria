@@ -1,4 +1,8 @@
-import { TIENDA_DIAS, type TiendaHorario, type TiendaWithDireccion } from "@/lib/types/tienda";
+import {
+  TIENDA_DIAS,
+  type TiendaHorario,
+  type TiendaWithDireccion,
+} from "@/lib/types/tienda";
 import type { TiendaFormValues } from "./types";
 
 export const DEFAULT_DAY_RANGE = { apertura: "09:00", cierre: "18:00" };
@@ -32,7 +36,9 @@ export function cloneHorario(horario: TiendaHorario): TiendaHorario {
   };
 }
 
-export function getInitialValues(tienda?: TiendaWithDireccion | null): TiendaFormValues {
+export function getInitialValues(
+  tienda?: TiendaWithDireccion | null,
+): TiendaFormValues {
   if (!tienda) {
     return {
       nombre: INITIAL_VALUES.nombre,
@@ -45,12 +51,15 @@ export function getInitialValues(tienda?: TiendaWithDireccion | null): TiendaFor
   return {
     nombre: tienda.nombre,
     direccion: tienda.direccion_formateada,
-    direccion_place_id: "",
+    direccion_place_id: tienda.direccion_place_id,
     horario: cloneHorario(tienda.horario),
   };
 }
 
-export function isSameHorario(left: TiendaHorario, right: TiendaHorario): boolean {
+export function isSameHorario(
+  left: TiendaHorario,
+  right: TiendaHorario,
+): boolean {
   for (const dia of TIENDA_DIAS) {
     const leftRange = left[dia];
     const rightRange = right[dia];

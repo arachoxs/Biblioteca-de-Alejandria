@@ -23,7 +23,10 @@ import {
   isSameHorario,
 } from "./tienda-form/constants";
 import TiendaFormFields from "./tienda-form/TiendaFormFields";
-import type { TiendaFormModalProps, TiendaFormValues } from "./tienda-form/types";
+import type {
+  TiendaFormModalProps,
+  TiendaFormValues,
+} from "./tienda-form/types";
 
 export default function TiendaFormModal({
   isOpen,
@@ -33,7 +36,9 @@ export default function TiendaFormModal({
 }: TiendaFormModalProps) {
   const isEditing = !!tienda;
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertState, setAlertState] = useState<TiendaActionResponse | null>(null);
+  const [alertState, setAlertState] = useState<TiendaActionResponse | null>(
+    null,
+  );
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isAddressEdited = useCallback(
@@ -41,11 +46,16 @@ export default function TiendaFormModal({
       if (!isEditing) return true;
 
       const normalizedAddress = sanitizeText(formValues.direccion);
+      const normalizedPlaceId = formValues.direccion_place_id.trim();
       const originalAddress = sanitizeText(tienda?.direccion_formateada ?? "");
+      const originalPlaceId = (tienda?.direccion_place_id ?? "").trim();
 
-      return normalizedAddress !== originalAddress;
+      return (
+        normalizedAddress !== originalAddress ||
+        normalizedPlaceId !== originalPlaceId
+      );
     },
-    [isEditing, tienda?.direccion_formateada],
+    [isEditing, tienda?.direccion_formateada, tienda?.direccion_place_id],
   );
 
   const validateForm = useCallback(
@@ -82,12 +92,19 @@ export default function TiendaFormModal({
     [isAddressEdited, isEditing],
   );
 
-  const { values, errors, handleChange, handleBlur, setValues, setErrors, reset } =
-    useValidation<TiendaFormValues>(INITIAL_VALUES, validateForm, {
-      onFieldChange: () => {
-        setAlertState(null);
-      },
-    });
+  const {
+    values,
+    errors,
+    handleChange,
+    handleBlur,
+    setValues,
+    setErrors,
+    reset,
+  } = useValidation<TiendaFormValues>(INITIAL_VALUES, validateForm, {
+    onFieldChange: () => {
+      setAlertState(null);
+    },
+  });
 
   const checkIsDirty = useCallback(
     (currentValues: TiendaFormValues): boolean => {
@@ -296,7 +313,9 @@ export default function TiendaFormModal({
           onHorarioBlur={handleHorarioBlur}
         />
 
-        {errors.form && <p className="text-sm text-red-500 font-medium">{errors.form}</p>}
+        {errors.form && (
+          <p className="text-sm text-red-500 font-medium">{errors.form}</p>
+        )}
 
         <div className="flex justify-end gap-3 pt-1">
           <Button
@@ -318,7 +337,11 @@ export default function TiendaFormModal({
               </>
             ) : (
               <>
-                {isEditing ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {isEditing ? (
+                  <Save className="w-4 h-4" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
                 {isEditing ? "Guardar Cambios" : "Crear Tienda"}
               </>
             )}
