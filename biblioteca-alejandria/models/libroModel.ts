@@ -312,7 +312,7 @@ export async function checkLibroExistsByIsbn(
     query = query.neq("id", excludeId);
   }
 
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await query.limit(1).maybeSingle();
 
   if (error) {
     console.error("[libroModel] Error al verificar ISBN duplicado:", error);
