@@ -37,18 +37,27 @@ export async function getModeloRAById(
     return getInvalidIdResponse();
   }
 
-  const data = await getActiveModeloRAByIdModel(modeloRAId);
-  if (!data) {
+  try {
+    const data = await getActiveModeloRAByIdModel(modeloRAId);
+    if (!data) {
+      return {
+        success: false,
+        errors: { form: "El modelo RA no existe o ya fue eliminado." },
+      };
+    }
+
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    console.error("Error al obtener el modelo RA por ID:", error);
     return {
       success: false,
-      errors: { form: "El modelo RA no existe o ya fue eliminado." },
+      errors: { form: "No se pudo obtener el modelo RA." },
+      message: "No se pudo obtener el modelo RA.",
     };
   }
-
-  return {
-    success: true,
-    data,
-  };
 }
 
 /**
