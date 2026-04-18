@@ -76,7 +76,12 @@ export function validateModeloRACreate(
 ): Record<string, string> {
   const errors: Record<string, string> = {};
 
-  Object.assign(errors, validateDimensiones(payload.dimensiones));
+  if (!isModeloRADimensiones(payload.dimensiones)) {
+    errors.dimensiones =
+      "Las dimensiones deben enviarse como un objeto JSON válido.";
+  } else {
+    Object.assign(errors, validateDimensiones(payload.dimensiones));
+  }
   Object.assign(errors, validateTexturas(payload.texturas));
 
   return errors;
