@@ -39,15 +39,7 @@ export type Database = {
           id?: number
           id_usuario?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "Auditoria_id_usuario_fkey"
-            columns: ["id_usuario"]
-            isOneToOne: false
-            referencedRelation: "usuario"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       autor: {
         Row: {
@@ -548,23 +540,26 @@ export type Database = {
         Row: {
           deleted_at: string | null
           es_visible: boolean
+          fecha_expiracion: string
           fecha_publicacion: string
           id: string
-          id_libro: string | null
+          id_libro: string
         }
         Insert: {
           deleted_at?: string | null
           es_visible: boolean
+          fecha_expiracion?: string
           fecha_publicacion: string
           id?: string
-          id_libro?: string | null
+          id_libro: string
         }
         Update: {
           deleted_at?: string | null
           es_visible?: boolean
+          fecha_expiracion?: string
           fecha_publicacion?: string
           id?: string
-          id_libro?: string | null
+          id_libro?: string
         }
         Relationships: [
           {
