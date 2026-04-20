@@ -18,7 +18,11 @@ export default function JsonDataDisplay({
   emptyStateText = "Sin detalles adicionales",
 }: JsonDataDisplayProps) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
-    return <span className={`text-brand-secondary/50 italic text-xs ${className}`}>{emptyStateText}</span>;
+    return (
+      <span className={`text-brand-secondary/50 italic text-xs ${className}`}>
+        {emptyStateText}
+      </span>
+    );
   }
 
   const formatKeyName = (key: string) => {
@@ -27,12 +31,12 @@ export default function JsonDataDisplay({
   };
 
   return (
-    <div className={`flex flex-col gap-1.5 min-w-[200px] max-w-[320px] ${className}`}>
+    <div
+      className={`flex flex-col gap-1.5 min-w-[200px] max-w-[320px] ${className}`}>
       {Object.entries(data).map(([key, value]) => (
         <div
           key={key}
-          className="flex border border-brand-accent/20 rounded-md overflow-hidden shadow-sm bg-white transition-all hover:border-brand-accent/40"
-        >
+          className="flex border border-brand-accent/20 rounded-md overflow-hidden shadow-sm bg-white transition-all hover:border-brand-accent/40">
           <div className="bg-brand-bg/80 px-2 py-1.5 flex items-center border-r border-brand-accent/20 w-[110px] shrink-0 justify-center">
             <span className="text-[10px] uppercase font-bold text-brand-secondary/80 tracking-wider text-center">
               {formatKeyName(key)}
@@ -40,8 +44,7 @@ export default function JsonDataDisplay({
           </div>
           <div
             className="px-2.5 py-1.5 truncate text-xs font-mono font-medium text-brand-primary bg-white w-full flex items-center"
-            title={String(value)}
-          >
+            title={String(value)}>
             {String(value)}
           </div>
         </div>
