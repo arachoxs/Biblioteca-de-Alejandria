@@ -11,15 +11,16 @@ export type NoticiaRow = Database["public"]["Tables"]["noticias"]["Row"];
 /** Payload para crear una nueva noticia. */
 export interface InsertNoticiaPayload {
   fecha_publicacion: string;
+  fecha_expiracion?: string;
   es_visible: boolean;
-  id_libro?: string | null;
+  id_libro: string;
 }
 
 /** Payload para actualizar una noticia existente. */
 export interface UpdateNoticiaPayload {
   fecha_publicacion?: string;
+  fecha_expiracion?: string;
   es_visible?: boolean;
-  id_libro?: string | null;
 }
 
 // ─── Tipos con datos derivados ─────────────────────────────────────
