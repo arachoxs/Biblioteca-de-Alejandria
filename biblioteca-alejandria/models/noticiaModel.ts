@@ -7,7 +7,7 @@ import type {
   NoticiaRow,
 } from "@/lib/types/noticia";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
-import { escapeLikePattern } from "@/lib/validations/db-utils";
+import { formatILIKE } from "@/lib/validations/db-utils";
 
 // ─── Escritura ─────────────────────────────────────────────────────
 
@@ -134,8 +134,7 @@ export async function getNoticias(
     .order("fecha_publicacion", { ascending: false });
 
   if (searchTerm && searchTerm.trim() !== "") {
-    const escapedSearch = escapeLikePattern(searchTerm.trim());
-    query = query.ilike("libro.titulo", `%${escapedSearch}%`);
+    query = query.ilike("libro.titulo", formatILIKE(searchTerm));
   }
 
   const { data, error, count } = await query;
