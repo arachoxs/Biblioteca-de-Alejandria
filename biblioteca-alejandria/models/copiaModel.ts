@@ -108,7 +108,7 @@ export async function getCopias(
     .select("*", { count: "exact" })
     .is("deleted_at", null)
     .range(from, to)
-    .order("created_at", { ascending: false });
+    .order("id", { ascending: false });
 
   if (id_tienda) {
     query = query.eq("id_tienda", id_tienda);
