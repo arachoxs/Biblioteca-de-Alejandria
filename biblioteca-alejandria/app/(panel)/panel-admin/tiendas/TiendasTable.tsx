@@ -77,7 +77,7 @@ export default function TiendasTable({
     },
     {
       header: "Horario",
-      className: "whitespace-normal",
+      className: "w-[360px] min-w-[360px] max-w-[360px]",
       render: (item) => {
         const horario = buildHorarioObject(item.horario);
 
@@ -89,7 +89,14 @@ export default function TiendasTable({
           );
         }
 
-        return <JsonDataDisplay data={horario} />;
+        return (
+          <div className="w-full max-w-full overflow-x-auto overflow-y-hidden pb-1">
+            <JsonDataDisplay
+              data={horario}
+              className="flex-row! min-w-max! max-w-none! gap-2.5!"
+            />
+          </div>
+        );
       },
     },
     {
