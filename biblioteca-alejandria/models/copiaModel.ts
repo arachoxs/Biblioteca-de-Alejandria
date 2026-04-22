@@ -88,17 +88,24 @@ export async function softDeleteCopias(ids: string[]): Promise<ModelResult> {
   // Usamos el Admin Client para asegurar permisos de escritura
   const adminClient = createAdminClient();
 
-  const { error } = await adminClient
+  const { data: updatedRows, error } = await adminClient
     .from("copia") // Asegúrate de que sea "copia" (singular) como en tu otra función
     .update({ deleted_at: new Date().toISOString() })
     .in("id", ids)
-    .is("deleted_at", null); // Solo actualiza las que no estén ya borradas
+    .is("deleted_at", null)
+    .select("id"); // Solo actualiza las que no estén ya borradas
 
   if (error) {
     console.error("[copiaModel] Error en softDeleteManyCopiasModel:", error);
     return { success: false, error: error.message };
   }
 
+  if ((updatedRows ?? []).length !== ids.length) {
+    return {
+      success: false,
+      error: "No se pudieron eliminar todas las copias solicitadas.",
+    };
+  }
   return { success: true };
 }
 // ─── Lectura ───────────────────────────────────────────────────────
