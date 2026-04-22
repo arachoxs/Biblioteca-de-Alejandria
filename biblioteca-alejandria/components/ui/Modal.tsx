@@ -11,6 +11,7 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   maxWidth?: string;
+  allowOverflow?: boolean;
 }
 
 const modalWidthClasses: Record<string, string> = {
@@ -29,6 +30,7 @@ export default function Modal({
   title,
   children,
   maxWidth,
+  allowOverflow = false,
 }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
@@ -54,7 +56,9 @@ export default function Modal({
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
       <div
-        className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full overflow-hidden overflow-y-scroll animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
+        className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full ${
+          allowOverflow ? "overflow-visible" : "overflow-hidden overflow-y-scroll"
+        } animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title">
