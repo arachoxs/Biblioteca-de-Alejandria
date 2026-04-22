@@ -149,6 +149,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "copia_id_libro_fkey"
+            columns: ["id_libro"]
+            isOneToOne: false
+            referencedRelation: "vista_inventario"
+            referencedColumns: ["libro_id"]
+          },
+          {
             foreignKeyName: "copia_id_tienda_fkey"
             columns: ["id_tienda"]
             isOneToOne: false
@@ -365,6 +372,13 @@ export type Database = {
             referencedRelation: "libro"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "Historico_id_libro_fkey"
+            columns: ["id_libro"]
+            isOneToOne: false
+            referencedRelation: "vista_inventario"
+            referencedColumns: ["libro_id"]
+          },
         ]
       }
       item_compra: {
@@ -569,6 +583,13 @@ export type Database = {
             referencedRelation: "libro"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "Noticias_id_libro_fkey"
+            columns: ["id_libro"]
+            isOneToOne: false
+            referencedRelation: "vista_inventario"
+            referencedColumns: ["libro_id"]
+          },
         ]
       }
       preferencia_autor: {
@@ -669,32 +690,32 @@ export type Database = {
       }
       reserva: {
         Row: {
-          cantidad: number
           created_at: string
+          fecha_expiracion: string
           id: string
-          id_libro: string
+          id_copia: string
           id_usuario: string
         }
         Insert: {
-          cantidad: number
           created_at?: string
+          fecha_expiracion?: string
           id?: string
-          id_libro: string
+          id_copia: string
           id_usuario: string
         }
         Update: {
-          cantidad?: number
           created_at?: string
+          fecha_expiracion?: string
           id?: string
-          id_libro?: string
+          id_copia?: string
           id_usuario?: string
         }
         Relationships: [
           {
-            foreignKeyName: "Reserva_id_libro_fkey"
-            columns: ["id_libro"]
+            foreignKeyName: "reserva_id_copia_fkey"
+            columns: ["id_copia"]
             isOneToOne: false
-            referencedRelation: "libro"
+            referencedRelation: "copia"
             referencedColumns: ["id"]
           },
           {
@@ -919,6 +940,28 @@ export type Database = {
           rol: string | null
         }
         Relationships: []
+      }
+      vista_inventario: {
+        Row: {
+          autor_libro: string | null
+          condicion_libro: Database["public"]["Enums"]["condicion_libro"] | null
+          isbn: string | null
+          libro_id: string | null
+          precio_actual: number | null
+          stock_disponible: number | null
+          stock_total: number | null
+          tienda_id: string | null
+          titulo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copia_id_tienda_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tienda"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
