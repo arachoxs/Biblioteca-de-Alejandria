@@ -9,19 +9,24 @@ import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 
 // ─── Escritura ─────────────────────────────────────────────────────
 
-export async function insertCopia(
-  data: InsertCopiaPayload
+export async function insertCopias(
+  data: InsertCopiaPayload[],
 ): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
-  const { error } = await adminClient.from("copia").insert({
-    id_libro: data.id_libro,
-    id_tienda: data.id_tienda,
-    estado: data.estado,
-  });
+  const payload = data.map((copy) => ({
+    id_libro: copy.id_libro,
+    id_tienda: copy.id_tienda,
+    estado: copy.estado,
+  }));
+
+  const { data: insertedRows, error } = await adminClient
+    .from("copia")
+    .insert(payload)
+    .select("id");
 
   if (error) {
-    console.error("[copiaModel] Error insertando copia:", error);
+    console.error("[copiaModel] Error insertando copias:", error);
     return { success: false, error: error.message };
   }
 
@@ -30,7 +35,7 @@ export async function insertCopia(
 
 export async function updateCopia(
   id: string,
-  data: UpdateCopiaPayload
+  data: UpdateCopiaPayload,
 ): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
@@ -51,28 +56,61 @@ export async function updateCopia(
   return { success: true };
 }
 
-export async function softDeleteCopia(id: string): Promise<ModelResult> {
+export async function transferCopias(
+  ids: string[],
+  id_tienda: string,
+): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
-  const { error } = await adminClient
+  const { data: updatedRows, error } = await adminClient
     .from("copia")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id)
-    .is("deleted_at", null);
+    .update({ id_tienda })
+    .in("id", ids)
+    .is("deleted_at", null)
+    .select("id");
 
   if (error) {
-    console.error("[copiaModel] Error eliminando copia:", error);
+    console.error("[copiaModel] Error trasladando copias:", error);
     return { success: false, error: error.message };
+  }
+
+  if ((updatedRows ?? []).length !== ids.length) {
+    return {
+      success: false,
+      error: "No se pudieron trasladar todas las copias solicitadas.",
+    };
   }
 
   return { success: true };
 }
 
+export async function softDeleteCopias(ids: string[]): Promise<ModelResult> {
+  // Usamos el Admin Client para asegurar permisos de escritura
+  const adminClient = createAdminClient();
+
+  const { data: updatedRows, error } = await adminClient
+    .from("copia") // Asegúrate de que sea "copia" (singular) como en tu otra función
+    .update({ deleted_at: new Date().toISOString() })
+    .in("id", ids)
+    .is("deleted_at", null)
+    .select("id"); // Solo actualiza las que no estén ya borradas
+
+  if (error) {
+    console.error("[copiaModel] Error en softDeleteManyCopiasModel:", error);
+    return { success: false, error: error.message };
+  }
+
+  if ((updatedRows ?? []).length !== ids.length) {
+    return {
+      success: false,
+      error: "No se pudieron eliminar todas las copias solicitadas.",
+    };
+  }
+  return { success: true };
+}
 // ─── Lectura ───────────────────────────────────────────────────────
 
-export async function getCopiaById(
-  id: string
-): Promise<CopiaRow | null> {
+export async function getCopiaById(id: string): Promise<CopiaRow | null> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -90,11 +128,28 @@ export async function getCopiaById(
   return data;
 }
 
+export async function getCopiasByIds(ids: string[]): Promise<CopiaRow[]> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("copia")
+    .select("*")
+    .in("id", ids)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[copiaModel] Error obteniendo copias por ids:", error);
+    throw error;
+  }
+
+  return data ?? [];
+}
+
 export async function getCopias(
   page: number = 1,
   pageSize: number = 10,
   searchTerm?: string,
-  id_tienda?: string
+  id_tienda?: string,
 ): Promise<Paginated<CopiaRow>> {
   const adminClient = createAdminClient();
 
@@ -149,6 +204,29 @@ export async function countCopiasByLibro(id_libro: string): Promise<number> {
 
   if (error) {
     console.error("[copiaModel] Error contando copias por libro:", error);
+    throw error;
+  }
+
+  return count ?? 0;
+}
+
+export async function countAvailableCopiasByLibro(
+  id_libro: string,
+): Promise<number> {
+  const adminClient = createAdminClient();
+
+  const { count, error } = await adminClient
+    .from("copia")
+    .select("id", { count: "exact", head: true })
+    .eq("id_libro", id_libro)
+    .eq("estado", "disponible")
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error contando copias disponibles por libro:",
+      error,
+    );
     throw error;
   }
 
