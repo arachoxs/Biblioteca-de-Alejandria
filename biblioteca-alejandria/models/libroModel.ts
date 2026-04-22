@@ -13,6 +13,7 @@ import {
   escapeLikePattern,
   formatILIKE,
 } from "@/lib/validations/db-utils";
+import type { CondicionLibro } from "@/lib/types/libro";
 
 type LibroUpdateRow = Database["public"]["Tables"]["libro"]["Update"];
 type LibroId = Database["public"]["Tables"]["libro"]["Row"]["id"];
@@ -185,6 +186,79 @@ export async function getLibros(
 }
 
 /**
+ * Obtiene libros activos paginados, incluyendo el recuento de copias.
+ */
+export async function getLibrosWithCopies(
+  page: number = 1,
+  pageSize: number = 10,
+  searchTerm?: string,
+): Promise<Paginated<LibroWithRelations>> {
+  const adminClient = createAdminClient();
+
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  let query = adminClient
+    .from("libro")
+    .select("*, autor(nombre), categoria(nombre), copia(count)", { count: "exact" })
+    .is("deleted_at", null)
+    .range(from, to)
+    .order("id", { ascending: false });
+
+  const normalizedSearch = searchTerm?.trim();
+
+  if (normalizedSearch) {
+    const [authorIds, categoryIds] = await Promise.all([
+      getMatchingAuthorIds(normalizedSearch),
+      getMatchingCategoryIds(normalizedSearch),
+    ]);
+
+    let orFilter = buildOrILikeFilter(
+      ["titulo", "isbn", "idioma", "editorial"],
+      normalizedSearch,
+    );
+
+    if (authorIds.length > 0) {
+      orFilter += `,id_autor.in.(${authorIds.join(",")})`;
+    }
+
+    if (categoryIds.length > 0) {
+      orFilter += `,id_categoria.in.(${categoryIds.join(",")})`;
+    }
+
+    query = query.or(orFilter);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("[libroModel] Error al obtener libros con copias:", error);
+    throw error;
+  }
+
+  const normalized = (data ?? []).map((row) => {
+    const rowRecord = row as Record<string, unknown>;
+    const rowCopia = rowRecord.copia as { count: number } | { count: number }[] | undefined;
+    const copiasCount = Array.isArray(rowCopia) ? rowCopia[0]?.count : rowCopia?.count;
+    return {
+      ...normalizeLibroWithRelations(row as LibroRow & Record<string, unknown>),
+      copias_count: Number(copiasCount) || 0,
+    };
+  });
+  const totalCount = count ?? 0;
+
+  return {
+    data: normalized,
+    total: totalCount,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.ceil(totalCount / safePageSize),
+  };
+}
+
+/**
  * Obtiene un libro activo por ID con datos de autor y categoria.
  */
 export async function getActiveLibroById(
@@ -320,4 +394,86 @@ export async function checkLibroExistsByIsbn(
   }
 
   return !!data;
+}
+
+/**
+ * Verifica si ya existe un libro activo con el mismo título, ISBN y estado.
+ * Permite excluir un ID (útil para edición).
+ */
+export async function checkLibroDuplicateInfo(
+  titulo: string,
+  isbn: string,
+  estado: CondicionLibro,
+  excludeId?: string,
+): Promise<boolean> {
+  const adminClient = createAdminClient();
+
+  let query = adminClient
+    .from("libro")
+    .select("id")
+    .is("deleted_at", null)
+    .ilike("titulo", escapeLikePattern(titulo.trim()))
+    .ilike("isbn", escapeLikePattern(isbn.trim()))
+    .eq("estado", estado);
+
+  if (excludeId !== undefined) {
+    query = query.neq("id", excludeId);
+  }
+
+  const { data, error } = await query.limit(1).maybeSingle();
+
+  if (error) {
+    console.error("[libroModel] Error al verificar duplicado de info:", error);
+    throw error;
+  }
+
+  return !!data;
+}
+
+/**
+ * Rollback (Hard Delete) de un libro y sus dependencias creadas en transacciones fallidas.
+ * Se eliminan primero copias, historico, noticias y finalmente el libro debido a NO ACTION FK.
+ */
+export async function rollbackLibro(id_libro: string): Promise<ModelResult> {
+  const adminClient = createAdminClient();
+
+  // Borrar copias asociadas al libro
+  const { error: copiaErr } = await adminClient
+    .from("copia")
+    .delete()
+    .eq("id_libro", id_libro);
+  if (copiaErr) {
+    console.error("[libroModel] Error eliminando copias en rollback:", copiaErr);
+  }
+
+  // Borrar historicos
+  const { error: histErr } = await adminClient
+    .from("historico")
+    .delete()
+    .eq("id_libro", id_libro);
+  if (histErr) {
+    console.error("[libroModel] Error eliminando historico en rollback:", histErr);
+  }
+
+  // Borrar noticias
+  const { error: noticErr } = await adminClient
+    .from("noticias")
+    .delete()
+    .eq("id_libro", id_libro);
+  if (noticErr) {
+    console.error("[libroModel] Error eliminando noticias en rollback:", noticErr);
+  }
+
+  // Borrar libro principal
+  const { error: libroErr } = await adminClient
+    .from("libro")
+    .delete()
+    .eq("id", id_libro);
+
+  if (libroErr) {
+    console.error("[libroModel] Error eliminando libro principal en rollback:", libroErr);
+    return { success: false, error: libroErr.message };
+  }
+
+  return { success: true };
 }

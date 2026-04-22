@@ -690,32 +690,32 @@ export type Database = {
       }
       reserva: {
         Row: {
-          cantidad: number
           created_at: string
+          fecha_expiracion: string
           id: string
-          id_libro: string
+          id_copia: string
           id_usuario: string
         }
         Insert: {
-          cantidad: number
           created_at?: string
+          fecha_expiracion?: string
           id?: string
-          id_libro: string
+          id_copia: string
           id_usuario: string
         }
         Update: {
-          cantidad?: number
           created_at?: string
+          fecha_expiracion?: string
           id?: string
-          id_libro?: string
+          id_copia?: string
           id_usuario?: string
         }
         Relationships: [
           {
-            foreignKeyName: "Reserva_id_libro_fkey"
-            columns: ["id_libro"]
+            foreignKeyName: "reserva_id_copia_fkey"
+            columns: ["id_copia"]
             isOneToOne: false
-            referencedRelation: "libro"
+            referencedRelation: "copia"
             referencedColumns: ["id"]
           },
           {
