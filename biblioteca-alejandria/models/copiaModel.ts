@@ -30,13 +30,6 @@ export async function insertCopias(
     return { success: false, error: error.message };
   }
 
-  if ((insertedRows ?? []).length !== payload.length) {
-    return {
-      success: false,
-      error: "No se pudieron insertar todas las copias solicitadas.",
-    };
-  }
-
   return { success: true };
 }
 

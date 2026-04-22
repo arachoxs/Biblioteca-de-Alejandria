@@ -4,7 +4,6 @@ import {
   insertCopias,
   softDeleteCopias,
   transferCopias as transferCopiasModel,
-  countAvailableCopiasByLibro,
 } from "@/models/copiaModel";
 import { getActiveLibroById } from "@/models/libroModel";
 import {
@@ -236,7 +235,7 @@ export async function deleteCopias(
 
     // b. validar estado eliminable
     const invalidCopias = copiasInfo.filter(
-      (copy) => copy.estado !== "disponible" || copy.deleted_at !== null,
+      (copy) => copy.estado !== "disponible",
     );
 
     if (invalidCopias.length > 0) {
@@ -250,29 +249,7 @@ export async function deleteCopias(
       };
     }
 
-    // c. validar cantidades por libro
-    const copiasAgrupadas = groupCopiasByLibro(copiasInfo);
-    const invalidQuantityBooks: string[] = [];
-
-    for (const [idLibro, copiasByLibro] of Object.entries(copiasAgrupadas)) {
-      const isValid = await validateQuantityToDelete(idLibro, copiasByLibro);
-      if (!isValid) {
-        invalidQuantityBooks.push(idLibro);
-      }
-    }
-
-    if (invalidQuantityBooks.length > 0) {
-      return {
-        success: false,
-        errors: {
-          ids: `No se pueden eliminar las copias porque superan la cantidad de copias disponibles para los libros: ${invalidQuantityBooks.join(
-            ", ",
-          )}.`,
-        },
-      };
-    }
-
-    // d. eliminación lógica en una operación de modelo
+    // c. eliminación lógica en una operación de modelo
     const result = await softDeleteCopias(copyIds);
 
     if (!result.success) {
@@ -344,28 +321,4 @@ export async function getCopiaInfoById(
 //helpers
 async function getInfos(copiaIds: string[]): Promise<copiaObject[]> {
   return getCopiasByIdsModel(copiaIds);
-}
-
-function groupCopiasByLibro(copias: copiaObject[]): Record<string, string[]> {
-  const grouped: Record<string, string[]> = {};
-
-  for (const copy of copias) {
-    if (!grouped[copy.id_libro]) {
-      grouped[copy.id_libro] = [];
-    }
-    grouped[copy.id_libro].push(copy.id);
-  }
-
-  return grouped;
-}
-
-async function validateQuantityToDelete(
-  idLibro: string,
-  copiasIds: string[],
-): Promise<boolean> {
-  //obtener la cantidad de copias disponibles del libro (disponible)
-  const availableCount = await countAvailableCopiasByLibro(idLibro);
-
-  //verificar que la cantidad de copias a eliminar no supere la cantidad de copias disponibles
-  return copiasIds.length <= availableCount;
 }
