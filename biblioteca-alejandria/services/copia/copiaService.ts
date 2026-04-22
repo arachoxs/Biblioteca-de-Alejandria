@@ -18,7 +18,7 @@ import type {
   DeleteCopiasInput,
   OneOrManyCopyIds,
   TransferCopiasInput,
-  CopiaRow as copiaObject,
+  CopiaRow,
 } from "@/lib/types/copia";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
@@ -319,6 +319,6 @@ export async function getCopiaInfoById(
 }
 
 //helpers
-async function getInfos(copiaIds: string[]): Promise<copiaObject[]> {
+async function getInfos(copiaIds: string[]): Promise<CopiaRow[]> {
   return getCopiasByIdsModel(copiaIds);
 }
