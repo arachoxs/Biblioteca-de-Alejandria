@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 
@@ -13,20 +13,23 @@ interface ModalProps {
   maxWidth?: string;
 }
 
+const modalWidthClasses: Record<string, string> = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+  "2xl": "max-w-2xl",
+  "3xl": "max-w-3xl",
+  full: "max-w-full",
+};
+
 export default function Modal({
   isOpen,
   onClose,
   title,
   children,
-  maxWidth = "md",
+  maxWidth,
 }: ModalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    //eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -38,8 +41,11 @@ export default function Modal({
     };
   }, [isOpen]);
 
-  if (!mounted) return null;
+  if (typeof document === "undefined") return null;
   if (!isOpen) return null;
+
+  const modalWidthClass =
+    modalWidthClasses[maxWidth ?? "md"] ?? modalWidthClasses.md;
 
   return createPortal(
     <div
@@ -48,7 +54,7 @@ export default function Modal({
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
       <div
-        className={`relative bg-white rounded-xl shadow-2xl w-full max-w-${maxWidth ? maxWidth : "md"} max-h-full overflow-hidden overflow-y-scroll animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
+        className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full overflow-hidden overflow-y-scroll animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title">
