@@ -23,7 +23,6 @@ export default function PanelAdminPage() {
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 md:px-10 lg:py-16">
         <div className="w-full max-w-5xl">
-
           {/* Page Header — mirrors panel-root */}
           <header className="mb-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
             <div className="inline-flex items-center justify-center w-14 h-14 bg-brand-primary rounded-xl mb-5 shadow-lg shadow-brand-primary/20">
@@ -106,7 +105,6 @@ export default function PanelAdminPage() {
               delayClass="delay-[600ms]"
             />
           </div>
-
         </div>
       </main>
     </div>

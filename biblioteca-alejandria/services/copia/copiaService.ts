@@ -1,14 +1,17 @@
 import {
+  getCopiasByLibroId as getCopiasByLibroIdModel,
   getCopiaById as getCopiaByIdModel,
   getCopiasByIds as getCopiasByIdsModel,
+  getInventarioRows as getInventarioRowsModel,
   insertCopias,
   softDeleteCopias,
   transferCopias as transferCopiasModel,
 } from "@/models/copiaModel";
-import { getActiveLibroById } from "@/models/libroModel";
+import { getActiveLibroById, getLibros } from "@/models/libroModel";
 import {
   getActiveTiendaByExactName,
   getActiveTiendaById,
+  getTiendas,
 } from "@/models/tiendaModel";
 
 import type {
@@ -20,8 +23,17 @@ import type {
   TransferCopiasInput,
   CopiaRow,
 } from "@/lib/types/copia";
+import type {
+  InventarioCopiasResponse,
+  InventarioLibroItem,
+  InventarioListResponse,
+  InventarioOption,
+  InventarioOptionsResponse,
+  VistaInventarioRow,
+} from "@/lib/types/inventario";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
+import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 
 const DEFAULT_STORE = "Inventario General";
 
@@ -32,6 +44,53 @@ function toUniqueIds(ids: OneOrManyCopyIds): string[] {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Error desconocido";
+}
+
+function aggregateInventarioRows(rows: VistaInventarioRow[]): InventarioLibroItem[] {
+  const byBookId = new Map<string, InventarioLibroItem>();
+
+  for (const row of rows) {
+    if (!row.libro_id) continue;
+
+    const available = row.stock_disponible ?? 0;
+    const total = row.stock_total ?? 0;
+    const previous = byBookId.get(row.libro_id);
+
+    if (!previous) {
+      byBookId.set(row.libro_id, {
+        libro_id: row.libro_id,
+        isbn_libro: row.isbn ?? "Sin ISBN",
+        nombre_libro: row.titulo ?? "Sin título",
+        autor_libro: row.autor_libro ?? "Autor desconocido",
+        estado_libro: row.condicion_libro ?? "nuevo",
+        cantidad_disponible: available,
+        cantidad_total: total,
+      });
+      continue;
+    }
+
+    previous.cantidad_disponible += available;
+    previous.cantidad_total += total;
+  }
+
+  return Array.from(byBookId.values()).sort((left, right) =>
+    left.nombre_libro.localeCompare(right.nombre_libro),
+  );
+}
+
+function paginateRows<T>(rows: T[], page: number, pageSize: number) {
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  const start = (safePage - 1) * safePageSize;
+  const paginated = rows.slice(start, start + safePageSize);
+
+  return {
+    data: paginated,
+    total: rows.length,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: rows.length === 0 ? 0 : Math.ceil(rows.length / safePageSize),
+  };
 }
 
 async function resolveStoreId(idTienda?: string): Promise<{
@@ -314,6 +373,142 @@ export async function getCopiaInfoById(
       success: false,
       errors: { form: getErrorMessage(error) },
       message: "No se pudo obtener la informacion de la copia.",
+    };
+  }
+}
+
+/**
+ * Lista el inventario por libro, con filtro opcional por tienda.
+ * Si no hay tienda seleccionada, agrega el stock de todas las tiendas.
+ */
+export async function fetchInventario(
+  page: number = 1,
+  pageSize: number = 10,
+  searchTerm?: string,
+  id_tienda?: string,
+): Promise<InventarioListResponse> {
+  const roleCheck = await requireAdminRole();
+  if (!roleCheck.success) return roleCheck;
+
+  try {
+    const rows = await getInventarioRowsModel(searchTerm, id_tienda);
+    const groupedByBook = aggregateInventarioRows(rows);
+    const paginated = paginateRows(groupedByBook, page, pageSize);
+
+    return {
+      success: true,
+      data: paginated,
+    };
+  } catch (error: unknown) {
+    console.error("[copiaService] Error inesperado al listar inventario:", error);
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "No se pudo cargar el inventario.",
+    };
+  }
+}
+
+/**
+ * Obtiene el detalle de copias de un libro (todas las copias activas).
+ */
+export async function fetchInventarioCopiasByLibro(
+  libroId: string,
+): Promise<InventarioCopiasResponse> {
+  const roleCheck = await requireAdminRole();
+  if (!roleCheck.success) return roleCheck;
+
+  try {
+    const libro = await getActiveLibroById(libroId);
+    if (!libro) {
+      return {
+        success: false,
+        errors: { libro_id: "El libro indicado no existe o fue eliminado." },
+      };
+    }
+
+    const copies = await getCopiasByLibroIdModel(libroId);
+    return {
+      success: true,
+      data: copies,
+    };
+  } catch (error: unknown) {
+    console.error(
+      "[copiaService] Error inesperado al obtener detalle de inventario:",
+      error,
+    );
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "No se pudo cargar el detalle del inventario.",
+    };
+  }
+}
+
+/**
+ * Opciones de tiendas activas para filtros y formularios de inventario.
+ */
+export async function fetchInventarioStoreOptions(
+  searchTerm?: string,
+): Promise<InventarioOptionsResponse> {
+  const roleCheck = await requireAdminRole();
+  if (!roleCheck.success) return roleCheck;
+
+  try {
+    const stores = await getTiendas(1, MAX_PAGE_SIZE, searchTerm);
+    const options: InventarioOption[] = stores.data.map((store) => ({
+      value: store.id,
+      label: store.nombre,
+      subtitle: store.direccion_formateada,
+    }));
+
+    return {
+      success: true,
+      data: options,
+    };
+  } catch (error: unknown) {
+    console.error(
+      "[copiaService] Error inesperado al listar opciones de tienda:",
+      error,
+    );
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "No se pudieron cargar las tiendas disponibles.",
+    };
+  }
+}
+
+/**
+ * Opciones de libros activos para formularios de inventario.
+ */
+export async function fetchInventarioBookOptions(
+  searchTerm?: string,
+): Promise<InventarioOptionsResponse> {
+  const roleCheck = await requireAdminRole();
+  if (!roleCheck.success) return roleCheck;
+
+  try {
+    const libros = await getLibros(1, 30, searchTerm);
+    const options: InventarioOption[] = libros.data.map((libro) => ({
+      value: libro.id,
+      label: `${libro.titulo} · ${libro.isbn}`,
+      subtitle: libro.autor_nombre ?? "Autor desconocido",
+    }));
+
+    return {
+      success: true,
+      data: options,
+    };
+  } catch (error: unknown) {
+    console.error(
+      "[copiaService] Error inesperado al listar opciones de libro:",
+      error,
+    );
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "No se pudieron cargar los libros disponibles.",
     };
   }
 }

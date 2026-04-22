@@ -5,6 +5,11 @@ import type {
   InsertCopiaPayload,
   UpdateCopiaPayload,
 } from "@/lib/types/copia";
+import type {
+  InventarioCopiaDetalle,
+  VistaInventarioRow,
+} from "@/lib/types/inventario";
+import { buildOrILikeFilter } from "@/lib/validations/db-utils";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 
 // ─── Escritura ─────────────────────────────────────────────────────
@@ -20,7 +25,7 @@ export async function insertCopias(
     estado: copy.estado,
   }));
 
-  const { data: insertedRows, error } = await adminClient
+  const { error } = await adminClient
     .from("copia")
     .insert(payload)
     .select("id");
@@ -110,6 +115,14 @@ export async function softDeleteCopias(ids: string[]): Promise<ModelResult> {
 }
 // ─── Lectura ───────────────────────────────────────────────────────
 
+function getRelationName(
+  value: { nombre?: string } | { nombre?: string }[] | null,
+): string {
+  if (!value) return "Sin tienda asociada";
+  if (Array.isArray(value)) return value[0]?.nombre ?? "Sin tienda asociada";
+  return value.nombre ?? "Sin tienda asociada";
+}
+
 export async function getCopiaById(id: string): Promise<CopiaRow | null> {
   const adminClient = createAdminClient();
 
@@ -143,6 +156,62 @@ export async function getCopiasByIds(ids: string[]): Promise<CopiaRow[]> {
   }
 
   return data ?? [];
+}
+
+export async function getInventarioRows(
+  searchTerm?: string,
+  id_tienda?: string,
+): Promise<VistaInventarioRow[]> {
+  const adminClient = createAdminClient();
+
+  let query = adminClient
+    .from("vista_inventario")
+    .select("*")
+    .order("titulo", { ascending: true, nullsFirst: false });
+
+  if (id_tienda) {
+    query = query.eq("tienda_id", id_tienda);
+  }
+
+  if (searchTerm && searchTerm.trim() !== "") {
+    query = query.or(buildOrILikeFilter(["titulo", "autor_libro", "isbn"], searchTerm));
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("[copiaModel] Error listando inventario:", error);
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+export async function getCopiasByLibroId(
+  libroId: string,
+): Promise<InventarioCopiaDetalle[]> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("copia")
+    .select("id, estado, id_tienda, tienda(nombre)")
+    .eq("id_libro", libroId)
+    .is("deleted_at", null)
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("[copiaModel] Error listando copias por libro:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    id_copia: row.id,
+    estado_copia: row.estado,
+    tienda_id: row.id_tienda,
+    nombre_tienda: getRelationName(
+      row.tienda as { nombre?: string } | { nombre?: string }[] | null,
+    ),
+  }));
 }
 
 export async function getCopias(
