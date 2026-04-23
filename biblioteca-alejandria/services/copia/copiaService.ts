@@ -232,7 +232,14 @@ export async function createCopias(
       };
     }
 
-    await syncHistoricoForBooks([input.id_libro]);
+    try {
+      await syncHistoricoForBooks([input.id_libro]);
+    } catch (historicoError: unknown) {
+      console.error(
+        "[copiaServices] Copias creadas correctamente, pero falló la sincronización del histórico:",
+        historicoError,
+      );
+    }
 
     return {
       success: true,
