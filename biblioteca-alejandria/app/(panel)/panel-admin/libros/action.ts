@@ -4,6 +4,7 @@ import {
   createBook,
   createBookWithInventory,
   editBook,
+  fetchBookHistoricoTimeline,
   removeBook,
   fetchBooks,
 } from "@/services/libros/libroService";
@@ -13,6 +14,7 @@ import { fetchCategories } from "@/services/categories/categoryService";
 import { fetchInventarioStoreOptions } from "@/services/copia/copiaService";
 import { validateLibro } from "@/lib/validations/libro";
 import {
+  isValidUUID,
   sanitizeText,
   toSafePositiveInt,
 } from "@/lib/validations/rules";
@@ -24,6 +26,7 @@ import type {
   CondicionLibro,
 } from "@/lib/types/libro";
 import type { ActionResponse } from "@/lib/types/common";
+import type { HistoricoTimelineResponse } from "@/lib/types/historico";
 
 // ─── Lectura ───────────────────────────────────────────────────────
 
@@ -96,6 +99,20 @@ export async function getLibroByIdAction(id: string) {
   const cleanId = sanitizeText(id);
   if (!cleanId) return null;
   return await getActiveLibroById(cleanId);
+}
+
+export async function getLibroHistoricoTimelineAction(
+  libroId: string,
+): Promise<HistoricoTimelineResponse> {
+  const cleanLibroId = sanitizeText(libroId);
+  if (!isValidUUID(cleanLibroId)) {
+    return {
+      success: false,
+      errors: { libro_id: "El identificador del libro no es válido." },
+    };
+  }
+
+  return await fetchBookHistoricoTimeline(cleanLibroId);
 }
 
 // ─── Mutaciones ────────────────────────────────────────────────────

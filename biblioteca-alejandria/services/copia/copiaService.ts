@@ -7,6 +7,10 @@ import {
   softDeleteCopias,
   transferCopias as transferCopiasModel,
 } from "@/models/copiaModel";
+import {
+  getHistoricoSyncSnapshotsByLibros,
+  insertHistoricoBatch,
+} from "@/models/historicoModel";
 import { getActiveLibroById, getLibros } from "@/models/libroModel";
 import {
   getActiveTiendaByExactName,
@@ -32,6 +36,7 @@ import type {
   InventarioOptionsResponse,
   VistaInventarioRow,
 } from "@/lib/types/inventario";
+import type { EstadoHistorico } from "@/lib/types/historico";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { isValidUUID, MAX_PAGE_SIZE } from "@/lib/validations/rules";
@@ -109,6 +114,53 @@ function mapCopiasToInventarioDetalle(
     nombre_tienda: storeNames.get(copy.id_tienda) ?? "Sin tienda asociada",
     estado_copia: copy.estado,
   }));
+}
+
+function getEstadoHistoricoFromAvailableCount(availableCount: number): EstadoHistorico {
+  return availableCount === 0 ? "agotado" : "disponible";
+}
+
+async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
+  const uniqueBookIds = Array.from(new Set(libroIds));
+  if (uniqueBookIds.length === 0) return;
+
+  const snapshots = await getHistoricoSyncSnapshotsByLibros(uniqueBookIds);
+  const snapshotByBookId = new Map(snapshots.map((snapshot) => [snapshot.id_libro, snapshot]));
+
+  const missingBookIds = uniqueBookIds.filter((bookId) => !snapshotByBookId.has(bookId));
+  if (missingBookIds.length > 0) {
+    console.error(
+      "[copiaServices] No se pudieron obtener snapshots de histórico para algunos libros.",
+      { libroIds: missingBookIds },
+    );
+  }
+
+  const now = new Date().toISOString();
+  const historicoRows = snapshots.flatMap((snapshot) => {
+    const targetState = getEstadoHistoricoFromAvailableCount(snapshot.available_count);
+    if (snapshot.latest_estado === targetState) return [];
+
+    return [
+      {
+        id_libro: snapshot.id_libro,
+        estado: targetState,
+        fecha: now,
+      },
+    ];
+  });
+
+  if (historicoRows.length === 0) return;
+
+  const historicoResult = await insertHistoricoBatch(historicoRows);
+  if (!historicoResult.success) {
+    console.error(
+      historicoResult.error ??
+        "No se pudo registrar la sincronización del histórico de stock para los libros indicados.",
+      {
+        libroIds: historicoRows.map((row) => row.id_libro),
+      },
+    );
+  }
 }
 
 async function resolveStoreId(idTienda?: string): Promise<{
@@ -196,6 +248,15 @@ export async function createCopias(
       };
     }
 
+    try {
+      await syncHistoricoForBooks([input.id_libro]);
+    } catch (historicoError: unknown) {
+      console.error(
+        "[copiaServices] Copias creadas correctamente, pero falló la sincronización del histórico:",
+        historicoError,
+      );
+    }
+
     return {
       success: true,
       message:
@@ -263,6 +324,8 @@ export async function transferCopias(
       };
     }
 
+    // El traslado no cambia la disponibilidad global del libro, solo su tienda.
+    // Por eso no se genera histórico de stock en esta operación.
     return {
       success: true,
       message:
@@ -334,6 +397,15 @@ export async function deleteCopias(
         success: false,
         errors: { form: result.error ?? "No se pudieron eliminar las copias." },
       };
+    }
+
+    try {
+      await syncHistoricoForBooks(copiasInfo.map((copy) => copy.id_libro));
+    } catch (historicoError: unknown) {
+      console.error(
+        "[copiaServices] Las copias fueron eliminadas, pero falló la sincronización del histórico:",
+        historicoError,
+      );
     }
 
     return {

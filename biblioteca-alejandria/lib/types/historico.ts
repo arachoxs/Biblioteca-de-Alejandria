@@ -1,4 +1,5 @@
 import type { Database } from "@/lib/types/supabase";
+import type { DataResponse } from "./common";
 
 // ─── Fila base desde Supabase ──────────────────────────────────────
 
@@ -21,3 +22,32 @@ export interface InsertHistoricoPayload {
   estado: EstadoHistorico;
   fecha: string;
 }
+
+export interface HistoricoSyncBookSnapshot {
+  id_libro: string;
+  available_count: number;
+  latest_estado: EstadoHistorico | null;
+}
+
+export interface HistoricoTimelineSegment {
+  estado: EstadoHistorico;
+  start_at: string;
+  end_at: string;
+  duration_ms: number;
+}
+
+export interface HistoricoTimelineLog {
+  id: number;
+  estado: EstadoHistorico;
+  fecha: string;
+}
+
+export interface HistoricoTimelineData {
+  id_libro: string;
+  timeline_start_at: string;
+  timeline_end_at: string;
+  segments: HistoricoTimelineSegment[];
+  logs: HistoricoTimelineLog[];
+}
+
+export type HistoricoTimelineResponse = DataResponse<HistoricoTimelineData>;

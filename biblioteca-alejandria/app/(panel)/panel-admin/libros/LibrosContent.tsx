@@ -10,6 +10,7 @@ import { getLibrosAction, eliminarLibroAction } from "./action";
 import type { LibroWithRelations, LibroActionResponse } from "@/lib/types/libro";
 import LibrosTable from "./LibrosTable";
 import { useDebounce } from "@/hooks/useDebounce";
+import LibroHistoricoModal from "./LibroHistoricoModal";
 
 export default function LibrosContent() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function LibrosContent() {
 
   const [actionResponse, setActionResponse] = useState<LibroActionResponse | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [historicoLibro, setHistoricoLibro] = useState<LibroWithRelations | null>(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 400);
 
@@ -197,6 +199,7 @@ export default function LibrosContent() {
           searchTerm={searchTerm}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onViewHistory={setHistoricoLibro}
           deletingIds={deletingIds}
           pagination={{
             currentPage,
@@ -206,6 +209,12 @@ export default function LibrosContent() {
           }}
         />
       </div>
+
+      <LibroHistoricoModal
+        isOpen={Boolean(historicoLibro)}
+        libro={historicoLibro}
+        onClose={() => setHistoricoLibro(null)}
+      />
     </main>
   );
 }
