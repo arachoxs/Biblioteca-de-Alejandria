@@ -57,7 +57,9 @@ export default function Modal({
 
       <div
         className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full ${
-          allowOverflow ? "overflow-visible" : "overflow-hidden overflow-y-scroll"
+          allowOverflow
+            ? "overflow-visible"
+            : "overflow-hidden overflow-y-scroll"
         } animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
         role="dialog"
         aria-modal="true"
@@ -75,7 +77,7 @@ export default function Modal({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-6 relative">{children}</div>
       </div>
     </div>,
     document.body,
