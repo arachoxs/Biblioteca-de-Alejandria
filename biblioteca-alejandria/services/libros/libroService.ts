@@ -359,6 +359,11 @@ function buildHistoricoTimelineData(
     timeline_start_at: start.toISOString(),
     timeline_end_at: timelineEnd.toISOString(),
     segments,
+    logs: events.map((event) => ({
+      id: event.id,
+      estado: event.estado,
+      fecha: event.fecha,
+    })),
   };
 }
 

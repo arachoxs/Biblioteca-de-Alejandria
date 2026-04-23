@@ -1,5 +1,4 @@
 import {
-  countAvailableCopiasByLibro,
   getCopias as getCopiasModel,
   getCopiaById as getCopiaByIdModel,
   getCopiasByIds as getCopiasByIdsModel,
@@ -8,7 +7,10 @@ import {
   softDeleteCopias,
   transferCopias as transferCopiasModel,
 } from "@/models/copiaModel";
-import { getLatestHistoricoByLibro, insertHistorico } from "@/models/historicoModel";
+import {
+  getHistoricoSyncSnapshotsByLibros,
+  insertHistoricoBatch,
+} from "@/models/historicoModel";
 import { getActiveLibroById, getLibros } from "@/models/libroModel";
 import {
   getActiveTiendaByExactName,
@@ -118,37 +120,47 @@ function getEstadoHistoricoFromAvailableCount(availableCount: number): EstadoHis
   return availableCount === 0 ? "agotado" : "disponible";
 }
 
-async function syncHistoricoByBookStock(libroId: string): Promise<void> {
-  const [availableCount, latestHistorico] = await Promise.all([
-    countAvailableCopiasByLibro(libroId),
-    getLatestHistoricoByLibro(libroId),
-  ]);
-  const targetState = getEstadoHistoricoFromAvailableCount(availableCount);
-
-  if (latestHistorico?.estado === targetState) return;
-
-  const historicoResult = await insertHistorico({
-    id_libro: libroId,
-    estado: targetState,
-    fecha: new Date().toISOString(),
-  });
-
-  if (!historicoResult.success) {
-    console.error(
-      historicoResult.error ??
-        `No se pudo registrar el estado histórico '${targetState}' para el libro ${libroId}.`,
-      {
-        libroId,
-        estado: targetState,
-      },
-    );
-  }
-}
-
 async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
   const uniqueBookIds = Array.from(new Set(libroIds));
   if (uniqueBookIds.length === 0) return;
-  await Promise.all(uniqueBookIds.map((bookId) => syncHistoricoByBookStock(bookId)));
+
+  const snapshots = await getHistoricoSyncSnapshotsByLibros(uniqueBookIds);
+  const snapshotByBookId = new Map(snapshots.map((snapshot) => [snapshot.id_libro, snapshot]));
+
+  const missingBookIds = uniqueBookIds.filter((bookId) => !snapshotByBookId.has(bookId));
+  if (missingBookIds.length > 0) {
+    console.error(
+      "[copiaServices] No se pudieron obtener snapshots de histórico para algunos libros.",
+      { libroIds: missingBookIds },
+    );
+  }
+
+  const now = new Date().toISOString();
+  const historicoRows = snapshots.flatMap((snapshot) => {
+    const targetState = getEstadoHistoricoFromAvailableCount(snapshot.available_count);
+    if (snapshot.latest_estado === targetState) return [];
+
+    return [
+      {
+        id_libro: snapshot.id_libro,
+        estado: targetState,
+        fecha: now,
+      },
+    ];
+  });
+
+  if (historicoRows.length === 0) return;
+
+  const historicoResult = await insertHistoricoBatch(historicoRows);
+  if (!historicoResult.success) {
+    console.error(
+      historicoResult.error ??
+        "No se pudo registrar la sincronización del histórico de stock para los libros indicados.",
+      {
+        libroIds: historicoRows.map((row) => row.id_libro),
+      },
+    );
+  }
 }
 
 async function resolveStoreId(idTienda?: string): Promise<{
