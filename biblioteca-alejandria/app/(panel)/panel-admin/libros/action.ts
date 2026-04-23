@@ -14,7 +14,6 @@ import { fetchInventarioStoreOptions } from "@/services/copia/copiaService";
 import { validateLibro } from "@/lib/validations/libro";
 import {
   sanitizeText,
-  sanitizeNullableText,
   toSafePositiveInt,
 } from "@/lib/validations/rules";
 import type {
