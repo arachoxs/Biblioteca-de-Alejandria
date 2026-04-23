@@ -383,7 +383,14 @@ export async function deleteCopias(
       };
     }
 
-    await syncHistoricoForBooks(copiasInfo.map((copy) => copy.id_libro));
+    try {
+      await syncHistoricoForBooks(copiasInfo.map((copy) => copy.id_libro));
+    } catch (historicoError: unknown) {
+      console.error(
+        "[copiaServices] Las copias fueron eliminadas, pero falló la sincronización del histórico:",
+        historicoError,
+      );
+    }
 
     return {
       success: true,
