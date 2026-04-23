@@ -136,7 +136,7 @@ export default function LibroHistoricoModal({
                     Disponible
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-700" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-600" />
                     Agotado
                   </span>
                 </div>

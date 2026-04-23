@@ -134,9 +134,13 @@ async function syncHistoricoByBookStock(libroId: string): Promise<void> {
   });
 
   if (!historicoResult.success) {
-    throw new Error(
+    console.error(
       historicoResult.error ??
         `No se pudo registrar el estado histórico '${targetState}' para el libro ${libroId}.`,
+      {
+        libroId,
+        estado: targetState,
+      },
     );
   }
 }
