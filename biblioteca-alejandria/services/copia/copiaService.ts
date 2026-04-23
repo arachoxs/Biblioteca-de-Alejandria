@@ -1,4 +1,5 @@
 import {
+  countAvailableCopiasByLibro,
   getCopias as getCopiasModel,
   getCopiaById as getCopiaByIdModel,
   getCopiasByIds as getCopiasByIdsModel,
@@ -7,6 +8,7 @@ import {
   softDeleteCopias,
   transferCopias as transferCopiasModel,
 } from "@/models/copiaModel";
+import { getLatestHistoricoByLibro, insertHistorico } from "@/models/historicoModel";
 import { getActiveLibroById, getLibros } from "@/models/libroModel";
 import {
   getActiveTiendaByExactName,
@@ -32,6 +34,7 @@ import type {
   InventarioOptionsResponse,
   VistaInventarioRow,
 } from "@/lib/types/inventario";
+import type { EstadoHistorico } from "@/lib/types/historico";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { isValidUUID, MAX_PAGE_SIZE } from "@/lib/validations/rules";
@@ -109,6 +112,39 @@ function mapCopiasToInventarioDetalle(
     nombre_tienda: storeNames.get(copy.id_tienda) ?? "Sin tienda asociada",
     estado_copia: copy.estado,
   }));
+}
+
+function getEstadoHistoricoFromAvailableCount(availableCount: number): EstadoHistorico {
+  return availableCount === 0 ? "agotado" : "disponible";
+}
+
+async function syncHistoricoByBookStock(libroId: string): Promise<void> {
+  const [availableCount, latestHistorico] = await Promise.all([
+    countAvailableCopiasByLibro(libroId),
+    getLatestHistoricoByLibro(libroId),
+  ]);
+  const targetState = getEstadoHistoricoFromAvailableCount(availableCount);
+
+  if (latestHistorico?.estado === targetState) return;
+
+  const historicoResult = await insertHistorico({
+    id_libro: libroId,
+    estado: targetState,
+    fecha: new Date().toISOString(),
+  });
+
+  if (!historicoResult.success) {
+    throw new Error(
+      historicoResult.error ??
+        `No se pudo registrar el estado histórico '${targetState}' para el libro ${libroId}.`,
+    );
+  }
+}
+
+async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
+  const uniqueBookIds = Array.from(new Set(libroIds));
+  if (uniqueBookIds.length === 0) return;
+  await Promise.all(uniqueBookIds.map((bookId) => syncHistoricoByBookStock(bookId)));
 }
 
 async function resolveStoreId(idTienda?: string): Promise<{
@@ -196,6 +232,8 @@ export async function createCopias(
       };
     }
 
+    await syncHistoricoForBooks([input.id_libro]);
+
     return {
       success: true,
       message:
@@ -263,6 +301,8 @@ export async function transferCopias(
       };
     }
 
+    // El traslado no cambia la disponibilidad global del libro, solo su tienda.
+    // Por eso no se genera histórico de stock en esta operación.
     return {
       success: true,
       message:
@@ -335,6 +375,8 @@ export async function deleteCopias(
         errors: { form: result.error ?? "No se pudieron eliminar las copias." },
       };
     }
+
+    await syncHistoricoForBooks(copiasInfo.map((copy) => copy.id_libro));
 
     return {
       success: true,

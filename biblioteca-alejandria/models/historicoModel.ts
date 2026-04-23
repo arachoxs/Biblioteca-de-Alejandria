@@ -79,3 +79,45 @@ export async function getHistoricoByLibro(
     totalPages: Math.ceil(totalCount / safePageSize),
   };
 }
+
+export async function getLatestHistoricoByLibro(
+  id_libro: string,
+): Promise<HistoricoRow | null> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("historico")
+    .select("*")
+    .eq("id_libro", id_libro)
+    .order("fecha", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[historicoModel] Error obteniendo último histórico por libro:", error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function listHistoricoByLibro(
+  id_libro: string,
+): Promise<HistoricoRow[]> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("historico")
+    .select("*")
+    .eq("id_libro", id_libro)
+    .order("fecha", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("[historicoModel] Error listando histórico completo por libro:", error);
+    throw error;
+  }
+
+  return data ?? [];
+}

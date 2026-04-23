@@ -9,7 +9,11 @@ import {
   getActiveLibroById,
 } from "@/models/libroModel";
 import { insertNoticia, softDeleteNoticiaByLibroId } from "@/models/noticiaModel";
-import { insertHistorico, deleteHistoricoByLibroId } from "@/models/historicoModel";
+import {
+  deleteHistoricoByLibroId,
+  insertHistorico,
+  listHistoricoByLibro,
+} from "@/models/historicoModel";
 import { countCopiasByLibro } from "@/models/copiaModel";
 import { createCopias } from "@/services/copia/copiaService";
 import { logAdminAction } from "@/services/admin/auditService";
@@ -20,6 +24,10 @@ import type {
   LibrosListResponse,
   LibroActionResponse,
 } from "@/lib/types/libro";
+import type {
+  HistoricoTimelineData,
+  HistoricoTimelineResponse,
+} from "@/lib/types/historico";
 import { getCurrentUser } from "@/models/authModel";
 
 // ─── Utilidades ────────────────────────────────────────────────────
@@ -168,13 +176,6 @@ export async function createBookWithInventory(
     });
     if (!noticiaResult.success) throw new Error(noticiaResult.error);
 
-    const historicoResult = await insertHistorico({
-      id_libro: libroId,
-      estado: "disponible",
-      fecha: now.toISOString(),
-    });
-    if (!historicoResult.success) throw new Error(historicoResult.error);
-
     const actor = await getCurrentUser();
     if (actor) {
       await logAdminAction({
@@ -311,6 +312,95 @@ export async function removeBook(
 }
 
 // ─── Lectura ───────────────────────────────────────────────────────
+
+function buildHistoricoTimelineData(
+  libroId: string,
+  events: Awaited<ReturnType<typeof listHistoricoByLibro>>,
+): HistoricoTimelineData | null {
+  if (events.length === 0) return null;
+
+  const now = new Date();
+  const start = new Date(events[0].fecha);
+  const timelineEnd = now > start ? now : start;
+
+  const segments: HistoricoTimelineData["segments"] = [];
+  for (let index = 0; index < events.length; index += 1) {
+    const current = events[index];
+    const next = events[index + 1];
+
+    const segmentStart = new Date(current.fecha);
+    const segmentEnd = next ? new Date(next.fecha) : timelineEnd;
+
+    if (segmentEnd < segmentStart) continue;
+
+    const lastSegment = segments[segments.length - 1];
+    if (
+      lastSegment &&
+      lastSegment.estado === current.estado &&
+      new Date(lastSegment.end_at) >= segmentStart
+    ) {
+      const mergedEndAt = segmentEnd.toISOString();
+      lastSegment.end_at = mergedEndAt;
+      lastSegment.duration_ms =
+        new Date(mergedEndAt).getTime() - new Date(lastSegment.start_at).getTime();
+      continue;
+    }
+
+    segments.push({
+      estado: current.estado,
+      start_at: segmentStart.toISOString(),
+      end_at: segmentEnd.toISOString(),
+      duration_ms: segmentEnd.getTime() - segmentStart.getTime(),
+    });
+  }
+
+  return {
+    id_libro: libroId,
+    timeline_start_at: start.toISOString(),
+    timeline_end_at: timelineEnd.toISOString(),
+    segments,
+  };
+}
+
+export async function fetchBookHistoricoTimeline(
+  libroId: string,
+): Promise<HistoricoTimelineResponse> {
+  const roleCheck = await requireAdminRole();
+  if (!roleCheck.success) return roleCheck;
+
+  try {
+    const [book, historicoEvents] = await Promise.all([
+      getActiveLibroById(libroId),
+      listHistoricoByLibro(libroId),
+    ]);
+
+    if (!book) {
+      return {
+        success: false,
+        errors: { libro_id: "El libro no existe o fue eliminado." },
+      };
+    }
+
+    const timeline = buildHistoricoTimelineData(libroId, historicoEvents);
+    if (!timeline) {
+      return {
+        success: false,
+        message: "El libro no tiene registros históricos para mostrar.",
+      };
+    }
+
+    return {
+      success: true,
+      data: timeline,
+    };
+  } catch (error: unknown) {
+    console.error("[libroService] Error obteniendo timeline histórico:", error);
+    return {
+      success: false,
+      message: "No se pudo cargar el histórico del libro.",
+    };
+  }
+}
 
 /**
  * Carga de manera paginada los libros, incluyendo la cantidad de copias.
