@@ -246,6 +246,7 @@ export default function RegistrarLibroContent() {
     values.idioma.trim() !== "" &&
     values.sinopsis.trim() !== "" &&
     values.paginas.trim() !== "" &&
+    values.fecha_publicacion.trim() !== "" &&
     values.precio.trim() !== "" &&
     values.estado.trim() !== "" &&
     values.id_autor.trim() !== "" &&

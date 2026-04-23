@@ -245,6 +245,7 @@ export default function EditarLibroContent() {
     values.estado.trim() !== "" &&
     values.id_autor.trim() !== "" &&
     values.id_categoria.trim() !== "" &&
+    values.fecha_publicacion.trim() !== "" &&
     values.editorial.trim() !== "" &&
     Object.keys(errors).length === 0;
 

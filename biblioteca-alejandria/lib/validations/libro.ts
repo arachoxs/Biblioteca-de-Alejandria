@@ -19,7 +19,7 @@ export interface LibroValidationPayload {
   editorial: string;
 }
 
-const ISBN_REGEX = /^(?:\d{10}|\d{13}|\d{1,5}-\d{1,7}-\d{1,7}-[\dX])$/;
+const ISBN_REGEX = /^(?:\d{9}[\dX]|\d{13}|\d{1,5}-\d{1,7}-\d{1,7}-[\dX])$/;
 
 /**
  * Valida datos de un libro (cliente/servidor).
