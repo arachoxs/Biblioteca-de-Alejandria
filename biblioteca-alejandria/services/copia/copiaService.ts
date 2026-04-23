@@ -1,5 +1,5 @@
 import {
-  getCopiasByLibroId as getCopiasByLibroIdModel,
+  getCopias as getCopiasModel,
   getCopiaById as getCopiaByIdModel,
   getCopiasByIds as getCopiasByIdsModel,
   getInventarioRows as getInventarioRowsModel,
@@ -17,14 +17,15 @@ import {
 import type {
   CopiaActionResponse,
   CopiaDataResponse,
+  CopiaRow,
   CreateCopiasInput,
   DeleteCopiasInput,
   OneOrManyCopyIds,
   TransferCopiasInput,
-  CopiaRow,
 } from "@/lib/types/copia";
 import type {
   InventarioCopiasResponse,
+  InventarioCopiaDetalle,
   InventarioLibroItem,
   InventarioListResponse,
   InventarioOption,
@@ -33,7 +34,7 @@ import type {
 } from "@/lib/types/inventario";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
-import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
+import { isValidUUID, MAX_PAGE_SIZE } from "@/lib/validations/rules";
 
 const DEFAULT_STORE = "Inventario General";
 
@@ -91,6 +92,23 @@ function paginateRows<T>(rows: T[], page: number, pageSize: number) {
     pageSize: safePageSize,
     totalPages: rows.length === 0 ? 0 : Math.ceil(rows.length / safePageSize),
   };
+}
+
+async function getStoreNameById(storeId: string): Promise<string> {
+  const store = await getActiveTiendaById(storeId);
+  return store?.nombre ?? "Sin tienda asociada";
+}
+
+function mapCopiasToInventarioDetalle(
+  rows: CopiaRow[],
+  storeNames: Map<string, string>,
+): InventarioCopiaDetalle[] {
+  return rows.map((copy) => ({
+    id_copia: copy.id,
+    tienda_id: copy.id_tienda,
+    nombre_tienda: storeNames.get(copy.id_tienda) ?? "Sin tienda asociada",
+    estado_copia: copy.estado,
+  }));
 }
 
 async function resolveStoreId(idTienda?: string): Promise<{
@@ -414,6 +432,9 @@ export async function fetchInventario(
  */
 export async function fetchInventarioCopiasByLibro(
   libroId: string,
+  page: number = 1,
+  pageSize: number = 10,
+  searchTerm?: string,
 ): Promise<InventarioCopiasResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
@@ -424,13 +445,67 @@ export async function fetchInventarioCopiasByLibro(
       return {
         success: false,
         errors: { libro_id: "El libro indicado no existe o fue eliminado." },
-      };
+        };
     }
 
-    const copies = await getCopiasByLibroIdModel(libroId);
+    const normalizedSearchTerm = searchTerm?.trim();
+    let copySearchTerm: string | undefined;
+    let storeFilterId: string | undefined;
+
+    if (normalizedSearchTerm) {
+      if (isValidUUID(normalizedSearchTerm)) {
+        copySearchTerm = normalizedSearchTerm;
+      } else {
+        const storesByTerm = await getTiendas(1, MAX_PAGE_SIZE, normalizedSearchTerm);
+        const exactMatch = storesByTerm.data.find(
+          (store) =>
+            store.nombre.toLocaleLowerCase() === normalizedSearchTerm.toLocaleLowerCase(),
+        );
+        storeFilterId = exactMatch?.id ?? storesByTerm.data[0]?.id;
+
+        if (!storeFilterId) {
+          const safePage = Math.max(1, page);
+          const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+          return {
+            success: true,
+            data: {
+              data: [],
+              total: 0,
+              page: safePage,
+              pageSize: safePageSize,
+              totalPages: 0,
+            },
+          };
+        }
+      }
+    }
+
+    const paginatedCopies = await getCopiasModel(
+      page,
+      pageSize,
+      copySearchTerm,
+      storeFilterId,
+      libroId,
+    );
+
+    const uniqueStoreIds = Array.from(
+      new Set(paginatedCopies.data.map((copy) => copy.id_tienda)),
+    );
+    const storeEntries = await Promise.all(
+      uniqueStoreIds.map(async (storeId) => {
+        const storeName = await getStoreNameById(storeId);
+        return [storeId, storeName] as const;
+      }),
+    );
+    const storeNames = new Map<string, string>(storeEntries);
+    const copies = mapCopiasToInventarioDetalle(paginatedCopies.data, storeNames);
+
     return {
       success: true,
-      data: copies,
+      data: {
+        ...paginatedCopies,
+        data: copies,
+      },
     };
   } catch (error: unknown) {
     console.error(

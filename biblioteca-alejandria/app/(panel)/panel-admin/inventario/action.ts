@@ -15,11 +15,17 @@ import type {
   InventarioListResponse,
   InventarioOptionsResponse,
 } from "@/lib/types/inventario";
-import { isValidUUID, sanitizeText, toSafePositiveInt } from "@/lib/validations/rules";
+import {
+  isValidUUID,
+  sanitizeText,
+  toSafePositiveInt,
+} from "@/lib/validations/rules";
 
 function sanitizeUuidList(ids: string[]): string[] {
   return Array.from(
-    new Set(ids.map((id) => sanitizeText(id)).filter((id) => id && isValidUUID(id))),
+    new Set(
+      ids.map((id) => sanitizeText(id)).filter((id) => id && isValidUUID(id)),
+    ),
   );
 }
 
@@ -58,8 +64,16 @@ export async function getInventarioBookOptionsAction(
 
 export async function getInventarioCopiasAction(
   libroId: string,
+  page: number = 1,
+  pageSize: number = 10,
+  searchTerm?: string,
 ): Promise<InventarioCopiasResponse> {
+  console.log("fetch Inventario");
   const cleanLibroId = sanitizeText(libroId);
+  const safePage = toSafePositiveInt(page, 1);
+  const safePageSize = toSafePositiveInt(pageSize, 10);
+  const cleanSearchTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
+
   if (!isValidUUID(cleanLibroId)) {
     return {
       success: false,
@@ -67,7 +81,12 @@ export async function getInventarioCopiasAction(
     };
   }
 
-  return await fetchInventarioCopiasByLibro(cleanLibroId);
+  return await fetchInventarioCopiasByLibro(
+    cleanLibroId,
+    safePage,
+    safePageSize,
+    cleanSearchTerm || undefined,
+  );
 }
 
 export async function createInventarioAction(input: {

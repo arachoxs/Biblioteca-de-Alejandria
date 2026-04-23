@@ -27,5 +27,5 @@ export interface InventarioOption {
 }
 
 export type InventarioListResponse = PaginatedResponse<InventarioLibroItem>;
-export type InventarioCopiasResponse = DataResponse<InventarioCopiaDetalle[]>;
+export type InventarioCopiasResponse = PaginatedResponse<InventarioCopiaDetalle>;
 export type InventarioOptionsResponse = DataResponse<InventarioOption[]>;
