@@ -17,21 +17,21 @@ import { buildOrILikeFilter, escapeLikePattern } from "@/lib/validations/db-util
  */
 export async function insertAuthor(
   data: InsertAuthorPayload
-): Promise<ModelResult> {
+): Promise<ModelResult & { id?: number }> {
   const adminClient = createAdminClient();
 
-  const { error } = await adminClient.from("autor").insert({
+  const { data: resultData, error } = await adminClient.from("autor").insert({
     nombre: data.nombre,
     nacionalidad: data.nacionalidad,
     fecha_nacimiento: data.fecha_nacimiento,
-  });
+  }).select("id").single();
 
   if (error) {
     console.error("[authorModel] Error al insertar autor:", error);
     return { success: false, error: error.message };
   }
 
-  return { success: true };
+  return { success: true, id: resultData?.id };
 }
 
 /**

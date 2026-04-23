@@ -27,5 +27,7 @@ export interface CategoryUpdateInput {
 export type CategoryListResponse = PaginatedResponse<CategoryWithBookCount>;
 
 /** Respuesta de mutación de categoría (crear/editar/eliminar). */
-export type CategoryActionResponse = ActionResponse;
+export interface CategoryActionResponse extends ActionResponse {
+  id?: number | string;
+}
 

@@ -27,6 +27,22 @@ export async function insertHistorico(
   return { success: true };
 }
 
+export async function deleteHistoricoByLibroId(id_libro: string): Promise<ModelResult> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("historico")
+    .delete()
+    .eq("id_libro", id_libro);
+
+  if (error) {
+    console.error("[historicoModel] Error eliminando histórico por id_libro:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
 // ─── Lectura ───────────────────────────────────────────────────────
 
 export async function getHistoricoByLibro(

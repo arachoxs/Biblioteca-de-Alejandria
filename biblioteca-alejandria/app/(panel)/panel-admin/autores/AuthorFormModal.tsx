@@ -34,7 +34,7 @@ const paisOptions = Country.getAllCountries().map((country) => ({
 interface AuthorFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (id?: number | string) => void;
   /** Si se pasa un autor, el modal entra en modo edición. */
   author?: AuthorWithBookCount | null;
 }
@@ -128,7 +128,7 @@ export default function AuthorFormModal({
         successTimerRef.current = setTimeout(() => {
           successTimerRef.current = null;
           handleClose();
-          onSuccess();
+          onSuccess(response.id);
         }, 1500);
       } else {
         // Mapear errores de servidor al formulario

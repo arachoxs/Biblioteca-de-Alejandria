@@ -2,7 +2,7 @@
 
 import Table from "@/components/ui/Table";
 import RowActions from "@/components/ui/RowActions";
-import { Search, BookOpen, Loader2, Copy } from "lucide-react";
+import { Search, BookOpen, Loader2 } from "lucide-react";
 import type { LibroWithRelations } from "@/lib/types/libro";
 import type { Column } from "@/components/ui/Table";
 
@@ -11,27 +11,15 @@ const libroColumns: Column<LibroWithRelations>[] = [
     header: "Título",
     render: (item) => {
       const titulo = item.titulo || "Sin título";
-      const iniciales = titulo
-        .split(" ")
-        .filter(Boolean)
-        .map((n) => n[0])
-        .join("")
-        .substring(0, 2)
-        .toUpperCase();
 
       return (
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs ring-2 ring-brand-bg">
-            {iniciales}
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-brand-text text-sm leading-tight max-w-[200px] truncate">
-              {titulo}
-            </span>
-            <span className="text-xs text-brand-secondary/70 lg:hidden">
-              {item.autor_nombre || "Sin autor"}
-            </span>
-          </div>
+        <div className="flex flex-col">
+          <span className="font-semibold text-brand-text text-sm leading-tight max-w-[200px] truncate">
+            {titulo}
+          </span>
+          <span className="text-xs text-brand-secondary/70 lg:hidden">
+            {item.autor_nombre || "Sin autor"}
+          </span>
         </div>
       );
     },
@@ -53,7 +41,7 @@ const libroColumns: Column<LibroWithRelations>[] = [
   {
     header: "Categoría",
     render: (item) => (
-      <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-brand-accent/15 text-brand-secondary border border-brand-accent/20">
+      <span className="text-sm text-brand-text">
         {item.categoria_nombre || "Sin categoría"}
       </span>
     ),
@@ -62,15 +50,9 @@ const libroColumns: Column<LibroWithRelations>[] = [
   {
     header: "Estado",
     render: (item) => {
-      const isNuevo = item.estado === "nuevo";
       return (
-        <span
-          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-            isNuevo
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-amber-50 text-amber-700 border-amber-200"
-          }`}>
-          {isNuevo ? "Nuevo" : "Usado"}
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-brand-primary/10 text-brand-primary border-brand-primary/20">
+          {item.estado === "nuevo" ? "Nuevo" : "Usado"}
         </span>
       );
     },
@@ -79,19 +61,11 @@ const libroColumns: Column<LibroWithRelations>[] = [
     header: "Copias",
     render: (item) => {
       const count = item.copias_count ?? 0;
-      const isEmpty = count === 0;
       return (
-        <div className="flex items-center justify-center">
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${
-              isEmpty
-                ? "bg-red-50 text-red-600 border border-red-200 ring-1 ring-red-100"
-                : "bg-gradient-to-br from-brand-primary/10 to-brand-accent/10 text-brand-primary border border-brand-primary/20 ring-1 ring-brand-primary/10 shadow-sm"
-            }`}>
-            <Copy className="w-3.5 h-3.5" />
-            {count}
-          </span>
-        </div>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-brand-primary/10 text-brand-primary border-brand-primary/20">
+          <BookOpen className="w-3 h-3" />
+          {count}
+        </span>
       );
     },
   },

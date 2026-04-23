@@ -232,12 +232,18 @@ export default function RegistrarLibroContent() {
 
   // ─── Callbacks modals ──────────────────────────────────────────
 
-  const handleAuthorCreated = async () => {
+  const handleAuthorCreated = async (id?: number | string) => {
     await loadAuthorOptions();
+    if (id) {
+      handleChange("id_autor", String(id));
+    }
   };
 
-  const handleCategoryCreated = async () => {
+  const handleCategoryCreated = async (id?: number | string) => {
     await loadCategoryOptions();
+    if (id) {
+      handleChange("id_categoria", String(id));
+    }
   };
 
   const canSubmit =
@@ -385,7 +391,7 @@ export default function RegistrarLibroContent() {
               label="Precio"
               type="number"
               min={0}
-              step="0.01"
+              step="1"
               placeholder="Ej: 45000"
               value={values.precio}
               onChange={(e) => handleChange("precio", e.target.value)}

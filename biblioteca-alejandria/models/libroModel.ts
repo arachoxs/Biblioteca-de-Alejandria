@@ -201,7 +201,7 @@ export async function getLibrosWithCopies(
 
   let query = adminClient
     .from("libro")
-    .select("*, autor(nombre), categoria(nombre), copia(count)", { count: "exact" })
+    .select("*, autor(nombre), categoria(nombre), copia!left(count)", { count: "exact" })
     .is("deleted_at", null)
     .is("copia.deleted_at", null)
     .range(from, to)

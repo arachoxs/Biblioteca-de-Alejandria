@@ -72,6 +72,23 @@ export async function softDeleteNoticia(id: string): Promise<ModelResult> {
   return { success: true };
 }
 
+export async function softDeleteNoticiaByLibroId(id_libro: string): Promise<ModelResult> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("noticias")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id_libro", id_libro)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[noticiaModel] Error eliminando noticia por id_libro:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
 // ─── Lectura ───────────────────────────────────────────────────────
 
 export async function getNoticiaById(

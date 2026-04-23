@@ -67,7 +67,7 @@ export async function createAuthor(
     });
   }
 
-  return { success: true, message: "Autor creado exitosamente." };
+  return { success: true, message: "Autor creado exitosamente.", id: result.id };
 }
 
 /**

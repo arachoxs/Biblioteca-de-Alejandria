@@ -7,10 +7,10 @@ import Alert from "@/components/ui/Alert";
 import { AlertCircle, CheckCircle, Loader2, Plus } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import type {
+  CategoryActionResponse,
   CategoryCreateInput,
   CategoryWithBookCount,
 } from "@/lib/types/category";
-import type { ActionResponse } from "@/lib/types/common";
 import {
   createCategoryAction,
   deleteCategoryAction,
@@ -31,7 +31,8 @@ export default function CategoriasContent() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryWithBookCount | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [actionResponse, setActionResponse] = useState<ActionResponse | null>(null);
+  const [actionResponse, setActionResponse] =
+    useState<CategoryActionResponse | null>(null);
 
   const itemsPerPage = 10;
   const debouncedSearchTerm = useDebounce(searchTerm, 700);
@@ -67,7 +68,7 @@ export default function CategoriasContent() {
 
   const handleCreateCategory = async (
     values: CategoryCreateInput,
-  ): Promise<ActionResponse> => {
+  ): Promise<CategoryActionResponse> => {
     const response = await createCategoryAction(values);
     setActionResponse(response);
     return response;
@@ -75,7 +76,7 @@ export default function CategoriasContent() {
 
   const handleUpdateCategory = async (
     values: CategoryCreateInput,
-  ): Promise<ActionResponse> => {
+  ): Promise<CategoryActionResponse> => {
     if (!editingCategory) {
       return {
         success: false,
