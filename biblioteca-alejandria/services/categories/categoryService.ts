@@ -111,6 +111,7 @@ export async function createCategory(
     return {
       success: true,
       message: "Categoría creada exitosamente.",
+      id: result.id,
     };
   } catch (error: unknown) {
     console.error("Error inesperado al crear categoría:", error);

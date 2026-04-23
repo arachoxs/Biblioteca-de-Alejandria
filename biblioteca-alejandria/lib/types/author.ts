@@ -44,4 +44,6 @@ export type AuthorFormValues = {
 export type AuthorsListResponse = PaginatedResponse<AuthorWithBookCount>;
 
 /** Respuesta de mutación de autor (crear/editar/eliminar). */
-export type AuthorActionResponse = ActionResponse;
+export interface AuthorActionResponse extends ActionResponse {
+  id?: number | string;
+}

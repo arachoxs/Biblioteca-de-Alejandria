@@ -5,8 +5,10 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
 import Alert from "@/components/ui/Alert";
-import type { ActionResponse } from "@/lib/types/common";
-import type { CategoryCreateInput } from "@/lib/types/category";
+import type {
+  CategoryActionResponse,
+  CategoryCreateInput,
+} from "@/lib/types/category";
 import { useValidation } from "@/hooks/useValidation";
 import { validateCategory } from "@/lib/validations/category";
 import { sanitizeText } from "@/lib/validations/rules";
@@ -19,8 +21,8 @@ interface CategoryFormModalProps {
   loadingLabel: string;
   initialValues: CategoryCreateInput;
   onClose: () => void;
-  onSubmit: (values: CategoryCreateInput) => Promise<ActionResponse>;
-  onSuccess: () => Promise<void> | void;
+  onSubmit: (values: CategoryCreateInput) => Promise<CategoryActionResponse>;
+  onSuccess: (id?: number | string) => Promise<void> | void;
 }
 
 interface CategoryFormValues extends Record<string, unknown> {
@@ -39,7 +41,9 @@ export default function CategoryFormModal({
   onSuccess,
 }: CategoryFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertState, setAlertState] = useState<ActionResponse | null>(null);
+  const [alertState, setAlertState] = useState<CategoryActionResponse | null>(
+    null,
+  );
 
   const validateForm = (values: CategoryFormValues): Record<string, string> =>
     validateCategory({
@@ -103,7 +107,7 @@ export default function CategoryFormModal({
       setAlertState(response);
 
       if (response.success) {
-        await onSuccess();
+        await onSuccess(response.id);
         onClose();
         return;
       }

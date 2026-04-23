@@ -8,8 +8,8 @@ import {
   updateLibroById,
   getActiveLibroById,
 } from "@/models/libroModel";
-import { insertNoticia } from "@/models/noticiaModel";
-import { insertHistorico } from "@/models/historicoModel";
+import { insertNoticia, softDeleteNoticiaByLibroId } from "@/models/noticiaModel";
+import { insertHistorico, deleteHistoricoByLibroId } from "@/models/historicoModel";
 import { countCopiasByLibro } from "@/models/copiaModel";
 import { createCopias } from "@/services/copia/copiaService";
 import { logAdminAction } from "@/services/admin/auditService";
@@ -292,6 +292,10 @@ export async function removeBook(
       message: result.error || "Error al eliminar el libro.",
     };
   }
+
+  // Borrado en cascada orquestado por el servicio
+  await softDeleteNoticiaByLibroId(id);
+  await deleteHistoricoByLibroId(id);
 
   const actor = await getCurrentUser();
   if (actor) {
