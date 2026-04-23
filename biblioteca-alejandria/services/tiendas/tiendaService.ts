@@ -8,7 +8,11 @@ import {
   softDeleteTiendaById,
   updateTiendaById,
 } from "@/models/tiendaModel";
-import { createAddress, deleteAddress } from "@/models/addressModel";
+import {
+  createAddress,
+  deleteAddress,
+  isTiendaAddressUsed,
+} from "@/models/addressModel";
 import type {
   CreateTiendaInput,
   TiendaActionResponse,
@@ -72,6 +76,16 @@ export async function createTienda(
       };
     }
 
+    //verificar que la nueva direccion no este asociada a otra tienda activa
+    const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
+
+    if (isAddressUsed) {
+      return {
+        success: false,
+        errors: { direccion: "La dirección ya está asociada a otra tienda." },
+      };
+    }
+
     const addressResult = await createAddress({
       direccion: input.direccion,
       placeId: input.direccion_place_id,
@@ -81,7 +95,8 @@ export async function createTienda(
       return {
         success: false,
         errors: {
-          direccion: addressResult.error ?? "No se pudo registrar la dirección.",
+          direccion:
+            addressResult.error ?? "No se pudo registrar la dirección.",
         },
       };
     }
@@ -177,7 +192,8 @@ export async function updateTienda(
         return {
           success: false,
           errors: {
-            direccion: addressResult.error ?? "No se pudo registrar la dirección.",
+            direccion:
+              addressResult.error ?? "No se pudo registrar la dirección.",
           },
         };
       }

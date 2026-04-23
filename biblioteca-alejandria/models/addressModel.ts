@@ -9,6 +9,15 @@ interface AddressInput {
   detalle?: string;
 }
 
+interface TiendaAddressInfo {
+  tienda_id: string;
+  tienda_nombre: string;
+  direccion_id: number;
+  direccion_formateada: string;
+  place_id: string;
+  detalle_direccion: string | null;
+}
+
 // ─── Operaciones CRUD ──────────────────────────────────────────────
 
 /**
@@ -16,7 +25,7 @@ interface AddressInput {
  * Retorna el `id` generado o un error descriptivo.
  */
 export async function createAddress(
-  input: AddressInput
+  input: AddressInput,
 ): Promise<ModelResultWithId> {
   const adminClient = createAdminClient();
 
@@ -44,10 +53,7 @@ export async function createAddress(
 export async function deleteAddress(id: number): Promise<void> {
   const adminClient = createAdminClient();
 
-  const { error } = await adminClient
-    .from("direccion")
-    .delete()
-    .eq("id", id);
+  const { error } = await adminClient.from("direccion").delete().eq("id", id);
 
   if (error) {
     console.error("Error al eliminar dirección (rollback):", error);
@@ -59,7 +65,7 @@ export async function deleteAddress(id: number): Promise<void> {
  */
 export async function updateAddress(
   id: number,
-  input: AddressInput
+  input: AddressInput,
 ): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
@@ -81,9 +87,28 @@ export async function updateAddress(
 
   if (!data) {
     console.error(
-      `Error al actualizar dirección: no se encontró registro con id=${id}`
+      `Error al actualizar dirección: no se encontró registro con id=${id}`,
     );
     return { success: false, error: "Dirección no encontrada" };
   }
   return { success: true };
+}
+
+export async function isTiendaAddressUsed(placeId: string): Promise<boolean> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("tienda")
+    .select("direccion:direccion!inner(place_id)")
+    .is("deleted_at", null)
+    .eq("direccion.place_id", placeId);
+  if (error) {
+    console.error(
+      "Error al consultar direcciones asociadas a tiendas por placeId:",
+      error,
+    );
+    return false;
+  }
+
+  return !!data;
 }
