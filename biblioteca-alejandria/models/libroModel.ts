@@ -98,12 +98,11 @@ export async function createLibro(
       sipnosis: input.sinopsis,
       paginas: input.paginas,
       precio: input.precio,
-      ano_publicacion: input.ano_publicacion,
       estado: input.estado,
       id_autor: input.id_autor,
       id_categoria: input.id_categoria,
-      fecha_publicacion: input.fecha_publicacion ?? null,
-      editorial: input.editorial ?? null,
+      fecha_publicacion: input.fecha_publicacion,
+      editorial: input.editorial,
       id_modeloRA: input.id_modeloRA ?? null,
     })
     .select("id")
@@ -299,9 +298,6 @@ export async function updateLibroById(
     ...(input.sinopsis !== undefined ? { sipnosis: input.sinopsis } : {}),
     ...(input.paginas !== undefined ? { paginas: input.paginas } : {}),
     ...(input.precio !== undefined ? { precio: input.precio } : {}),
-    ...(input.ano_publicacion !== undefined
-      ? { ano_publicacion: input.ano_publicacion }
-      : {}),
     ...(input.estado !== undefined ? { estado: input.estado } : {}),
     ...(input.id_autor !== undefined ? { id_autor: input.id_autor } : {}),
     ...(input.id_categoria !== undefined ? { id_categoria: input.id_categoria } : {}),

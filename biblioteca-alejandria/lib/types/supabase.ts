@@ -455,11 +455,11 @@ export type Database = {
       }
       libro: {
         Row: {
-          ano_publicacion: string
+          ano_publicacion: number | null
           deleted_at: string | null
-          editorial: string | null
+          editorial: string
           estado: Database["public"]["Enums"]["condicion_libro"]
-          fecha_publicacion: string | null
+          fecha_publicacion: string
           id: string
           id_autor: number
           id_categoria: number
@@ -472,11 +472,11 @@ export type Database = {
           titulo: string
         }
         Insert: {
-          ano_publicacion: string
+          ano_publicacion?: number | null
           deleted_at?: string | null
-          editorial?: string | null
+          editorial: string
           estado: Database["public"]["Enums"]["condicion_libro"]
-          fecha_publicacion?: string | null
+          fecha_publicacion: string
           id?: string
           id_autor: number
           id_categoria: number
@@ -489,11 +489,11 @@ export type Database = {
           titulo: string
         }
         Update: {
-          ano_publicacion?: string
+          ano_publicacion?: number | null
           deleted_at?: string | null
-          editorial?: string | null
+          editorial?: string
           estado?: Database["public"]["Enums"]["condicion_libro"]
-          fecha_publicacion?: string | null
+          fecha_publicacion?: string
           id?: string
           id_autor?: number
           id_categoria?: number
@@ -717,13 +717,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "copia"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Reserva_id_libro_fkey"
-            columns: ["id_libro"]
-            isOneToOne: false
-            referencedRelation: "vista_inventario"
-            referencedColumns: ["libro_id"]
           },
           {
             foreignKeyName: "Reserva_id_usuario_fkey"

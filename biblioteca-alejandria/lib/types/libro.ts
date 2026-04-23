@@ -27,12 +27,12 @@ export interface InsertLibroPayload {
   sinopsis: string;
   paginas: number;
   precio: number;
-  ano_publicacion: string;
   estado: CondicionLibro;
   id_autor: number;
   id_categoria: number;
-  fecha_publicacion?: string | null;
-  editorial?: string | null;
+  /** Obligatoria. El año se deriva automáticamente en la BD. */
+  fecha_publicacion: string;
+  editorial: string;
   id_modeloRA?: number | null;
 }
 
@@ -50,12 +50,11 @@ export interface UpdateLibroPayload {
   sinopsis?: string;
   paginas?: number;
   precio?: number;
-  ano_publicacion?: string;
   estado?: CondicionLibro;
   id_autor?: number;
   id_categoria?: number;
-  fecha_publicacion?: string | null;
-  editorial?: string | null;
+  fecha_publicacion?: string;
+  editorial?: string;
   id_modeloRA?: number | null;
 }
 
