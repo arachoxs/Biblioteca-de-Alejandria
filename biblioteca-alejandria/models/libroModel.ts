@@ -203,6 +203,7 @@ export async function getLibrosWithCopies(
     .from("libro")
     .select("*, autor(nombre), categoria(nombre), copia(count)", { count: "exact" })
     .is("deleted_at", null)
+    .is("copia.deleted_at", null)
     .range(from, to)
     .order("id", { ascending: false });
 
