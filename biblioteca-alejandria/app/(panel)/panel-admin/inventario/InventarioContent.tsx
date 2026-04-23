@@ -258,6 +258,7 @@ export default function InventarioContent() {
         onClose={() => setDetailLibro(null)}
         onSuccess={handleDetailSuccess}
         storeOptions={storeOptions}
+        storeIdFilter={selectedStoreId ? selectedStoreId : undefined}
       />
     </main>
   );

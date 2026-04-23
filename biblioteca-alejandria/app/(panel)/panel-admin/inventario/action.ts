@@ -67,12 +67,13 @@ export async function getInventarioCopiasAction(
   page: number = 1,
   pageSize: number = 10,
   searchTerm?: string,
+  storeIdFilter?: string,
 ): Promise<InventarioCopiasResponse> {
-  console.log("fetch Inventario");
   const cleanLibroId = sanitizeText(libroId);
   const safePage = toSafePositiveInt(page, 1);
   const safePageSize = toSafePositiveInt(pageSize, 10);
   const cleanSearchTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
+  const cleanStoreId = storeIdFilter ? sanitizeText(storeIdFilter) : undefined;
 
   if (!isValidUUID(cleanLibroId)) {
     return {
@@ -86,6 +87,7 @@ export async function getInventarioCopiasAction(
     safePage,
     safePageSize,
     cleanSearchTerm || undefined,
+    cleanStoreId || undefined,
   );
 }
 

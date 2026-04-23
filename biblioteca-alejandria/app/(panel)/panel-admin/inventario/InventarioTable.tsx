@@ -2,7 +2,7 @@
 
 import Table, { type Column } from "@/components/ui/Table";
 import type { InventarioLibroItem } from "@/lib/types/inventario";
-import { Boxes, Eye, Loader2, Search } from "lucide-react";
+import { BookOpen, Boxes, Eye, Loader2, Search } from "lucide-react";
 
 interface InventarioTableProps {
   data: InventarioLibroItem[];
@@ -53,15 +53,21 @@ export default function InventarioTable({
     {
       header: "ISBN",
       render: (item) => (
-        <span className="font-mono text-xs text-brand-text">{item.isbn_libro}</span>
+        <span className="font-mono text-xs text-brand-text">
+          {item.isbn_libro}
+        </span>
       ),
     },
     {
       header: "Nombre del libro",
       render: (item) => (
         <div className="flex flex-col">
-          <span className="font-semibold text-brand-text text-sm">{item.nombre_libro}</span>
-          <span className="text-xs text-brand-secondary/70 lg:hidden">{item.autor_libro}</span>
+          <span className="font-semibold text-brand-text text-sm">
+            {item.nombre_libro}
+          </span>
+          <span className="text-xs text-brand-secondary/70 lg:hidden">
+            {item.autor_libro}
+          </span>
         </div>
       ),
     },
@@ -79,14 +85,21 @@ export default function InventarioTable({
       ),
     },
     {
+      header: "Cantidad total",
+      render: (item) => (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg--primary/10 text-brand-primary border-brand-primary/20">
+          <BookOpen className="w-3 h-3" />
+          {item.cantidad_total}
+        </span>
+      ),
+    },
+    {
       header: "Cantidad disponible",
       render: (item) => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-brand-text">{item.cantidad_disponible}</span>
-          <span className="text-xs text-brand-secondary/70">
-            Total: {item.cantidad_total}
-          </span>
-        </div>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-brand-primary/10 text-brand-primary border-brand-primary/20">
+          <BookOpen className="w-3 h-3" />
+          {item.cantidad_disponible}
+        </span>
       ),
     },
     {
@@ -95,8 +108,7 @@ export default function InventarioTable({
         <button
           type="button"
           onClick={() => onViewDetail(item)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary transition-all cursor-pointer ring-1 ring-brand-primary/20 shadow-sm"
-        >
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary transition-all cursor-pointer ring-1 ring-brand-primary/20 shadow-sm">
           <Eye className="w-4 h-4" />
           Ver detalle
         </button>
@@ -112,7 +124,9 @@ export default function InventarioTable({
             <Search className="w-6 h-6" />
           </div>
           <p className="font-medium">No se encontró inventario</p>
-          <p className="text-xs">Prueba ajustando la búsqueda o la tienda seleccionada</p>
+          <p className="text-xs">
+            Prueba ajustando la búsqueda o la tienda seleccionada
+          </p>
         </div>
       );
     }
