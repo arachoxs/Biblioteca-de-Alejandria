@@ -13,6 +13,7 @@ import type {
 import { deleteTiendaAction, getTiendasAction } from "./action";
 import TiendasTable from "./TiendasTable";
 import TiendaFormModal from "./TiendaFormModal";
+import HorarioModal from "./HorarioModal";
 
 export default function TiendasContent() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,6 +31,9 @@ export default function TiendasContent() {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [actionResponse, setActionResponse] =
     useState<TiendaActionResponse | null>(null);
+  const [isModalHorarioOpen, setIsModalHorarioOpen] = useState<boolean>(false);
+  const [modalHorarioTienda, setModalHorarioTienda] =
+    useState<TiendaWithDireccion | null>(null);
 
   const itemsPerPage = 10;
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -79,6 +83,11 @@ export default function TiendasContent() {
   const handleOpenCreate = () => {
     setEditingTienda(null);
     setIsModalOpen(true);
+  };
+
+  const handleOpenHorario = (tienda: TiendaWithDireccion) => {
+    setModalHorarioTienda(tienda);
+    setIsModalHorarioOpen(true);
   };
 
   const handleOpenEdit = (tienda: TiendaWithDireccion) => {
@@ -203,6 +212,7 @@ export default function TiendasContent() {
           deletingIds={deletingIds}
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
+          onViewHorario={handleOpenHorario}
           pagination={{
             currentPage,
             totalPages,
@@ -217,6 +227,12 @@ export default function TiendasContent() {
         onClose={handleCloseModal}
         onSuccess={handleModalSuccess}
         tienda={editingTienda}
+      />
+
+      <HorarioModal
+        isOpen={isModalHorarioOpen}
+        onClose={() => setIsModalHorarioOpen(false)}
+        tienda={modalHorarioTienda}
       />
     </main>
   );
