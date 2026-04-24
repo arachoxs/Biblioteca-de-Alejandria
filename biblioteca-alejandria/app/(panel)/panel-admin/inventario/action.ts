@@ -38,7 +38,11 @@ export async function getInventarioAction(
   const safePage = toSafePositiveInt(page, 1);
   const safePageSize = toSafePositiveInt(pageSize, 10);
   const cleanSearchTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
-  const cleanStoreId = id_tienda ? sanitizeText(id_tienda) : undefined;
+  const sanitizedStoreId = id_tienda ? sanitizeText(id_tienda) : undefined;
+  const cleanStoreId =
+    sanitizedStoreId && isValidUUID(sanitizedStoreId)
+      ? sanitizedStoreId
+      : undefined;
 
   return await fetchInventario(
     safePage,
@@ -73,7 +77,13 @@ export async function getInventarioCopiasAction(
   const safePage = toSafePositiveInt(page, 1);
   const safePageSize = toSafePositiveInt(pageSize, 10);
   const cleanSearchTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
-  const cleanStoreId = storeIdFilter ? sanitizeText(storeIdFilter) : undefined;
+  const sanitizedStoreId = storeIdFilter
+    ? sanitizeText(storeIdFilter)
+    : undefined;
+  const cleanStoreId =
+    sanitizedStoreId && isValidUUID(sanitizedStoreId)
+      ? sanitizedStoreId
+      : undefined;
 
   if (!isValidUUID(cleanLibroId)) {
     return {

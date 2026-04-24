@@ -440,7 +440,7 @@ export async function fetchInventarioCopiasByLibro(
   page: number = 1,
   pageSize: number = 10,
   searchTerm?: string,
-  storeIdFilter?: string,
+  storeFilterId?: string,
 ): Promise<InventarioCopiasResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
@@ -456,7 +456,6 @@ export async function fetchInventarioCopiasByLibro(
 
     const normalizedSearchTerm = searchTerm?.trim();
     let copySearchTerm: string | undefined;
-    let storeFilterId: string | undefined = storeIdFilter;
 
     if (normalizedSearchTerm) {
       if (isValidUUID(normalizedSearchTerm)) {
@@ -472,6 +471,7 @@ export async function fetchInventarioCopiasByLibro(
             store.nombre.toLocaleLowerCase() ===
             normalizedSearchTerm.toLocaleLowerCase(),
         );
+
         storeFilterId = exactMatch?.id ?? storesByTerm.data[0]?.id;
 
         if (!storeFilterId) {
