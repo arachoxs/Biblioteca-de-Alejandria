@@ -179,7 +179,11 @@ export default function AddInventarioModal({
           value={values.id_libro}
           options={bookOptions}
           onChange={(value) => handleChange("id_libro", value)}
-          onBlur={() => handleBlur("id_libro")}
+          onBlur={() => {
+            handleBlur("id_libro");
+            //reiniciar valor para forzar nueva búsqueda al abrir el select nuevamente
+            setBookSearchTerm("");
+          }}
           onSearchChange={setBookSearchTerm}
           required
           disabled={isSubmitting}
@@ -211,7 +215,9 @@ export default function AddInventarioModal({
             value={values.id_tienda}
             options={storeOptions}
             onChange={(value) => handleChange("id_tienda", value)}
-            onBlur={() => handleBlur("id_tienda")}
+            onBlur={() => {
+              handleBlur("id_tienda");
+            }}
             required
             disabled={isSubmitting}
             error={errors.id_tienda}

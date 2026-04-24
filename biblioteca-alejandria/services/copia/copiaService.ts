@@ -52,7 +52,9 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Error desconocido";
 }
 
-function aggregateInventarioRows(rows: VistaInventarioRow[]): InventarioLibroItem[] {
+function aggregateInventarioRows(
+  rows: VistaInventarioRow[],
+): InventarioLibroItem[] {
   const byBookId = new Map<string, InventarioLibroItem>();
 
   for (const row of rows) {
@@ -490,7 +492,10 @@ export async function fetchInventario(
       data: paginated,
     };
   } catch (error: unknown) {
-    console.error("[copiaService] Error inesperado al listar inventario:", error);
+    console.error(
+      "[copiaService] Error inesperado al listar inventario:",
+      error,
+    );
     return {
       success: false,
       errors: { form: getErrorMessage(error) },
@@ -507,6 +512,7 @@ export async function fetchInventarioCopiasByLibro(
   page: number = 1,
   pageSize: number = 10,
   searchTerm?: string,
+  storeFilterId?: string,
 ): Promise<InventarioCopiasResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
@@ -517,22 +523,27 @@ export async function fetchInventarioCopiasByLibro(
       return {
         success: false,
         errors: { libro_id: "El libro indicado no existe o fue eliminado." },
-        };
+      };
     }
 
     const normalizedSearchTerm = searchTerm?.trim();
     let copySearchTerm: string | undefined;
-    let storeFilterId: string | undefined;
 
     if (normalizedSearchTerm) {
       if (isValidUUID(normalizedSearchTerm)) {
         copySearchTerm = normalizedSearchTerm;
       } else {
-        const storesByTerm = await getTiendas(1, MAX_PAGE_SIZE, normalizedSearchTerm);
+        const storesByTerm = await getTiendas(
+          1,
+          MAX_PAGE_SIZE,
+          normalizedSearchTerm,
+        );
         const exactMatch = storesByTerm.data.find(
           (store) =>
-            store.nombre.toLocaleLowerCase() === normalizedSearchTerm.toLocaleLowerCase(),
+            store.nombre.toLocaleLowerCase() ===
+            normalizedSearchTerm.toLocaleLowerCase(),
         );
+
         storeFilterId = exactMatch?.id ?? storesByTerm.data[0]?.id;
 
         if (!storeFilterId) {
@@ -570,7 +581,10 @@ export async function fetchInventarioCopiasByLibro(
       }),
     );
     const storeNames = new Map<string, string>(storeEntries);
-    const copies = mapCopiasToInventarioDetalle(paginatedCopies.data, storeNames);
+    const copies = mapCopiasToInventarioDetalle(
+      paginatedCopies.data,
+      storeNames,
+    );
 
     return {
       success: true,

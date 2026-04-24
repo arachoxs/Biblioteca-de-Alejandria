@@ -25,6 +25,7 @@ interface InventarioDetailModalProps {
   isOpen: boolean;
   libro: InventarioLibroItem | null;
   storeOptions: InventarioOption[];
+  storeIdFilter?: string;
   onClose: () => void;
   onSuccess: (message: string) => void;
 }
@@ -47,6 +48,7 @@ export default function InventarioDetailModal({
   storeOptions,
   onClose,
   onSuccess,
+  storeIdFilter,
 }: InventarioDetailModalProps) {
   const [copias, setCopias] = useState<InventarioCopiaDetalle[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -75,6 +77,7 @@ export default function InventarioDetailModal({
           page,
           ITEMS_PER_PAGE,
           term || undefined,
+          storeIdFilter,
         );
 
         if (response.success && response.data) {
@@ -110,13 +113,20 @@ export default function InventarioDetailModal({
         setIsLoading(false);
       }
     },
-    [],
+    [storeIdFilter],
   );
 
   useEffect(() => {
     if (!isOpen || !libro) return;
     void loadCopias(libro.libro_id, currentPage, debouncedSearchTerm);
-  }, [isOpen, libro, currentPage, debouncedSearchTerm, loadCopias]);
+  }, [
+    isOpen,
+    libro,
+    currentPage,
+    debouncedSearchTerm,
+    loadCopias,
+    storeIdFilter,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
