@@ -12,6 +12,7 @@ import {
   createAddress,
   deleteAddress,
   isTiendaAddressUsed,
+  getPlaceIdByAddressId,
 } from "@/models/addressModel";
 import type {
   CreateTiendaInput,
@@ -174,13 +175,34 @@ export async function updateTienda(
       }
     }
 
+    const currentPlaceId = await getPlaceIdByAddressId(
+      currentTienda.id_direccion,
+    );
+
+    const isCurrentAddressSameAsInput =
+      input.direccion_place_id !== undefined &&
+      currentPlaceId === input.direccion_place_id;
+
+    if (input.direccion_place_id && !isCurrentAddressSameAsInput) {
+      const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
+
+      if (isAddressUsed) {
+        return {
+          success: false,
+          errors: { direccion: "La dirección ya está asociada a otra tienda." },
+        };
+      }
+    }
+
     const payload: UpdateTiendaPayload = {
       ...(input.nombre !== undefined ? { nombre: input.nombre } : {}),
       ...(input.horario !== undefined ? { horario: input.horario } : {}),
     };
 
     const shouldUpdateAddress =
-      input.direccion !== undefined || input.direccion_place_id !== undefined;
+      (input.direccion !== undefined ||
+        input.direccion_place_id !== undefined) &&
+      !isCurrentAddressSameAsInput;
 
     if (shouldUpdateAddress) {
       const addressResult = await createAddress({

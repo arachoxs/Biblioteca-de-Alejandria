@@ -101,14 +101,35 @@ export async function isTiendaAddressUsed(placeId: string): Promise<boolean> {
     .from("tienda")
     .select("direccion:direccion!inner(place_id)")
     .is("deleted_at", null)
-    .eq("direccion.place_id", placeId);
+    .eq("direccion.place_id", placeId)
+    .limit(1);
   if (error) {
-    console.error(
-      "Error al consultar direcciones asociadas a tiendas por placeId:",
-      error,
-    );
-    return false;
+    console.error("Error al verificar uso de dirección en tiendas:", error);
+    throw new Error("Error al verificar uso de dirección en tiendas");
   }
 
-  return !!data;
+  return data.length > 0;
+}
+
+export async function getPlaceIdByAddressId(
+  id: number,
+): Promise<string> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("direccion")
+    .select("place_id")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Error al obtener place_id por id de dirección:", error);
+    throw new Error("No se pudo obtener la dirección actual de la tienda");
+  }
+
+  if (!data) {
+    throw new Error("No se encontró la dirección actual de la tienda");
+  }
+
+  return data.place_id;
 }
