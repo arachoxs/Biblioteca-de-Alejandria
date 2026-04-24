@@ -12,7 +12,7 @@ import type {
 import { useValidation } from "@/hooks/useValidation";
 import { validateCategory } from "@/lib/validations/category";
 import { sanitizeText } from "@/lib/validations/rules";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 interface CategoryFormModalProps {
   isOpen: boolean;
@@ -123,6 +123,8 @@ export default function CategoryFormModal({
     }
   };
 
+  const isCreateMode = submitLabel.toLowerCase().includes("crear");
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -177,14 +179,17 @@ export default function CategoryFormModal({
               Object.keys(errors).length > 0 ||
               !values.nombre.trim()
             }
-            className="w-auto px-5 py-1 text-sm flex items-center gap-2">
+            className="w-auto px-6 !py-1 text-sm flex items-center justify-center gap-2">
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {loadingLabel}
+                <span>{loadingLabel}</span>
               </>
             ) : (
-              submitLabel
+              <>
+                {isCreateMode && <Plus className="w-4 h-4" />}
+                <span>{submitLabel}</span>
+              </>
             )}
           </Button>
         </div>
