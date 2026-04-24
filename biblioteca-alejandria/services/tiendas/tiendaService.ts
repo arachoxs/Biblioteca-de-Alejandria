@@ -8,7 +8,12 @@ import {
   softDeleteTiendaById,
   updateTiendaById,
 } from "@/models/tiendaModel";
-import { createAddress, deleteAddress } from "@/models/addressModel";
+import {
+  createAddress,
+  deleteAddress,
+  isTiendaAddressUsed,
+  getPlaceIdByAddressId,
+} from "@/models/addressModel";
 import type {
   CreateTiendaInput,
   TiendaActionResponse,
@@ -72,6 +77,16 @@ export async function createTienda(
       };
     }
 
+    //verificar que la nueva direccion no este asociada a otra tienda activa
+    const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
+
+    if (isAddressUsed) {
+      return {
+        success: false,
+        errors: { direccion: "La dirección ya está asociada a otra tienda." },
+      };
+    }
+
     const addressResult = await createAddress({
       direccion: input.direccion,
       placeId: input.direccion_place_id,
@@ -81,7 +96,8 @@ export async function createTienda(
       return {
         success: false,
         errors: {
-          direccion: addressResult.error ?? "No se pudo registrar la dirección.",
+          direccion:
+            addressResult.error ?? "No se pudo registrar la dirección.",
         },
       };
     }
@@ -159,13 +175,34 @@ export async function updateTienda(
       }
     }
 
+    const currentPlaceId = await getPlaceIdByAddressId(
+      currentTienda.id_direccion,
+    );
+
+    const isCurrentAddressSameAsInput =
+      input.direccion_place_id !== undefined &&
+      currentPlaceId === input.direccion_place_id;
+
+    if (input.direccion_place_id && !isCurrentAddressSameAsInput) {
+      const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
+
+      if (isAddressUsed) {
+        return {
+          success: false,
+          errors: { direccion: "La dirección ya está asociada a otra tienda." },
+        };
+      }
+    }
+
     const payload: UpdateTiendaPayload = {
       ...(input.nombre !== undefined ? { nombre: input.nombre } : {}),
       ...(input.horario !== undefined ? { horario: input.horario } : {}),
     };
 
     const shouldUpdateAddress =
-      input.direccion !== undefined || input.direccion_place_id !== undefined;
+      (input.direccion !== undefined ||
+        input.direccion_place_id !== undefined) &&
+      !isCurrentAddressSameAsInput;
 
     if (shouldUpdateAddress) {
       const addressResult = await createAddress({
@@ -177,7 +214,8 @@ export async function updateTienda(
         return {
           success: false,
           errors: {
-            direccion: addressResult.error ?? "No se pudo registrar la dirección.",
+            direccion:
+              addressResult.error ?? "No se pudo registrar la dirección.",
           },
         };
       }
