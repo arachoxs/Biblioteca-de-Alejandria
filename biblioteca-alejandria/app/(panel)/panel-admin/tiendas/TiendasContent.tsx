@@ -52,7 +52,6 @@ export default function TiendasContent() {
         }
 
         setTiendasData(response.data.data);
-        console.log("Tiendas cargadas:", response.data.data);
         setTotalPages(response.data.totalPages);
         setTotalItems(response.data.total);
         return;
