@@ -3,10 +3,8 @@
 import Table from "@/components/ui/Table";
 import RowActions from "@/components/ui/RowActions";
 import type { Column } from "@/components/ui/Table";
-import type { TiendaHorario, TiendaWithDireccion } from "@/lib/types/tienda";
-import { TIENDA_DIAS } from "@/lib/types/tienda";
-import { Loader2, Search, Store } from "lucide-react";
-import JsonDataDisplay from "@/components/ui/JsonDataDisplay";
+import type { TiendaWithDireccion } from "@/lib/types/tienda";
+import { Loader2, Search, Store, Eye } from "lucide-react";
 
 interface TiendasTableProps {
   data: TiendaWithDireccion[];
@@ -16,25 +14,13 @@ interface TiendasTableProps {
   deletingIds?: Set<string>;
   onEdit: (tienda: TiendaWithDireccion) => void;
   onDelete: (tienda: TiendaWithDireccion) => void;
+  onViewHorario: (tienda: TiendaWithDireccion) => void;
   pagination: {
     currentPage: number;
     totalPages: number;
     totalItems: number;
     onPageChange: (page: number) => void;
   };
-}
-
-function buildHorarioObject(horario: TiendaHorario): Record<string, string> {
-  const formattedTextPerDay: Record<string, string> = {};
-
-  for (const dia of TIENDA_DIAS) {
-    const diaInfo = horario[dia];
-    if (diaInfo) {
-      formattedTextPerDay[dia] = `${diaInfo.apertura} - ${diaInfo.cierre}`;
-    }
-  }
-
-  return formattedTextPerDay;
 }
 
 export default function TiendasTable({
@@ -45,6 +31,7 @@ export default function TiendasTable({
   deletingIds = new Set(),
   onEdit,
   onDelete,
+  onViewHorario,
   pagination,
 }: TiendasTableProps) {
   const columns: Column<TiendaWithDireccion>[] = [
@@ -77,25 +64,14 @@ export default function TiendasTable({
     },
     {
       header: "Horario",
-      className: "w-[360px] min-w-[360px] max-w-[360px]",
       render: (item) => {
-        const horario = buildHorarioObject(item.horario);
-
-        if (Object.keys(horario).length === 0) {
-          return (
-            <span className="text-sm text-brand-secondary/90">
-              Sin horario registrado
-            </span>
-          );
-        }
-
         return (
-          <div className="w-full max-w-full overflow-x-auto overflow-y-hidden pb-1">
-            <JsonDataDisplay
-              data={horario}
-              className="flex-row! min-w-max! max-w-none! gap-2.5!"
-            />
-          </div>
+          <button
+            onClick={() => onViewHorario(item)}
+            className="flex items-center text-sm text-brand-primary gap-2 bg-brand-primary/10 hover:bg-brand-primary/20 ring-1 ring-brand-primary/20 shadow-sm px-2 py-1 rounded transistion-all">
+            <Eye className="w-6 h-6"></Eye>
+            ver horario
+          </button>
         );
       },
     },
