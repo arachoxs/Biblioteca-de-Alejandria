@@ -40,6 +40,9 @@ import type { EstadoHistorico } from "@/lib/types/historico";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { isValidUUID, MAX_PAGE_SIZE } from "@/lib/validations/rules";
+import { getCurrentUser } from "@/models/authModel";
+import { logAdminAction } from "@/services/admin/auditService";
+import { AccionAdministrador } from "@/lib/types/audit";
 
 const DEFAULT_STORE = "Inventario General";
 
@@ -259,6 +262,21 @@ export async function createCopias(
       );
     }
 
+    const actor = await getCurrentUser();
+    if (actor) {
+      const storeName = await getStoreNameById(targetStoreId);
+      await logAdminAction({
+        actorId: actor.id,
+        action: AccionAdministrador.CREAR,
+        description: `Se ingresaron ${input.cantidad} copias del libro "${libro.titulo}" en la tienda "${storeName}".`,
+        entity: {
+          id: input.id_libro,
+          entity_type: "lote_copias",
+          display_name: `${input.cantidad} copias de ${libro.titulo}`,
+        },
+      });
+    }
+
     return {
       success: true,
       message:
@@ -324,6 +342,22 @@ export async function transferCopias(
           form: result.error ?? "No se pudieron trasladar las copias.",
         },
       };
+    }
+
+    const actor = await getCurrentUser();
+    if (actor) {
+      const storeDestino = store.nombre;
+      await logAdminAction({
+        actorId: actor.id,
+        action: AccionAdministrador.MODIFICAR,
+        description: `Se transfirieron ${copyIds.length} copias a la tienda "${storeDestino}".`,
+        entity: {
+          id: input.id_tienda,
+          entity_type: "lote_copias_transferidas",
+          display_name: `${copyIds.length} copias -> ${storeDestino}`,
+          copias_afectadas: copyIds,
+        },
+      });
     }
 
     // El traslado no cambia la disponibilidad global del libro, solo su tienda.
@@ -408,6 +442,22 @@ export async function deleteCopias(
         "[copiaServices] Las copias fueron eliminadas, pero falló la sincronización del histórico:",
         historicoError,
       );
+    }
+
+    const actor = await getCurrentUser();
+    if (actor) {
+      const copyCount = copyIds.length;
+      await logAdminAction({
+        actorId: actor.id,
+        action: AccionAdministrador.ELIMINAR,
+        description: `Se dieron de baja ${copyCount} copia${copyCount === 1 ? "" : "s"} del inventario.`,
+        entity: {
+          id: copyIds.length === 1 ? copyIds[0] : "lote_eliminacion",
+          entity_type: "lote_copias_eliminadas",
+          display_name: `${copyCount} copias eliminadas`,
+          copias_afectadas: copyIds,
+        },
+      });
     }
 
     return {
