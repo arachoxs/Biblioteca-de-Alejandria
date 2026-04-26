@@ -22,6 +22,9 @@ import type {
   UpdateTiendaPayload,
 } from "@/lib/types/tienda";
 import { requireAdminRole } from "@/lib/validations/server-auth";
+import { getCurrentUser } from "@/models/authModel";
+import { logAdminAction } from "@/services/admin/auditService";
+import { AccionAdministrador } from "@/lib/types/audit";
 
 function isSameName(left: string, right: string): boolean {
   return left.toLocaleLowerCase() === right.toLocaleLowerCase();
@@ -119,6 +122,20 @@ export async function createTienda(
         errors: { form: result.error ?? "No se pudo crear la tienda." },
         message: "No se pudo crear la tienda.",
       };
+    }
+
+    const actor = await getCurrentUser();
+    if (actor) {
+      await logAdminAction({
+        actorId: actor.id,
+        action: AccionAdministrador.CREAR,
+        description: `Se creó la tienda "${input.nombre}".`,
+        entity: {
+          id: String(result.id),
+          entity_type: "tienda",
+          display_name: input.nombre,
+        },
+      });
     }
 
     return {
@@ -236,6 +253,20 @@ export async function updateTienda(
       };
     }
 
+    const actor = await getCurrentUser();
+    if (actor) {
+      await logAdminAction({
+        actorId: actor.id,
+        action: AccionAdministrador.MODIFICAR,
+        description: `Se actualizó la tienda "${payload.nombre ?? currentTienda.nombre}".`,
+        entity: {
+          id: tiendaId,
+          entity_type: "tienda",
+          display_name: payload.nombre ?? currentTienda.nombre,
+        },
+      });
+    }
+
     return {
       success: true,
       message: "Tienda actualizada exitosamente.",
@@ -288,6 +319,20 @@ export async function deleteTienda(
         errors: { form: result.error ?? "No se pudo eliminar la tienda." },
         message: "No se pudo eliminar la tienda.",
       };
+    }
+
+    const actor = await getCurrentUser();
+    if (actor) {
+      await logAdminAction({
+        actorId: actor.id,
+        action: AccionAdministrador.ELIMINAR,
+        description: `Se eliminó la tienda "${currentTienda.nombre}".`,
+        entity: {
+          id: tiendaId,
+          entity_type: "tienda",
+          display_name: currentTienda.nombre,
+        },
+      });
     }
 
     return {

@@ -40,6 +40,9 @@ import type { EstadoHistorico } from "@/lib/types/historico";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { isValidUUID, MAX_PAGE_SIZE } from "@/lib/validations/rules";
+import { getCurrentUser } from "@/models/authModel";
+import { logAdminAction } from "@/services/admin/auditService";
+import { AccionAdministrador } from "@/lib/types/audit";
 
 const DEFAULT_STORE = "Inventario General";
 
@@ -157,7 +160,7 @@ async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
   if (!historicoResult.success) {
     console.error(
       historicoResult.error ??
-        "No se pudo registrar la sincronización del histórico de stock para los libros indicados.",
+      "No se pudo registrar la sincronización del histórico de stock para los libros indicados.",
       {
         libroIds: historicoRows.map((row) => row.id_libro),
       },
@@ -192,11 +195,75 @@ async function resolveStoreId(idTienda?: string): Promise<{
   return { success: true, id_tienda: inventoryStore.id };
 }
 
+// ─── Audit helpers ─────────────────────────────────────────────────
+// Encapsulan getCurrentUser() + if (!actor) para no añadir ramas
+// de complejidad ciclomática a las funciones de escritura.
+
+async function logCreateCopiasAudit(
+  input: CreateCopiasInput,
+  libroTitulo: string,
+  targetStoreId: string,
+): Promise<void> {
+  const actor = await getCurrentUser();
+  if (!actor) return;
+  const storeName = await getStoreNameById(targetStoreId);
+  await logAdminAction({
+    actorId: actor.id,
+    action: AccionAdministrador.CREAR,
+    description: `Se ingresaron ${input.cantidad} copias del libro "${libroTitulo}" en la tienda "${storeName}".`,
+    entity: {
+      id: input.id_libro,
+      entity_type: "lote_copias",
+      display_name: `${input.cantidad} copias de ${libroTitulo}`,
+    },
+  });
+}
+
+async function logTransferCopiasAudit(
+  copyIds: string[],
+  store: { id: string; nombre: string },
+): Promise<void> {
+  const actor = await getCurrentUser();
+  if (!actor) return;
+  await logAdminAction({
+    actorId: actor.id,
+    action: AccionAdministrador.MODIFICAR,
+    description: `Se transfirieron ${copyIds.length} copias a la tienda "${store.nombre}".`,
+    entity: {
+      id: store.id,
+      entity_type: "lote_copias_transferidas",
+      display_name: `${copyIds.length} copias -> ${store.nombre}`,
+      copias_afectadas: copyIds,
+    },
+  });
+}
+
+async function logDeleteCopiasAudit(copyIds: string[]): Promise<void> {
+  const actor = await getCurrentUser();
+  if (!actor) return;
+  const copyCount = copyIds.length;
+  await logAdminAction({
+    actorId: actor.id,
+    action: AccionAdministrador.ELIMINAR,
+    description: `Se dieron de baja ${copyCount} copia${copyCount === 1 ? "" : "s"} del inventario.`,
+    entity: {
+      id: copyIds.length === 1 ? copyIds[0] : "lote_eliminacion",
+      entity_type: "lote_copias_eliminadas",
+      display_name: `${copyCount} copias eliminadas`,
+      copias_afectadas: copyIds,
+    },
+  });
+}
+
 // ─── Escritura ─────────────────────────────────────────────────────
 
 /**
  * Crea una o varias copias de un libro.
  * Si no se envía `id_tienda`, usa la tienda de inventario general.
+ *
+ * Complejidad ciclomática: 9
+ *   if roleCheck · if cantidad<1 · if !libro · if !storeResolution
+ *   if !result · catch historico · ternary mensaje · catch externo
  */
 export async function createCopias(
   input: CreateCopiasInput,
@@ -223,7 +290,9 @@ export async function createCopias(
     }
 
     const storeResolution = await resolveStoreId(input.id_tienda);
-    if (!storeResolution.success || !storeResolution.id_tienda) {
+    // resolveStoreId garantiza id_tienda cuando success=true,
+    // así que no se necesita la condición compuesta.
+    if (!storeResolution.success) {
       return {
         success: false,
         errors: {
@@ -231,7 +300,7 @@ export async function createCopias(
         },
       };
     }
-    const targetStoreId = storeResolution.id_tienda;
+    const targetStoreId = storeResolution.id_tienda as string;
 
     const copiesToInsert = Array.from({ length: input.cantidad }, () => ({
       id_libro: input.id_libro,
@@ -259,6 +328,8 @@ export async function createCopias(
       );
     }
 
+    await logCreateCopiasAudit(input, libro.titulo, targetStoreId);
+
     return {
       success: true,
       message:
@@ -278,6 +349,10 @@ export async function createCopias(
 
 /**
  * Traslada una o varias copias a una tienda destino.
+ *
+ * Complejidad ciclomática: 8
+ *   if roleCheck · if copyIds=0 · if !store · if copias faltantes
+ *   if !result · ternary mensaje · catch externo
  */
 export async function transferCopias(
   input: TransferCopiasInput,
@@ -326,6 +401,8 @@ export async function transferCopias(
       };
     }
 
+    await logTransferCopiasAudit(copyIds, store);
+
     // El traslado no cambia la disponibilidad global del libro, solo su tienda.
     // Por eso no se genera histórico de stock en esta operación.
     return {
@@ -350,6 +427,10 @@ export async function transferCopias(
 
 /**
  * Realiza eliminación lógica de una o varias copias.
+ *
+ * Complejidad ciclomática: 8
+ *   if roleCheck · if copyIds=0 · if copias faltantes · if inválidas
+ *   if !result · catch historico · catch externo
  */
 export async function deleteCopias(
   input: DeleteCopiasInput,
@@ -409,6 +490,8 @@ export async function deleteCopias(
         historicoError,
       );
     }
+
+    await logDeleteCopiasAudit(copyIds);
 
     return {
       success: true,

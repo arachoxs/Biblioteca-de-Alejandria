@@ -15,6 +15,9 @@ import type {
   CategoryActionResponse,
 } from "@/lib/types/category";
 import { requireAdminRole } from "@/lib/validations/server-auth";
+import { getCurrentUser } from "@/models/authModel";
+import { logAdminAction } from "@/services/admin/auditService";
+import { AccionAdministrador } from "@/lib/types/audit";
 import { sanitizeNullableText, sanitizeText } from "@/lib/validations/rules";
 
 function normalizeCategoryName(name: string): string {
@@ -108,6 +111,20 @@ export async function createCategory(
       };
     }
 
+    const actor = await getCurrentUser();
+    if (actor) {
+      await logAdminAction({
+        actorId: actor.id,
+        action: AccionAdministrador.CREAR,
+        description: `Se creó la categoría "${normalizedName}".`,
+        entity: {
+          id: String(result.id),
+          entity_type: "categoría",
+          display_name: normalizedName,
+        },
+      });
+    }
+
     return {
       success: true,
       message: "Categoría creada exitosamente.",
@@ -197,6 +214,20 @@ export async function updateCategory(
       };
     }
 
+    const actor = await getCurrentUser();
+    if (actor) {
+      await logAdminAction({
+        actorId: actor.id,
+        action: AccionAdministrador.MODIFICAR,
+        description: `Se actualizó la categoría "${payload.nombre ?? currentCategory.nombre}".`,
+        entity: {
+          id: String(categoryId),
+          entity_type: "categoría",
+          display_name: payload.nombre ?? currentCategory.nombre,
+        },
+      });
+    }
+
     return {
       success: true,
       message: "Categoría actualizada exitosamente.",
@@ -248,6 +279,20 @@ export async function deleteCategory(
         errors: { form: result.error ?? "No se pudo eliminar la categoría." },
         message: "No se pudo eliminar la categoría.",
       };
+    }
+
+    const actor = await getCurrentUser();
+    if (actor) {
+      await logAdminAction({
+        actorId: actor.id,
+        action: AccionAdministrador.ELIMINAR,
+        description: `Se eliminó la categoría "${currentCategory.nombre}".`,
+        entity: {
+          id: String(categoryId),
+          entity_type: "categoría",
+          display_name: currentCategory.nombre,
+        },
+      });
     }
 
     return {
