@@ -1,6 +1,12 @@
 import type { Database } from "@/lib/types/supabase";
 import type { ActionResponse, PaginatedResponse } from "./common";
 
+// ─── Domain Types ──────────────────────────────────────────────────
+
+export type NoticiaId = string;
+export type LibroId = string;
+export type SearchTerm = string;
+
 // ─── Fila base desde Supabase ──────────────────────────────────────
 
 /** Fila completa de la tabla `noticias` (lectura). */

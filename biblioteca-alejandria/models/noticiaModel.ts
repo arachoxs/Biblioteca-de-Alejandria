@@ -1,6 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type { ModelResult, Paginated } from "@/lib/types/common";
 import type {
+  NoticiaId,
+  LibroId,
+  SearchTerm,
   NoticiaWithLibro,
   NoticiaWithPrecio,
   InsertNoticiaPayload,
@@ -10,28 +13,25 @@ import type {
 import { buildSafePagination, normalizePagination } from "@/lib/pagination";
 import { formatILIKE } from "@/lib/validations/db-utils";
 
-interface NoticiaConLibroTitulo {
+interface NoticiaBaseRow {
   id: string;
   id_libro: string;
   fecha_publicacion: string;
   fecha_expiracion: string;
   es_visible: boolean;
   deleted_at: string | null;
+}
+
+interface NoticiaConLibroTitulo extends NoticiaBaseRow {
   libro: { titulo: string | null } | null;
 }
 
-interface NoticiaConLibroPrecio {
-  id: string;
-  id_libro: string;
-  fecha_publicacion: string;
-  fecha_expiracion: string;
-  es_visible: boolean;
-  deleted_at: string | null;
+interface NoticiaConLibroPrecio extends NoticiaBaseRow {
   imagenes: string[] | null;
   libro: { titulo: string | null; precio: number | null } | null;
 }
 
-function mapNoticiaConLibro(row: NoticiaConLibroTitulo): NoticiaWithLibro {
+function mapNoticiaBase(row: NoticiaBaseRow) {
   return {
     id: row.id,
     id_libro: row.id_libro,
@@ -39,18 +39,19 @@ function mapNoticiaConLibro(row: NoticiaConLibroTitulo): NoticiaWithLibro {
     fecha_expiracion: row.fecha_expiracion,
     es_visible: row.es_visible,
     deleted_at: row.deleted_at,
+  };
+}
+
+function mapNoticiaConLibro(row: NoticiaConLibroTitulo): NoticiaWithLibro {
+  return {
+    ...mapNoticiaBase(row),
     libro_titulo: row.libro?.titulo ?? null,
   };
 }
 
 function mapNoticiaConPrecio(row: NoticiaConLibroPrecio): NoticiaWithPrecio {
   return {
-    id: row.id,
-    id_libro: row.id_libro,
-    fecha_publicacion: row.fecha_publicacion,
-    fecha_expiracion: row.fecha_expiracion,
-    es_visible: row.es_visible,
-    deleted_at: row.deleted_at,
+    ...mapNoticiaBase(row),
     libro_titulo: row.libro?.titulo ?? null,
     precio: row.libro?.precio ?? 0,
     imagenes: row.imagenes ?? null,
@@ -79,7 +80,7 @@ export async function insertNoticia(
 }
 
 export async function updateNoticia(
-  id: string,
+  id: NoticiaId,
   data: UpdateNoticiaPayload
 ): Promise<ModelResult> {
   const adminClient = createAdminClient();
@@ -103,7 +104,7 @@ export async function updateNoticia(
   return { success: true };
 }
 
-export async function softDeleteNoticia(id: string): Promise<ModelResult> {
+export async function softDeleteNoticia(id: NoticiaId): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -120,7 +121,7 @@ export async function softDeleteNoticia(id: string): Promise<ModelResult> {
   return { success: true };
 }
 
-export async function softDeleteNoticiaByLibroId(id_libro: string): Promise<ModelResult> {
+export async function softDeleteNoticiaByLibroId(id_libro: LibroId): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -138,7 +139,7 @@ export async function softDeleteNoticiaByLibroId(id_libro: string): Promise<Mode
 }
 
 export async function getNoticiaById(
-  id: string
+  id: NoticiaId
 ): Promise<NoticiaRow | null> {
   const adminClient = createAdminClient();
 
@@ -158,7 +159,7 @@ export async function getNoticiaById(
 }
 
 export async function getNoticiaByLibroId(
-  libroId: string
+  libroId: LibroId
 ): Promise<NoticiaRow | null> {
   const adminClient = createAdminClient();
 
@@ -180,7 +181,7 @@ export async function getNoticiaByLibroId(
 export async function getNoticias(
   page: number = 1,
   pageSize: number = 10,
-  searchTerm?: string
+  searchTerm?: SearchTerm
 ): Promise<Paginated<NoticiaWithLibro>> {
   const adminClient = createAdminClient();
 
