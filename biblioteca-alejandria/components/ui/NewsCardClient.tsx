@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import type { NoticiaWithPrecio } from "@/lib/types/noticia";
 
@@ -31,17 +32,23 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
         group relative flex flex-col bg-white border border-brand-accent/15 rounded-xl 
         overflow-hidden shadow-sm hover:shadow-lg hover:shadow-brand-text/8 
         transition-all duration-300 hover:-translate-y-0.5
-        animate-in fade-in slide-in-from-bottom-4 fill-mode-both
+        animate-in fade-in slide-in-from-bottom-4 fill-mode-both cursor-pointer
         ${!isVisible && isAdminView ? "opacity-60 border-dashed" : ""}
       `}
       style={{ animationDelay: `${delay}ms` }}
     >
+      <Link href="#" className="absolute inset-0 z-0" />
+
       {isAdminView && (
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute top-2 right-2 z-20">
           <button
-            onClick={() => setIsVisible(!isVisible)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsVisible(!isVisible);
+            }}
             className={`
-              w-7 h-7 rounded-full border flex items-center justify-center transition-colors
+              w-7 h-7 rounded-full border flex items-center justify-center transition-colors cursor-pointer
               ${isVisible 
                 ? "bg-green-50 border-green-200 text-green-600 hover:bg-green-100" 
                 : "bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100"
@@ -83,7 +90,7 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
         )}
       </div>
 
-      <div className="p-4 flex flex-col gap-2 flex-1">
+      <div className="p-4 flex flex-col gap-2 flex-1 relative z-10">
         <div className="flex items-center justify-between">
           <span className="text-lg font-bold text-brand-primary font-display">
             {formattedPrice}
