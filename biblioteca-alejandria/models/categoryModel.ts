@@ -72,6 +72,7 @@ export async function getCategories(
     .from("categoria")
     .select("*, libro(count)", { count: "exact" })
     .is("deleted_at", null)
+    .is("libro.deleted_at", null)
     .range(from, to)
     .order("id", { ascending: false });
 

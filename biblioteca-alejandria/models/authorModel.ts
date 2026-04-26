@@ -106,6 +106,7 @@ export async function getAuthors(
     .from("autor")
     .select("*, libro(count)", { count: "exact" })
     .is("deleted_at", null)
+    .is("libro.deleted_at", null)
     .range(from, to)
     .order("nombre", { ascending: true });
 

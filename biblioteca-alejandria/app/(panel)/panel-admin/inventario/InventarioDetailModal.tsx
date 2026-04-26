@@ -242,7 +242,7 @@ export default function InventarioDetailModal({
       header: "Estado copia",
       render: (item) => (
         <span
-          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getEstadoStyles(item.estado_copia)}`}>
+          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${getEstadoStyles(item.estado_copia)}`}>
           {item.estado_copia}
         </span>
       ),

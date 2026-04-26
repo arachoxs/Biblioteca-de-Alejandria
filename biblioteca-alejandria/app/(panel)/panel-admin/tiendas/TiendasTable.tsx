@@ -67,10 +67,12 @@ export default function TiendasTable({
       render: (item) => {
         return (
           <button
+            type="button"
             onClick={() => onViewHorario(item)}
-            className="flex items-center text-sm text-brand-primary gap-2 bg-brand-primary/10 hover:bg-brand-primary/20 ring-1 ring-brand-primary/20 shadow-sm px-2 py-1 rounded cursor-pointer transition-all">
-            <Eye className="w-6 h-6"></Eye>
-            ver horario
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary transition-all cursor-pointer ring-1 ring-brand-primary/20 shadow-sm text-sm"
+          >
+            <Eye className="w-4 h-4" />
+            Ver horario
           </button>
         );
       },

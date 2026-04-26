@@ -329,11 +329,11 @@ export default function TiendaFormModal({
           <Button
             type="submit"
             disabled={!canSubmit}
-            className="w-auto px-5 py-1 text-sm flex items-center gap-2">
+            className="w-auto px-6 !py-1 text-sm flex items-center justify-center gap-2">
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {isEditing ? "Guardando..." : "Creando..."}
+                <span>{isEditing ? "Guardando..." : "Creando..."}</span>
               </>
             ) : (
               <>
@@ -342,7 +342,7 @@ export default function TiendaFormModal({
                 ) : (
                   <Plus className="w-4 h-4" />
                 )}
-                {isEditing ? "Guardar Cambios" : "Crear Tienda"}
+                <span>{isEditing ? "Guardar Cambios" : "Crear Tienda"}</span>
               </>
             )}
           </Button>
