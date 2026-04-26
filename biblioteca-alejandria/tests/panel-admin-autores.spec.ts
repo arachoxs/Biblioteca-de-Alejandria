@@ -120,4 +120,113 @@ test.describe("Panel admin - Gestión de autores", () => {
       page.getByRole("button", { name: "Crear Autor" }),
     ).toBeDisabled();
   });
+
+  test("valida nombre vacío", async ({ page }) => {
+    await page.getByRole("button", { name: "Nuevo Autor" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Nuevo Autor" }),
+    ).toBeVisible();
+
+    await page.getByLabel("Nombre completo").fill("");
+    await page.getByLabel("Nombre completo").blur();
+
+    await expect(page.getByText(/Nombre es obligatorio/i)).toBeVisible();
+  });
+
+  test("valida nombre demasiado largo (>200 chars)", async ({ page }) => {
+    await page.getByRole("button", { name: "Nuevo Autor" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Nuevo Autor" }),
+    ).toBeVisible();
+
+    const longName = "A".repeat(201);
+    await page.getByLabel("Nombre completo").fill(longName);
+    await page.getByLabel("Nombre completo").blur();
+
+    await expect(
+      page.getByText(/no puede exceder 200 caracteres/i),
+    ).toBeVisible();
+  });
+
+  test("valida nacionalidad vacía", async ({ page }) => {
+    await page.getByRole("button", { name: "Nuevo Autor" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Nuevo Autor" }),
+    ).toBeVisible();
+
+    await page.getByLabel("Nombre completo").fill("Autor QA Test");
+    await page.getByLabel("Fecha de nacimiento").fill("1980-05-07");
+
+    await page.locator("#author-nacionalidad").selectOption("");
+    await page.locator("#author-nacionalidad").blur();
+
+    await expect(page.getByText(/la nacionalidad es requerida/i)).toBeVisible();
+  });
+
+  test("valida fecha nacimiento año muy antiguo (<700)", async ({ page }) => {
+    await page.getByRole("button", { name: "Nuevo Autor" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Nuevo Autor" }),
+    ).toBeVisible();
+
+    await page.getByLabel("Nombre completo").fill("Autor Medieval");
+    await page
+      .getByRole("combobox", { name: /nacionalidad/i })
+      .selectOption("España");
+    await page.getByLabel("Fecha de nacimiento").fill("0500-01-01");
+    await page.getByLabel("Fecha de nacimiento").blur();
+
+    await expect(page.getByText(/no puede ser anterior a 700/i)).toBeVisible();
+  });
+
+  test("valida fecha nacimiento muy joven", async ({ page }) => {
+    await page.getByRole("button", { name: "Nuevo Autor" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Nuevo Autor" }),
+    ).toBeVisible();
+
+    await page.getByLabel("Nombre completo").fill("Autor QA");
+    await page
+      .getByRole("combobox", { name: /nacionalidad/i })
+      .selectOption("Chile");
+
+    await page.getByLabel("Fecha de nacimiento").fill("2022-01-01");
+    await page.getByLabel("Fecha de nacimiento").blur();
+
+    await expect(page.getByText(/no es válida/i)).toBeVisible();
+  });
+
+  test("happy path: crear autor con datos válidos", async ({ page }) => {
+    await page.getByRole("button", { name: "Nuevo Autor" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Nuevo Autor" }),
+    ).toBeVisible();
+
+    const uniqueName = `Autor QA ${Date.now()}`;
+    await page.getByLabel("Nombre completo").fill(uniqueName);
+    await page
+      .getByRole("combobox", { name: /nacionalidad/i })
+      .selectOption("Argentina");
+    await page.getByLabel("Fecha de nacimiento").fill("1970-05-15");
+
+    const createButton = page.getByRole("button", { name: "Crear Autor" });
+    await expect(createButton).toBeEnabled();
+
+    await createButton.click();
+    await page.waitForTimeout(1500);
+
+    await expect(
+      page.getByRole("heading", { name: "Nuevo Autor" }),
+    ).not.toBeVisible();
+  });
+
+  test("buscar autores por nombre inexistente", async ({ page }) => {
+    const searchInput = page.getByPlaceholder(
+      "Buscar por nombre o nacionalidad...",
+    );
+    await searchInput.fill("autor-inexistente-qa-test-12345");
+    await page.waitForTimeout(800);
+
+    await expect(page.getByText(/no se encontraron autores/i)).toBeVisible();
+  });
 });
