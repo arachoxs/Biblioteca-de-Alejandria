@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { ModelResult, Paginated } from "@/lib/types/common";
 import type {
   NoticiaWithLibro,
+  NoticiaWithPrecio,
   InsertNoticiaPayload,
   UpdateNoticiaPayload,
   NoticiaRow,
@@ -21,6 +22,7 @@ export async function insertNoticia(
     fecha_publicacion: data.fecha_publicacion,
     fecha_expiracion: data.fecha_expiracion,
     es_visible: data.es_visible,
+    imagenes: data.imagenes ?? [],
   });
 
   if (error) {
@@ -43,6 +45,7 @@ export async function updateNoticia(
       fecha_publicacion: data.fecha_publicacion,
       fecha_expiracion: data.fecha_expiracion,
       es_visible: data.es_visible,
+      imagenes: data.imagenes,
     })
     .eq("id", id)
     .is("deleted_at", null);
@@ -169,6 +172,53 @@ export async function getNoticias(
     es_visible: row.es_visible,
     deleted_at: row.deleted_at,
     libro_titulo: row.libro?.titulo || null,
+  }));
+
+  const totalCount = count || 0;
+
+  return {
+    data: normalized,
+    total: totalCount,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.ceil(totalCount / safePageSize),
+  };
+}
+
+export async function getNoticiasWithPrecio(
+  page: number = 1,
+  pageSize: number = 20
+): Promise<Paginated<NoticiaWithPrecio>> {
+  const adminClient = createAdminClient();
+
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  const { data, error, count } = await adminClient
+    .from("noticias")
+    .select("*, libro!inner(titulo, precio), imagenes", { count: "exact" })
+    .is("deleted_at", null)
+    .eq("es_visible", true)
+    .range(from, to)
+    .order("fecha_publicacion", { ascending: false });
+
+  if (error) {
+    console.error("[noticiaModel] Error listando noticias con precio:", error);
+    throw error;
+  }
+
+  const normalized: NoticiaWithPrecio[] = (data || []).map((row: any) => ({
+    id: row.id,
+    id_libro: row.id_libro,
+    fecha_publicacion: row.fecha_publicacion,
+    fecha_expiracion: row.fecha_expiracion,
+    es_visible: row.es_visible,
+    deleted_at: row.deleted_at,
+    libro_titulo: row.libro?.titulo || null,
+    precio: row.libro?.precio || 0,
+    imagenes: row.imagenes || null,
   }));
 
   const totalCount = count || 0;
