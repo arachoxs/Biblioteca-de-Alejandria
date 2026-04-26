@@ -46,11 +46,40 @@ function formatPrice(precio: number): string | null {
   }).format(precio);
 }
 
+function useSwipeHandlers({
+  onSwipe,
+  minTouchDistance,
+}: {
+  onSwipe: (direction: "next" | "prev") => void;
+  minTouchDistance: number;
+}) {
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    if (distance > minTouchDistance) onSwipe("next");
+    if (distance < -minTouchDistance) onSwipe("prev");
+    setTouchStart(null);
+    setTouchEnd(null);
+  }, [touchStart, touchEnd, minTouchDistance, onSwipe]);
+
+  return { handleTouchStart, handleTouchMove, handleTouchEnd };
+}
+
 export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const totalItems = items.length;
@@ -71,29 +100,23 @@ export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselPro
     setCurrentIndex(index);
   }, []);
 
+  const handleSwipe = useCallback(
+    (direction: "next" | "prev") => {
+      if (direction === "next") {
+        goToNext();
+      } else {
+        goToPrev();
+      }
+    },
+    [goToNext, goToPrev]
+  );
+
   const minTouchDistance = 50;
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minTouchDistance;
-    const isRightSwipe = distance < -minTouchDistance;
-
-    if (isLeftSwipe) goToNext();
-    if (isRightSwipe) goToPrev();
-
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
+  const { handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeHandlers({
+    onSwipe: handleSwipe,
+    minTouchDistance,
+  });
 
   useEffect(() => {
     if (isPaused || !hasMultipleItems) return;

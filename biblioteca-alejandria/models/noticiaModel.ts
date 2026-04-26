@@ -92,7 +92,29 @@ export async function softDeleteNoticiaByLibroId(id_libro: string): Promise<Mode
   return { success: true };
 }
 
-// ─── Lectura ───────────────────────────────────────────────────────
+function normalizePagination<T>(
+  data: T[],
+  count: number,
+  safePage: number,
+  safePageSize: number
+): { data: T[]; total: number; page: number; pageSize: number; totalPages: number } {
+  const totalCount = count || 0;
+  return {
+    data,
+    total: totalCount,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.ceil(totalCount / safePageSize),
+  };
+}
+
+function buildSafePagination(page: number, pageSize: number) {
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+  return { safePage, safePageSize, from, to };
+}
 
 export async function getNoticiaById(
   id: string
@@ -141,10 +163,7 @@ export async function getNoticias(
 ): Promise<Paginated<NoticiaWithLibro>> {
   const adminClient = createAdminClient();
 
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
+  const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
 
   let query = adminClient
     .from("noticias")
@@ -174,15 +193,7 @@ export async function getNoticias(
     libro_titulo: row.libro?.titulo || null,
   }));
 
-  const totalCount = count || 0;
-
-  return {
-    data: normalized,
-    total: totalCount,
-    page: safePage,
-    pageSize: safePageSize,
-    totalPages: Math.ceil(totalCount / safePageSize),
-  };
+  return normalizePagination(normalized, count || 0, safePage, safePageSize);
 }
 
 export async function getNoticiasWithPrecio(
@@ -191,10 +202,7 @@ export async function getNoticiasWithPrecio(
 ): Promise<Paginated<NoticiaWithPrecio>> {
   const adminClient = createAdminClient();
 
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
+  const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
 
   const { data, error, count } = await adminClient
     .from("noticias")
@@ -221,13 +229,5 @@ export async function getNoticiasWithPrecio(
     imagenes: row.imagenes || null,
   }));
 
-  const totalCount = count || 0;
-
-  return {
-    data: normalized,
-    total: totalCount,
-    page: safePage,
-    pageSize: safePageSize,
-    totalPages: Math.ceil(totalCount / safePageSize),
-  };
+  return normalizePagination(normalized, count || 0, safePage, safePageSize);
 }
