@@ -7,10 +7,55 @@ import type {
   UpdateNoticiaPayload,
   NoticiaRow,
 } from "@/lib/types/noticia";
-import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
+import { buildSafePagination, normalizePagination } from "@/lib/pagination";
 import { formatILIKE } from "@/lib/validations/db-utils";
 
-// ─── Escritura ─────────────────────────────────────────────────────
+interface NoticiaConLibroTitulo {
+  id: string;
+  id_libro: string;
+  fecha_publicacion: string;
+  fecha_expiracion: string;
+  es_visible: boolean;
+  deleted_at: string | null;
+  libro: { titulo: string | null } | null;
+}
+
+interface NoticiaConLibroPrecio {
+  id: string;
+  id_libro: string;
+  fecha_publicacion: string;
+  fecha_expiracion: string;
+  es_visible: boolean;
+  deleted_at: string | null;
+  imagenes: string[] | null;
+  libro: { titulo: string | null; precio: number | null } | null;
+}
+
+function mapNoticiaConLibro(row: NoticiaConLibroTitulo): NoticiaWithLibro {
+  return {
+    id: row.id,
+    id_libro: row.id_libro,
+    fecha_publicacion: row.fecha_publicacion,
+    fecha_expiracion: row.fecha_expiracion,
+    es_visible: row.es_visible,
+    deleted_at: row.deleted_at,
+    libro_titulo: row.libro?.titulo ?? null,
+  };
+}
+
+function mapNoticiaConPrecio(row: NoticiaConLibroPrecio): NoticiaWithPrecio {
+  return {
+    id: row.id,
+    id_libro: row.id_libro,
+    fecha_publicacion: row.fecha_publicacion,
+    fecha_expiracion: row.fecha_expiracion,
+    es_visible: row.es_visible,
+    deleted_at: row.deleted_at,
+    libro_titulo: row.libro?.titulo ?? null,
+    precio: row.libro?.precio ?? 0,
+    imagenes: row.imagenes ?? null,
+  };
+}
 
 export async function insertNoticia(
   data: InsertNoticiaPayload
@@ -92,30 +137,6 @@ export async function softDeleteNoticiaByLibroId(id_libro: string): Promise<Mode
   return { success: true };
 }
 
-function normalizePagination<T>(
-  data: T[],
-  count: number,
-  safePage: number,
-  safePageSize: number
-): { data: T[]; total: number; page: number; pageSize: number; totalPages: number } {
-  const totalCount = count || 0;
-  return {
-    data,
-    total: totalCount,
-    page: safePage,
-    pageSize: safePageSize,
-    totalPages: Math.ceil(totalCount / safePageSize),
-  };
-}
-
-function buildSafePagination(page: number, pageSize: number) {
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
-  return { safePage, safePageSize, from, to };
-}
-
 export async function getNoticiaById(
   id: string
 ): Promise<NoticiaRow | null> {
@@ -183,17 +204,9 @@ export async function getNoticias(
     throw error;
   }
 
-  const normalized: NoticiaWithLibro[] = (data || []).map((row: any) => ({
-    id: row.id,
-    id_libro: row.id_libro,
-    fecha_publicacion: row.fecha_publicacion,
-    fecha_expiracion: row.fecha_expiracion,
-    es_visible: row.es_visible,
-    deleted_at: row.deleted_at,
-    libro_titulo: row.libro?.titulo || null,
-  }));
+  const normalized: NoticiaWithLibro[] = (data as NoticiaConLibroTitulo[] | null)?.map(mapNoticiaConLibro) ?? [];
 
-  return normalizePagination(normalized, count || 0, safePage, safePageSize);
+  return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
 }
 
 export async function getNoticiasWithPrecio(
@@ -217,17 +230,7 @@ export async function getNoticiasWithPrecio(
     throw error;
   }
 
-  const normalized: NoticiaWithPrecio[] = (data || []).map((row: any) => ({
-    id: row.id,
-    id_libro: row.id_libro,
-    fecha_publicacion: row.fecha_publicacion,
-    fecha_expiracion: row.fecha_expiracion,
-    es_visible: row.es_visible,
-    deleted_at: row.deleted_at,
-    libro_titulo: row.libro?.titulo || null,
-    precio: row.libro?.precio || 0,
-    imagenes: row.imagenes || null,
-  }));
+  const normalized: NoticiaWithPrecio[] = (data as unknown as NoticiaConLibroPrecio[] | null)?.map(mapNoticiaConPrecio) ?? [];
 
-  return normalizePagination(normalized, count || 0, safePage, safePageSize);
+  return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
 }
