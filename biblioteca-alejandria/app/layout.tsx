@@ -14,7 +14,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="bg-white">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${cormorantGaramond.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${cormorantGaramond.variable} min-h-screen flex flex-col antialiased`}>
         {children}
       </body>
     </html>

@@ -1,4 +1,3 @@
-import Navbar from "@/components/Navbar";
 import CategoriasContent from "./CategoriasContent";
 
 export const metadata = {
@@ -8,8 +7,7 @@ export const metadata = {
 
 export default function GestionCategoriasPage() {
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col font-sans">
-      <Navbar />
+    <div className="flex flex-col flex-1 bg-brand-bg  font-sans">
       <CategoriasContent />
     </div>
   );

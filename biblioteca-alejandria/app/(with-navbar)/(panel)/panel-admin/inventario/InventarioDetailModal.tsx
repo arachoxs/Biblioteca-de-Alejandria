@@ -208,6 +208,7 @@ export default function InventarioDetailModal({
         selectedIds,
         destinationStoreId,
       );
+
       setActionState(response);
 
       if (response.success) {
@@ -328,15 +329,23 @@ export default function InventarioDetailModal({
         </div>
       )}
 
-      <div className="space-y-4">
-        {actionState?.message && (
-          <Alert
-            variant={actionState.success ? "success" : "error"}
-            onClose={() => setActionState(null)}>
-            {actionState.message}
-          </Alert>
-        )}
+      {actionState?.message && actionState?.success && (
+        <Alert
+          variant={actionState.success ? "success" : "error"}
+          onClose={() => setActionState(null)}>
+          {actionState.message}
+        </Alert>
+      )}
 
+      {actionState?.message && !actionState?.success && (
+        <Alert
+          variant={actionState.success ? "success" : "error"}
+          onClose={() => setActionState(null)}>
+          {actionState.message}
+        </Alert>
+      )}
+
+      <div className="space-y-4">
         <FilterActionBar
           searchTerm={searchTerm}
           onSearchChange={(value) => {

@@ -1,4 +1,3 @@
-import Navbar from "@/components/Navbar";
 import AutoresContent from "./AutoresContent";
 
 export const metadata = {
@@ -8,8 +7,7 @@ export const metadata = {
 
 export default function GestionAutoresPage() {
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col font-sans">
-      <Navbar />
+    <div className="flex-1 bg-brand-bg flex flex-col font-sans">
       <AutoresContent />
     </div>
   );

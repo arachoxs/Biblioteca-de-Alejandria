@@ -1,4 +1,3 @@
-import Navbar from "@/components/Navbar";
 import EditarLibroContent from "./EditarLibroContent";
 import { Suspense } from "react";
 
@@ -8,9 +7,13 @@ export const metadata = {
 };
 export default function EditarLibroPage() {
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col font-sans">
-      <Navbar />
-      <Suspense fallback={<div className="flex-1 flex items-center justify-center">Cargando editor...</div>}>
+    <div className="flex-1 bg-brand-bg flex flex-col font-sans">
+      <Suspense
+        fallback={
+          <div className="flex-1 flex items-center justify-center">
+            Cargando editor...
+          </div>
+        }>
         <EditarLibroContent />
       </Suspense>
     </div>

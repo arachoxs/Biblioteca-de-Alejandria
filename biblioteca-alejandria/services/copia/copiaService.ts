@@ -121,7 +121,9 @@ function mapCopiasToInventarioDetalle(
   }));
 }
 
-function getEstadoHistoricoFromAvailableCount(availableCount: number): EstadoHistorico {
+function getEstadoHistoricoFromAvailableCount(
+  availableCount: number,
+): EstadoHistorico {
   return availableCount === 0 ? "agotado" : "disponible";
 }
 
@@ -130,9 +132,13 @@ async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
   if (uniqueBookIds.length === 0) return;
 
   const snapshots = await getHistoricoSyncSnapshotsByLibros(uniqueBookIds);
-  const snapshotByBookId = new Map(snapshots.map((snapshot) => [snapshot.id_libro, snapshot]));
+  const snapshotByBookId = new Map(
+    snapshots.map((snapshot) => [snapshot.id_libro, snapshot]),
+  );
 
-  const missingBookIds = uniqueBookIds.filter((bookId) => !snapshotByBookId.has(bookId));
+  const missingBookIds = uniqueBookIds.filter(
+    (bookId) => !snapshotByBookId.has(bookId),
+  );
   if (missingBookIds.length > 0) {
     console.error(
       "[copiaServices] No se pudieron obtener snapshots de histórico para algunos libros.",
@@ -142,7 +148,9 @@ async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
 
   const now = new Date().toISOString();
   const historicoRows = snapshots.flatMap((snapshot) => {
-    const targetState = getEstadoHistoricoFromAvailableCount(snapshot.available_count);
+    const targetState = getEstadoHistoricoFromAvailableCount(
+      snapshot.available_count,
+    );
     if (snapshot.latest_estado === targetState) return [];
 
     return [
@@ -160,7 +168,7 @@ async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
   if (!historicoResult.success) {
     console.error(
       historicoResult.error ??
-      "No se pudo registrar la sincronización del histórico de stock para los libros indicados.",
+        "No se pudo registrar la sincronización del histórico de stock para los libros indicados.",
       {
         libroIds: historicoRows.map((row) => row.id_libro),
       },
@@ -365,6 +373,8 @@ export async function transferCopias(
     return {
       success: false,
       errors: { ids: "Debes indicar al menos una copia para trasladar." },
+      message:
+        "No se pudieron trasladar las copias porque no se indicaron copias a trasladar.",
     };
   }
 
@@ -388,6 +398,20 @@ export async function transferCopias(
         errors: {
           ids: `No se encontraron las copias indicadas: ${missingIds.join(", ")}.`,
         },
+        message: `No se pudieron trasladar las copias porque no se encontraron todas las indicadas. Copias no encontradas: ${missingIds.join(", ")}.`,
+      };
+    }
+
+    const tiendasSet = getTiendasSet(copiasInfo);
+
+    if (tiendasSet.has(store.id)) {
+      return {
+        success: false,
+        errors: {
+          id_tienda: "Algunas de las copias ya pertenecen a la tienda destino.",
+        },
+        message:
+          "No se pudieron trasladar las copias porque algunas ya pertenecen a la tienda destino.",
       };
     }
 
@@ -398,6 +422,7 @@ export async function transferCopias(
         errors: {
           form: result.error ?? "No se pudieron trasladar las copias.",
         },
+        message: result.error ?? "No se pudieron trasladar las copias.",
       };
     }
 
@@ -443,6 +468,8 @@ export async function deleteCopias(
     return {
       success: false,
       errors: { ids: "Debes indicar al menos una copia para eliminar." },
+      message:
+        "No se pudieron eliminar las copias porque no se indicaron copias a eliminar.",
     };
   }
 
@@ -453,6 +480,8 @@ export async function deleteCopias(
       return {
         success: false,
         errors: { ids: "No se encontraron las copias indicadas." },
+        message:
+          "No se pudieron eliminar las copias porque no se encontraron todas las indicadas.",
       };
     }
 
@@ -469,6 +498,8 @@ export async function deleteCopias(
             .map((c) => c.id)
             .join(", ")} porque no están disponibles o ya fueron eliminadas.`,
         },
+        message:
+          "No se pudieron eliminar las copias porque no se encontraron todas las indicadas.",
       };
     }
 
@@ -479,6 +510,7 @@ export async function deleteCopias(
       return {
         success: false,
         errors: { form: result.error ?? "No se pudieron eliminar las copias." },
+        message: result.error ?? "No se pudieron eliminar las copias.",
       };
     }
 
@@ -760,4 +792,8 @@ export async function fetchInventarioBookOptions(
 //helpers
 async function getInfos(copiaIds: string[]): Promise<CopiaRow[]> {
   return getCopiasByIdsModel(copiaIds);
+}
+
+function getTiendasSet(copiasInfo: CopiaRow[]): Set<string> {
+  return new Set(copiasInfo.map((copy) => copy.id_tienda));
 }
