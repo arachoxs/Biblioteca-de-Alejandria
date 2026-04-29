@@ -55,6 +55,14 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Error desconocido";
 }
 
+function getMissingCopyIds(
+  requestedIds: string[],
+  foundCopies: CopiaRow[],
+): string[] {
+  const foundIds = new Set(foundCopies.map((copy) => copy.id));
+  return requestedIds.filter((copyId) => !foundIds.has(copyId));
+}
+
 function aggregateInventarioRows(
   rows: VistaInventarioRow[],
 ): InventarioLibroItem[] {
@@ -391,8 +399,7 @@ export async function transferCopias(
 
     const copiasInfo = await getInfos(copyIds);
     if (copiasInfo.length !== copyIds.length) {
-      const foundIds = new Set(copiasInfo.map((copy) => copy.id));
-      const missingIds = copyIds.filter((copyId) => !foundIds.has(copyId));
+      const missingIds = getMissingCopyIds(copyIds, copiasInfo);
       return {
         success: false,
         errors: {
