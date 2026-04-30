@@ -398,16 +398,6 @@ export async function transferCopias(
     }
 
     const copiasInfo = await getInfos(copyIds);
-    if (copiasInfo.length !== copyIds.length) {
-      const missingIds = getMissingCopyIds(copyIds, copiasInfo);
-      return {
-        success: false,
-        errors: {
-          ids: `No se encontraron las copias indicadas: ${missingIds.join(", ")}.`,
-        },
-        message: `No se pudieron trasladar las copias porque no se encontraron todas las indicadas. Copias no encontradas: ${missingIds.join(", ")}.`,
-      };
-    }
 
     const tiendasSet = getTiendasSet(copiasInfo);
 

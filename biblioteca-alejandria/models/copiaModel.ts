@@ -155,7 +155,13 @@ export async function getCopiasByIds(ids: string[]): Promise<CopiaRow[]> {
     throw error;
   }
 
-  return data ?? [];
+  const rows = data ?? [];
+
+  if (rows.length !== ids.length) {
+    throw new Error("No se encontraron todas las copias solicitadas.");
+  }
+
+  return rows;
 }
 
 export async function getInventarioRows(
