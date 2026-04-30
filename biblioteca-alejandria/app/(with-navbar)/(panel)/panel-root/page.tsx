@@ -1,4 +1,3 @@
-import Navbar from "@/components/Navbar";
 import ActionCard from "@/components/ActionCard";
 import { ShieldCheck, Users, FileClock, Settings } from "lucide-react";
 
@@ -9,12 +8,9 @@ export const metadata = {
 
 export default function PanelRootPage() {
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col">
-      <Navbar />
-
+    <div className="flex-1 bg-brand-bg flex flex-col">
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 md:px-10 lg:py-16">
         <div className="w-full max-w-4xl">
-
           {/* Page Header */}
           <header className="mb-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
             <div className="inline-flex items-center justify-center w-14 h-14 bg-brand-primary rounded-xl mb-5 shadow-lg shadow-brand-primary/20">
@@ -56,7 +52,6 @@ export default function PanelRootPage() {
               delayClass="delay-200"
             />
           </div>
-
         </div>
       </main>
     </div>

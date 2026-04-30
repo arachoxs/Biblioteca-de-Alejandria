@@ -54,9 +54,7 @@ export default function NavbarClient({
   const handleMobileMenuClose = useCallback(() => setMobileMenuOpen(false), []);
   const handleOpenChangePwd = useCallback(() => setChangePwdOpen(true), []);
 
-  const [searchValue, setSearchValue] = useState(
-    searchParams.get("q") ?? ""
-  );
+  const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
 
   useEffect(() => {
     const currentQuery = searchParams.get("q") ?? "";
@@ -68,10 +66,7 @@ export default function NavbarClient({
   // ── Close desktop menu on outside click ───────────────────────────
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node)
-      ) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
       }
     }
@@ -120,8 +115,7 @@ export default function NavbarClient({
             onClick={() => {
               setChangePwdOpen(true);
               setMenuOpen(false);
-            }}
-          >
+            }}>
             <KeyRound className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
             Cambiar contraseña
           </button>
@@ -129,22 +123,26 @@ export default function NavbarClient({
 
         {(role === Rol.ADMINISTRADOR || role === Rol.CLIENTE) && (
           <Link
-            href={role === Rol.ADMINISTRADOR && !profileComplete ? "/completar-perfil" : "/perfil"}
+            href={
+              role === Rol.ADMINISTRADOR && !profileComplete
+                ? "/completar-perfil"
+                : "/perfil"
+            }
             ref={firstMenuItemRef as React.Ref<HTMLAnchorElement>}
             role="menuitem"
             className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg rounded-lg transition-all text-left cursor-pointer group"
-            onClick={() => setMenuOpen(false)}
-          >
+            onClick={() => setMenuOpen(false)}>
             <UserCircle className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
-            {role === Rol.ADMINISTRADOR && !profileComplete ? "Completar perfil" : "Ver perfil"}
+            {role === Rol.ADMINISTRADOR && !profileComplete
+              ? "Completar perfil"
+              : "Ver perfil"}
           </Link>
         )}
 
         <button
           role="menuitem"
           onClick={() => globalSignOutAction()}
-          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-brand-primary hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-all text-left cursor-pointer group"
-        >
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-brand-primary hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-all text-left cursor-pointer group">
           <LogOut className="w-5 h-5 text-brand-primary/90 group-hover:text-brand-primary transition-colors" />
           Cerrar sesión
         </button>
@@ -153,12 +151,11 @@ export default function NavbarClient({
   }
 
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-10 py-4 bg-brand-text border-b-4 border-brand-primary">
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-10 py-4 bg-brand-text border-b-4 border-brand-primary">
       {/* ── Brand ─────────────────────────────────────────────────── */}
       <Link
         href="/"
-        className="flex items-center gap-3 text-brand-bg hover:opacity-90 transition-opacity"
-      >
+        className="flex items-center gap-3 text-brand-bg hover:opacity-90 transition-opacity">
         <Image
           src="/logo-fondo-oscuro.png"
           alt="Biblioteca de Alejandría"
@@ -195,8 +192,7 @@ export default function NavbarClient({
         {role === Rol.ROOT && (
           <Link
             href="/panel-root"
-            className="flex items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition-colors"
-          >
+            className="flex items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition-colors">
             <Crown className="w-4 h-4" />
             Panel Root
           </Link>
@@ -205,8 +201,7 @@ export default function NavbarClient({
         {role === Rol.ADMINISTRADOR && profileComplete && (
           <Link
             href="/panel-admin"
-            className="flex items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition-colors"
-          >
+            className="flex items-center gap-2 px-3 py-2 text-xs font-medium tracking-wide text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition-colors">
             <ShieldCheck className="w-4 h-4" />
             Panel Administración
           </Link>
@@ -227,15 +222,13 @@ export default function NavbarClient({
           <div className="flex items-center gap-2">
             <Link
               href="/register"
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-secondary hover:bg-brand-secondary/90 rounded-lg shadow-sm transition-colors cursor-pointer"
-            >
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-secondary hover:bg-brand-secondary/90 rounded-lg shadow-sm transition-colors cursor-pointer">
               <UserPlus className="w-4 h-4" />
               Registrarse
             </Link>
             <Link
               href="/login"
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-primary hover:bg-brand-primary/90 rounded-lg shadow-sm transition-colors cursor-pointer"
-            >
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-primary hover:bg-brand-primary/90 rounded-lg shadow-sm transition-colors cursor-pointer">
               <LogIn className="w-4 h-4" />
               Iniciar sesión
             </Link>
@@ -254,8 +247,7 @@ export default function NavbarClient({
               aria-label="Menú de usuario"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-controls="user-menu"
-            >
+              aria-controls="user-menu">
               <User className="w-5 h-5" />
               <ChevronDown
                 className={`w-4 h-4 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`}
@@ -268,8 +260,7 @@ export default function NavbarClient({
                 role="menu"
                 aria-labelledby="user-menu-button"
                 tabIndex={-1}
-                className="absolute right-0 mt-2 w-56 rounded-xl bg-white border border-brand-accent/20 shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-              >
+                className="absolute right-0 mt-2 w-56 rounded-xl bg-white border border-brand-accent/20 shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                 {/* Header */}
                 <div className="px-4 py-3 bg-brand-bg border-b border-brand-accent/20">
                   <p className="text-sm font-medium text-brand-text truncate">
@@ -295,10 +286,9 @@ export default function NavbarClient({
         ref={mobileMenuTriggerRef}
         type="button"
         onClick={() => setMobileMenuOpen(true)}
-        className="flex md:hidden items-center p-2 rounded-lg text-brand-accent hover:bg-brand-bg/10 transition-colors cursor-pointer"
+        className="flex md:hidden items-center rounded-lg text-brand-accent hover:bg-brand-bg/10 transition-colors cursor-pointer"
         aria-label="Abrir menú de navegación"
-        aria-expanded={mobileMenuOpen}
-      >
+        aria-expanded={mobileMenuOpen}>
         <Menu className="w-6 h-6" />
       </button>
 
@@ -315,9 +305,9 @@ export default function NavbarClient({
       />
 
       {/* ── Cambiar Contraseña Modal ─────────────────────────────── */}
-      <ChangePasswordModal 
-        isOpen={changePwdOpen} 
-        onClose={() => setChangePwdOpen(false)} 
+      <ChangePasswordModal
+        isOpen={changePwdOpen}
+        onClose={() => setChangePwdOpen(false)}
       />
     </nav>
   );

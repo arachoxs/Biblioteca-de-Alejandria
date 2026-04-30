@@ -30,7 +30,8 @@ export default async function Navbar() {
 
   // Derivar valores del único user object — evitamos waterfalls (data-patterns)
   const role = user
-    ? ((user.app_metadata as Record<string, unknown>)?.role as Rol) ?? VISITANTE
+    ? (((user.app_metadata as Record<string, unknown>)?.role as Rol) ??
+      VISITANTE)
     : VISITANTE;
   const email = user?.email ?? null;
   const profileComplete =
