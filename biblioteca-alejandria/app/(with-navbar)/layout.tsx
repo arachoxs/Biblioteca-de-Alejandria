@@ -8,7 +8,7 @@ export default function NavbarLayout({
   return (
     <>
       <Navbar />
-      <main className="flex-1 flex flex-col">{children}</main>
+      <div className="flex-1 flex flex-col">{children}</div>
     </>
   );
 }
