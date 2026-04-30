@@ -496,7 +496,7 @@ export async function deleteCopias(
             .join(", ")} porque no están disponibles o ya fueron eliminadas.`,
         },
         message:
-          "No se pudieron eliminar las copias porque no se encontraron todas las indicadas.",
+          "No se pudieron eliminar las copias porque no están disponibles o ya fueron eliminadas.",
       };
     }
 
