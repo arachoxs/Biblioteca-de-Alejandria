@@ -37,7 +37,7 @@ export async function createAuthor(
     if (exists) {
       return {
         success: false,
-        errors: { nombre: "Ya existe un autor con este nombre y nacionalidad." },
+        errors: { nombre: "Ya existe un autor con este nombre." },
         message: "El autor ya está registrado.",
       };
     }
@@ -62,7 +62,7 @@ export async function createAuthor(
     await logAdminAction({
       actorId: actor.id,
       action: AccionAdministrador.CREAR,
-      description: `Se creó el autor "${data.nombre}" (${data.nacionalidad}).`,
+      description: `Se creó el autor "${data.nombre}"${data.nacionalidad ? ` (${data.nacionalidad})` : ""}.`,
       entity: { id: "desconocido", entity_type: "autor", display_name: data.nombre },
     });
   }
@@ -89,7 +89,7 @@ export async function editAuthor(
     if (exists) {
       return {
         success: false,
-        errors: { nombre: "Ya existe otro autor con este nombre y nacionalidad." },
+        errors: { nombre: "Ya existe otro autor con este nombre." },
         message: "El autor ya está registrado.",
       };
     }

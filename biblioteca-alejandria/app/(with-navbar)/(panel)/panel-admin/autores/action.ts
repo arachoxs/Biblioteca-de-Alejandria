@@ -24,8 +24,8 @@ export async function crearAutor(
   fechaNacimiento: string
 ): Promise<AuthorActionResponse> {
   const cleanNombre = sanitizeText(nombre);
-  const cleanNacionalidad = sanitizeText(nacionalidad);
-  const cleanFecha = fechaNacimiento.trim();
+  const cleanNacionalidad = nacionalidad.trim() || null;
+  const cleanFecha = fechaNacimiento.trim() || null;
 
   const errors = validateAuthor({
     nombre: cleanNombre,
@@ -58,8 +58,8 @@ export async function actualizarAutor(
   }
 
   const cleanNombre = sanitizeText(nombre);
-  const cleanNacionalidad = sanitizeText(nacionalidad);
-  const cleanFecha = fechaNacimiento.trim();
+  const cleanNacionalidad = nacionalidad.trim() || null;
+  const cleanFecha = fechaNacimiento.trim() || null;
 
   const errors = validateAuthor({
     nombre: cleanNombre,

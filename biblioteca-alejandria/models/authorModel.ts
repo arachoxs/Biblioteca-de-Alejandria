@@ -157,20 +157,24 @@ export async function getAuthors(
  */
 export async function checkAuthorExists(
   nombre: string,
-  nacionalidad: string,
+  nacionalidad: string | null,
   excludeId?: number
 ): Promise<boolean> {
   const adminClient = createAdminClient();
 
   const escapedNombre = escapeLikePattern(nombre.trim());
-  const escapedNacionalidad = escapeLikePattern(nacionalidad.trim());
+  const hasNacionalidad = nacionalidad && nacionalidad.trim() !== "";
 
   let query = adminClient
     .from("autor")
     .select("id")
     .ilike("nombre", escapedNombre)
-    .ilike("nacionalidad", escapedNacionalidad)
     .is("deleted_at", null);
+
+  if (hasNacionalidad) {
+    const escapedNacionalidad = escapeLikePattern(nacionalidad!.trim());
+    query = query.ilike("nacionalidad", escapedNacionalidad);
+  }
 
   if (excludeId !== undefined) {
     query = query.neq("id", excludeId);

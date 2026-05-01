@@ -22,7 +22,7 @@ type TiendaListRow = TiendaRow & {
   > | null;
 };
 
-const TIENDA_BASE_COLUMNS = "id, nombre, horario, id_direccion, deleted_at";
+const TIENDA_BASE_COLUMNS = "id, nombre, horario, id_direccion, es_bodega, deleted_at";
 
 function normalizeTiendaRow(row: TiendaRow): TiendaRead {
   return {
@@ -30,6 +30,7 @@ function normalizeTiendaRow(row: TiendaRow): TiendaRead {
     nombre: row.nombre,
     horario: row.horario as unknown as TiendaRead["horario"],
     id_direccion: row.id_direccion,
+    es_bodega: row.es_bodega,
     deleted_at: row.deleted_at,
   };
 }

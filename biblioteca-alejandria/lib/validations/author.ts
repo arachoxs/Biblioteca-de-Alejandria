@@ -6,8 +6,8 @@ import {
 
 export interface AuthorValidationPayload {
   nombre: string;
-  nacionalidad: string;
-  fecha_nacimiento: string;
+  nacionalidad: string | null;
+  fecha_nacimiento: string | null;
 }
 
 // Fecha mínima razonable: autores históricos más remotos (~700 años A.D.)
@@ -27,19 +27,11 @@ export function validateAuthor(payload: AuthorValidationPayload): Record<string,
   if (nombreError) errors.nombre = nombreError;
 
   const nacionalidadError = validateFieldRules(payload.nacionalidad, [
-    requiredRule("Nacionalidad"),
     maxLengthRule(100, "Nacionalidad"),
   ]);
   if (nacionalidadError) errors.nacionalidad = nacionalidadError;
 
-  // Validación de fecha: requerida + formato + rango histórico-razonable
-  const fechaReq = validateFieldRules(payload.fecha_nacimiento, [
-    requiredRule("Fecha de nacimiento"),
-  ]);
-
-  if (fechaReq) {
-    errors.fecha_nacimiento = fechaReq;
-  } else {
+  if (payload.fecha_nacimiento) {
     const date = new Date(payload.fecha_nacimiento);
 
     if (isNaN(date.getTime())) {
