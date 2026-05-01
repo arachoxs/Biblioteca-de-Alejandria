@@ -86,6 +86,7 @@ export async function createCategory(
       return {
         success: false,
         errors: { nombre: "El nombre de la categoría es obligatorio." },
+        message: "El nombre de la categoría es obligatorio.",
       };
     }
 
@@ -95,6 +96,7 @@ export async function createCategory(
       return {
         success: false,
         errors: { nombre: "Ya existe una categoría con ese nombre." },
+        message: "Ya existe una categoría con ese nombre.",
       };
     }
 
@@ -158,6 +160,7 @@ export async function updateCategory(
       return {
         success: false,
         errors: { form: "La categoría no existe o ya fue eliminada." },
+        message: "La categoría no existe o ya fue eliminada.",
       };
     }
 
@@ -168,6 +171,7 @@ export async function updateCategory(
       return {
         success: false,
         errors: { form: "Debes enviar al menos un campo para actualizar." },
+        message: "Debes enviar al menos un campo para actualizar.",
       };
     }
 
@@ -180,6 +184,7 @@ export async function updateCategory(
         return {
           success: false,
           errors: { nombre: "El nombre de la categoría es obligatorio." },
+          message: "El nombre de la categoría es obligatorio.",
         };
       }
 
@@ -194,6 +199,7 @@ export async function updateCategory(
           return {
             success: false,
             errors: { nombre: "Ya existe una categoría con ese nombre." },
+            message: "Ya existe una categoría con ese nombre.",
           };
         }
       }
@@ -259,6 +265,7 @@ export async function deleteCategory(
       return {
         success: false,
         errors: { form: "La categoría no existe o ya fue eliminada." },
+        message: "La categoría no existe o ya fue eliminada.",
       };
     }
 
@@ -269,6 +276,8 @@ export async function deleteCategory(
         errors: {
           form: "No se puede eliminar la categoría porque tiene libros asociados.",
         },
+        message:
+          "No se puede eliminar la categoría porque tiene libros asociados.",
       };
     }
 
@@ -310,4 +319,3 @@ export async function deleteCategory(
     };
   }
 }
-

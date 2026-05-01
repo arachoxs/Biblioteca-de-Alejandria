@@ -77,6 +77,7 @@ export async function createTienda(
       return {
         success: false,
         errors: { nombre: "Ya existe una tienda con ese nombre." },
+        message: "Ya existe una tienda con ese nombre.",
       };
     }
 
@@ -87,6 +88,7 @@ export async function createTienda(
       return {
         success: false,
         errors: { direccion: "La dirección ya está asociada a otra tienda." },
+        message: "La dirección ya está asociada a otra tienda.",
       };
     }
 
@@ -102,6 +104,7 @@ export async function createTienda(
           direccion:
             addressResult.error ?? "No se pudo registrar la dirección.",
         },
+        message: addressResult.error ?? "No se pudo registrar la dirección.",
       };
     }
 
@@ -172,6 +175,7 @@ export async function updateTienda(
       return {
         success: false,
         errors: { form: "La tienda no existe o ya fue eliminada." },
+        message: "La tienda no existe o ya fue eliminada.",
       };
     }
 
@@ -188,6 +192,7 @@ export async function updateTienda(
         return {
           success: false,
           errors: { nombre: "Ya existe una tienda con ese nombre." },
+          message: "Ya existe una tienda con ese nombre.",
         };
       }
     }
@@ -207,6 +212,7 @@ export async function updateTienda(
         return {
           success: false,
           errors: { direccion: "La dirección ya está asociada a otra tienda." },
+          message: "La dirección ya está asociada a otra tienda.",
         };
       }
     }
@@ -234,6 +240,7 @@ export async function updateTienda(
             direccion:
               addressResult.error ?? "No se pudo registrar la dirección.",
           },
+          message: addressResult.error ?? "No se pudo registrar la dirección.",
         };
       }
 
@@ -299,16 +306,19 @@ export async function deleteTienda(
       return {
         success: false,
         errors: { form: "La tienda no existe o ya fue eliminada." },
+        message: "La tienda no existe o ya fue eliminada.",
       };
     }
 
     const activeCopyCount = await getActiveCopyCountForTienda(tiendaId);
     if (activeCopyCount > 0) {
+      const cannotDeleteMessage = `No se puede eliminar la tienda porque tiene ${activeCopyCount} copia${activeCopyCount === 1 ? "" : "s"} activa${activeCopyCount === 1 ? "" : "s"} asociada${activeCopyCount === 1 ? "" : "s"}.`;
       return {
         success: false,
         errors: {
-          form: `No se puede eliminar la tienda porque tiene ${activeCopyCount} copia${activeCopyCount === 1 ? "" : "s"} activa${activeCopyCount === 1 ? "" : "s"} asociada${activeCopyCount === 1 ? "" : "s"}.`,
+          form: cannotDeleteMessage,
         },
+        message: cannotDeleteMessage,
       };
     }
 

@@ -291,6 +291,7 @@ export async function createCopias(
     return {
       success: false,
       errors: { cantidad: "La cantidad de copias debe ser mayor a 0." },
+      message: "La cantidad de copias debe ser mayor a 0.",
     };
   }
 
@@ -302,6 +303,7 @@ export async function createCopias(
         errors: {
           id_libro: "El libro indicado no existe o fue eliminado.",
         },
+        message: "El libro indicado no existe o fue eliminado.",
       };
     }
 
@@ -309,11 +311,14 @@ export async function createCopias(
     // resolveStoreId garantiza id_tienda cuando success=true,
     // así que no se necesita la condición compuesta.
     if (!storeResolution.success) {
+      const storeResolutionMessage =
+        storeResolution.error ?? "No se pudo resolver la tienda.";
       return {
         success: false,
         errors: {
-          id_tienda: storeResolution.error ?? "No se pudo resolver la tienda.",
+          id_tienda: storeResolutionMessage,
         },
+        message: storeResolutionMessage,
       };
     }
     const targetStoreId = storeResolution.id_tienda as string;
@@ -394,6 +399,7 @@ export async function transferCopias(
         errors: {
           id_tienda: "La tienda destino no existe o fue eliminada.",
         },
+        message: "La tienda destino no existe o fue eliminada.",
       };
     }
 
@@ -559,6 +565,7 @@ export async function getCopiaInfoById(
       return {
         success: false,
         errors: { id: "La copia no existe o fue eliminada." },
+        message: "La copia no existe o fue eliminada.",
       };
     }
 
@@ -635,6 +642,7 @@ export async function fetchInventarioCopiasByLibro(
       return {
         success: false,
         errors: { libro_id: "El libro indicado no existe o fue eliminado." },
+        message: "El libro indicado no existe o fue eliminado.",
       };
     }
 
