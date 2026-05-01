@@ -6,7 +6,10 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { useValidation } from "@/hooks/useValidation";
 import { sanitizeText } from "@/lib/validations/rules";
-import { validateTienda, validateTiendaUpdate } from "@/lib/validations/tienda";
+import {
+  validateTienda,
+  validateTiendaUpdate,
+} from "@/lib/validations/tienda/tiendaData";
 import {
   TIENDA_DIAS,
   type CreateTiendaInput,

@@ -10,7 +10,7 @@ import {
   placeIdRequiredRule,
   requiredRule,
   validateFieldRules,
-} from "./rules";
+} from "../rules";
 
 export interface TiendaValidationPayload {
   nombre: string;
@@ -36,13 +36,19 @@ function validateHorario(horario: TiendaHorario): Record<string, string> {
     if (!rango) continue;
     openDaysCount += 1;
 
-    if (!TIME_24H_REGEX.test(rango.apertura) || !TIME_24H_REGEX.test(rango.cierre)) {
+    if (
+      !TIME_24H_REGEX.test(rango.apertura) ||
+      !TIME_24H_REGEX.test(rango.cierre)
+    ) {
       errors[`horario_${dia}`] = "Usa formato de hora HH:mm (24h).";
       continue;
     }
 
-    if (getMinutesFromTime(rango.apertura) >= getMinutesFromTime(rango.cierre)) {
-      errors[`horario_${dia}`] = "La hora de apertura debe ser anterior al cierre.";
+    if (
+      getMinutesFromTime(rango.apertura) >= getMinutesFromTime(rango.cierre)
+    ) {
+      errors[`horario_${dia}`] =
+        "La hora de apertura debe ser anterior al cierre.";
     }
   }
 
