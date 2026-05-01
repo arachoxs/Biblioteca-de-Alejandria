@@ -82,13 +82,6 @@ export async function createCategory(
 
   try {
     const normalizedName = normalizeCategoryName(input.nombre ?? "");
-    if (!normalizedName) {
-      return {
-        success: false,
-        errors: { nombre: "El nombre de la categoría es obligatorio." },
-        message: "El nombre de la categoría es obligatorio.",
-      };
-    }
 
     const duplicatedCategory =
       await getActiveCategoryByExactName(normalizedName);
@@ -167,26 +160,10 @@ export async function updateCategory(
     const hasName = input.nombre !== undefined;
     const hasDescription = input.descripcion !== undefined;
 
-    if (!hasName && !hasDescription) {
-      return {
-        success: false,
-        errors: { form: "Debes enviar al menos un campo para actualizar." },
-        message: "Debes enviar al menos un campo para actualizar.",
-      };
-    }
-
     const payload: CategoryUpdateInput = {};
 
     if (hasName) {
       const normalizedName = normalizeCategoryName(input.nombre ?? "");
-
-      if (!normalizedName) {
-        return {
-          success: false,
-          errors: { nombre: "El nombre de la categoría es obligatorio." },
-          message: "El nombre de la categoría es obligatorio.",
-        };
-      }
 
       if (!isSameName(normalizedName, currentCategory.nombre)) {
         const duplicatedCategory =
