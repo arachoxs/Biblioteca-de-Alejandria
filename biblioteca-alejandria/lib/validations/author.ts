@@ -6,8 +6,8 @@ import {
 
 export interface AuthorValidationPayload {
   nombre: string;
-  nacionalidad: string | null;
-  fecha_nacimiento: string | null;
+  nacionalidad?: string | null;
+  fecha_nacimiento?: string | null;
 }
 
 // Fecha mínima razonable: autores históricos más remotos (~700 años A.D.)

@@ -163,7 +163,7 @@ export async function checkAuthorExists(
   const adminClient = createAdminClient();
 
   const escapedNombre = escapeLikePattern(nombre.trim());
-  const hasNacionalidad = nacionalidad && nacionalidad.trim() !== "";
+  const hasNacionalidad = !!(nacionalidad && nacionalidad.trim() !== "");
 
   let query = adminClient
     .from("autor")
@@ -174,13 +174,15 @@ export async function checkAuthorExists(
   if (hasNacionalidad) {
     const escapedNacionalidad = escapeLikePattern(nacionalidad!.trim());
     query = query.ilike("nacionalidad", escapedNacionalidad);
+  } else {
+    query = query.is("nacionalidad", null);
   }
 
   if (excludeId !== undefined) {
     query = query.neq("id", excludeId);
   }
 
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await query.limit(1).maybeSingle();
 
   if (error) {
     console.error("[authorModel] Error al verificar existencia de autor:", error);
