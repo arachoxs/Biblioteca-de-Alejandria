@@ -277,8 +277,8 @@ async function logDeleteCopiasAudit(copyIds: string[]): Promise<void> {
  * Crea una o varias copias de un libro.
  * Si no se envía `id_tienda`, usa la tienda de inventario general.
  *
- * Complejidad ciclomática: 9
- *   if roleCheck · if cantidad<1 · if !libro · if !storeResolution
+ * Complejidad ciclomática: 8
+ *   if roleCheck · if !libro · if !storeResolution
  *   if !result · catch historico · ternary mensaje · catch externo
  */
 export async function createCopias(
@@ -286,13 +286,6 @@ export async function createCopias(
 ): Promise<CopiaActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
-
-  if (input.cantidad < 1) {
-    return {
-      success: false,
-      errors: { cantidad: "La cantidad de copias debe ser mayor a 0." },
-    };
-  }
 
   try {
     const libro = await getActiveLibroById(input.id_libro);
@@ -302,6 +295,7 @@ export async function createCopias(
         errors: {
           id_libro: "El libro indicado no existe o fue eliminado.",
         },
+        message: "El libro indicado no existe o fue eliminado.",
       };
     }
 
@@ -309,11 +303,14 @@ export async function createCopias(
     // resolveStoreId garantiza id_tienda cuando success=true,
     // así que no se necesita la condición compuesta.
     if (!storeResolution.success) {
+      const storeResolutionMessage =
+        storeResolution.error ?? "No se pudo resolver la tienda.";
       return {
         success: false,
         errors: {
-          id_tienda: storeResolution.error ?? "No se pudo resolver la tienda.",
+          id_tienda: storeResolutionMessage,
         },
+        message: storeResolutionMessage,
       };
     }
     const targetStoreId = storeResolution.id_tienda as string;
@@ -366,8 +363,8 @@ export async function createCopias(
 /**
  * Traslada una o varias copias a una tienda destino.
  *
- * Complejidad ciclomática: 8
- *   if roleCheck · if copyIds=0 · if !store · if copias faltantes
+ * Complejidad ciclomática: 7
+ *   if roleCheck · if !store · if copias faltantes
  *   if !result · ternary mensaje · catch externo
  */
 export async function transferCopias(
@@ -377,14 +374,6 @@ export async function transferCopias(
   if (!roleCheck.success) return roleCheck;
 
   const copyIds = toUniqueIds(input.ids);
-  if (copyIds.length === 0) {
-    return {
-      success: false,
-      errors: { ids: "Debes indicar al menos una copia para trasladar." },
-      message:
-        "No se pudieron trasladar las copias porque no se indicaron copias a trasladar.",
-    };
-  }
 
   try {
     const store = await getActiveTiendaById(input.id_tienda);
@@ -394,6 +383,7 @@ export async function transferCopias(
         errors: {
           id_tienda: "La tienda destino no existe o fue eliminada.",
         },
+        message: "La tienda destino no existe o fue eliminada.",
       };
     }
 
@@ -450,8 +440,8 @@ export async function transferCopias(
 /**
  * Realiza eliminación lógica de una o varias copias.
  *
- * Complejidad ciclomática: 8
- *   if roleCheck · if copyIds=0 · if copias faltantes · if inválidas
+ * Complejidad ciclomática: 7
+ *   if roleCheck · if copias faltantes · if inválidas
  *   if !result · catch historico · catch externo
  */
 export async function deleteCopias(
@@ -461,14 +451,6 @@ export async function deleteCopias(
   if (!roleCheck.success) return roleCheck;
 
   const copyIds = toUniqueIds(input.ids);
-  if (copyIds.length === 0) {
-    return {
-      success: false,
-      errors: { ids: "Debes indicar al menos una copia para eliminar." },
-      message:
-        "No se pudieron eliminar las copias porque no se indicaron copias a eliminar.",
-    };
-  }
 
   try {
     const copiasInfo = await getInfos(copyIds);
@@ -559,6 +541,7 @@ export async function getCopiaInfoById(
       return {
         success: false,
         errors: { id: "La copia no existe o fue eliminada." },
+        message: "La copia no existe o fue eliminada.",
       };
     }
 
@@ -635,6 +618,7 @@ export async function fetchInventarioCopiasByLibro(
       return {
         success: false,
         errors: { libro_id: "El libro indicado no existe o fue eliminado." },
+        message: "El libro indicado no existe o fue eliminado.",
       };
     }
 

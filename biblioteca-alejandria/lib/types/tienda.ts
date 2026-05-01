@@ -60,6 +60,51 @@ export type CreateTiendaInput = Omit<InsertTiendaPayload, "id_direccion"> &
 export type UpdateTiendaInput = Omit<UpdateTiendaPayload, "id_direccion"> &
   Partial<TiendaAddressPayload>;
 
+export type NameComparison = {
+  left: string;
+  right: string;
+};
+
+export type AddressCreationInput = {
+  direccion: string;
+  placeId: string;
+};
+
+export type AddressCleanupInput = {
+  addressId: number | null;
+};
+
+export type UpdateTiendaPrecheckParams = {
+  input: UpdateTiendaInput;
+  currentName: string;
+  tiendaId: string;
+  currentPlaceId?: string | null;
+};
+
+export type UpdateAddressDecisionParams = {
+  input: UpdateTiendaInput;
+  currentPlaceId?: string | null;
+};
+
+export type FetchTiendasParams = {
+  page?: number;
+  pageSize?: number;
+  searchTerm?: string;
+};
+
+export type UpdateTiendaParams = {
+  tiendaId: string;
+  input: UpdateTiendaInput;
+};
+
+export type DeleteTiendaParams = {
+  tiendaId: string;
+};
+
+export type AddressErrorOptions = {
+  error?: string;
+};
+
 // ─── Tipos auxiliares ──────────────────────────────────────────────
 
 /**

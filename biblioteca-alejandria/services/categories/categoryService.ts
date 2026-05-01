@@ -82,12 +82,6 @@ export async function createCategory(
 
   try {
     const normalizedName = normalizeCategoryName(input.nombre ?? "");
-    if (!normalizedName) {
-      return {
-        success: false,
-        errors: { nombre: "El nombre de la categoría es obligatorio." },
-      };
-    }
 
     const duplicatedCategory =
       await getActiveCategoryByExactName(normalizedName);
@@ -95,6 +89,7 @@ export async function createCategory(
       return {
         success: false,
         errors: { nombre: "Ya existe una categoría con ese nombre." },
+        message: "Ya existe una categoría con ese nombre.",
       };
     }
 
@@ -158,30 +153,17 @@ export async function updateCategory(
       return {
         success: false,
         errors: { form: "La categoría no existe o ya fue eliminada." },
+        message: "La categoría no existe o ya fue eliminada.",
       };
     }
 
     const hasName = input.nombre !== undefined;
     const hasDescription = input.descripcion !== undefined;
 
-    if (!hasName && !hasDescription) {
-      return {
-        success: false,
-        errors: { form: "Debes enviar al menos un campo para actualizar." },
-      };
-    }
-
     const payload: CategoryUpdateInput = {};
 
     if (hasName) {
       const normalizedName = normalizeCategoryName(input.nombre ?? "");
-
-      if (!normalizedName) {
-        return {
-          success: false,
-          errors: { nombre: "El nombre de la categoría es obligatorio." },
-        };
-      }
 
       if (!isSameName(normalizedName, currentCategory.nombre)) {
         const duplicatedCategory =
@@ -194,6 +176,7 @@ export async function updateCategory(
           return {
             success: false,
             errors: { nombre: "Ya existe una categoría con ese nombre." },
+            message: "Ya existe una categoría con ese nombre.",
           };
         }
       }
@@ -259,6 +242,7 @@ export async function deleteCategory(
       return {
         success: false,
         errors: { form: "La categoría no existe o ya fue eliminada." },
+        message: "La categoría no existe o ya fue eliminada.",
       };
     }
 
@@ -269,6 +253,8 @@ export async function deleteCategory(
         errors: {
           form: "No se puede eliminar la categoría porque tiene libros asociados.",
         },
+        message:
+          "No se puede eliminar la categoría porque tiene libros asociados.",
       };
     }
 
@@ -310,4 +296,3 @@ export async function deleteCategory(
     };
   }
 }
-

@@ -1,9 +1,6 @@
 import {
   createTienda as createTiendaModel,
   getActiveCopyCountForTienda,
-  getActiveTiendaByExactName,
-  getActiveTiendaByExactNameExcludingId,
-  getActiveTiendaById,
   getTiendas as getTiendasModel,
   softDeleteTiendaById,
   updateTiendaById,
@@ -11,33 +8,85 @@ import {
 import {
   createAddress,
   deleteAddress,
-  isTiendaAddressUsed,
   getPlaceIdByAddressId,
 } from "@/models/addressModel";
 import type {
+  AddressCleanupInput,
+  AddressCreationInput,
   CreateTiendaInput,
+  DeleteTiendaParams,
+  FetchTiendasParams,
   TiendaActionResponse,
   TiendasListResponse,
   UpdateTiendaInput,
+  UpdateTiendaParams,
   UpdateTiendaPayload,
 } from "@/lib/types/tienda";
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { getCurrentUser } from "@/models/authModel";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
+import {
+  buildAddressCreateErrorResponse,
+  getActiveTiendaOrError,
+  getCreateTiendaPrecheckError,
+  getUpdateTiendaPrecheckError,
+  shouldUpdateAddress,
+} from "@/lib/validations/tienda/businessRules";
 
-function isSameName(left: string, right: string): boolean {
-  return left.toLocaleLowerCase() === right.toLocaleLowerCase();
+async function createTiendaAddress({
+  direccion,
+  placeId,
+}: AddressCreationInput): Promise<{
+  id?: number;
+  errorResponse?: TiendaActionResponse;
+}> {
+  const addressResult = await createAddress({ direccion, placeId });
+  if (!addressResult.success || !addressResult.id) {
+    return {
+      errorResponse: buildAddressCreateErrorResponse({
+        error: addressResult.error,
+      }),
+    };
+  }
+
+  return { id: addressResult.id };
+}
+
+async function deleteAddressIfCreated({
+  addressId,
+}: AddressCleanupInput): Promise<void> {
+  if (!addressId) return;
+  await deleteAddress(addressId);
+}
+
+async function logTiendaAction(payload: {
+  action: AccionAdministrador;
+  description: string;
+  entity: {
+    id: string;
+    entity_type: "tienda";
+    display_name: string;
+  };
+}): Promise<void> {
+  const actor = await getCurrentUser();
+  if (!actor) return;
+  await logAdminAction({
+    actorId: actor.id,
+    action: payload.action,
+    description: payload.description,
+    entity: payload.entity,
+  });
 }
 
 /**
  * Obtiene tiendas activas paginadas para el panel administrativo.
  */
-export async function fetchTiendas(
-  page: number = 1,
-  pageSize: number = 10,
-  searchTerm?: string,
-): Promise<TiendasListResponse> {
+export async function fetchTiendas({
+  page = 1,
+  pageSize = 10,
+  searchTerm,
+}: FetchTiendasParams = {}): Promise<TiendasListResponse> {
   try {
     const roleCheck = await requireAdminRole();
     if (!roleCheck.success) return roleCheck;
@@ -72,51 +121,25 @@ export async function createTienda(
   let createdAddressId: number | null = null;
 
   try {
-    const duplicatedTienda = await getActiveTiendaByExactName(input.nombre);
-    if (duplicatedTienda) {
-      return {
-        success: false,
-        errors: { nombre: "Ya existe una tienda con ese nombre." },
-      };
-    }
+    const precheckError = await getCreateTiendaPrecheckError(input);
+    if (precheckError) return precheckError;
 
-    //verificar que la nueva direccion no este asociada a otra tienda activa
-    const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
-
-    if (isAddressUsed) {
-      return {
-        success: false,
-        errors: { direccion: "La dirección ya está asociada a otra tienda." },
-      };
-    }
-
-    const addressResult = await createAddress({
+    const addressResult = await createTiendaAddress({
       direccion: input.direccion,
       placeId: input.direccion_place_id,
     });
+    if (addressResult.errorResponse) return addressResult.errorResponse;
 
-    if (!addressResult.success || !addressResult.id) {
-      return {
-        success: false,
-        errors: {
-          direccion:
-            addressResult.error ?? "No se pudo registrar la dirección.",
-        },
-      };
-    }
-
-    createdAddressId = addressResult.id;
+    createdAddressId = addressResult.id ?? null;
 
     const result = await createTiendaModel({
       nombre: input.nombre,
       horario: input.horario,
-      id_direccion: addressResult.id,
+      id_direccion: addressResult.id as number,
     });
 
     if (!result.success) {
-      if (createdAddressId) {
-        await deleteAddress(createdAddressId);
-      }
+      await deleteAddressIfCreated({ addressId: createdAddressId });
       return {
         success: false,
         errors: { form: result.error ?? "No se pudo crear la tienda." },
@@ -124,19 +147,15 @@ export async function createTienda(
       };
     }
 
-    const actor = await getCurrentUser();
-    if (actor) {
-      await logAdminAction({
-        actorId: actor.id,
-        action: AccionAdministrador.CREAR,
-        description: `Se creó la tienda "${input.nombre}".`,
-        entity: {
-          id: String(result.id),
-          entity_type: "tienda",
-          display_name: input.nombre,
-        },
-      });
-    }
+    await logTiendaAction({
+      action: AccionAdministrador.CREAR,
+      description: `Se creó la tienda "${input.nombre}".`,
+      entity: {
+        id: String(result.id),
+        entity_type: "tienda",
+        display_name: input.nombre,
+      },
+    });
 
     return {
       success: true,
@@ -158,94 +177,52 @@ export async function createTienda(
 /**
  * Edita una tienda activa y valida nombre duplicado cuando cambia.
  */
-export async function updateTienda(
-  tiendaId: string,
-  input: UpdateTiendaInput,
-): Promise<TiendaActionResponse> {
+export async function updateTienda({
+  tiendaId,
+  input,
+}: UpdateTiendaParams): Promise<TiendaActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
   let createdAddressId: number | null = null;
 
   try {
-    const currentTienda = await getActiveTiendaById(tiendaId);
-    if (!currentTienda) {
-      return {
-        success: false,
-        errors: { form: "La tienda no existe o ya fue eliminada." },
-      };
+    const currentTiendaResult = await getActiveTiendaOrError(tiendaId);
+    if (!currentTiendaResult.success) {
+      return currentTiendaResult.response;
     }
-
-    if (
-      input.nombre !== undefined &&
-      !isSameName(input.nombre, currentTienda.nombre)
-    ) {
-      const duplicatedTienda = await getActiveTiendaByExactNameExcludingId(
-        input.nombre,
-        tiendaId,
-      );
-
-      if (duplicatedTienda) {
-        return {
-          success: false,
-          errors: { nombre: "Ya existe una tienda con ese nombre." },
-        };
-      }
-    }
+    const currentTienda = currentTiendaResult.tienda;
 
     const currentPlaceId = await getPlaceIdByAddressId(
       currentTienda.id_direccion,
     );
 
-    const isCurrentAddressSameAsInput =
-      input.direccion_place_id !== undefined &&
-      currentPlaceId === input.direccion_place_id;
-
-    if (input.direccion_place_id && !isCurrentAddressSameAsInput) {
-      const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
-
-      if (isAddressUsed) {
-        return {
-          success: false,
-          errors: { direccion: "La dirección ya está asociada a otra tienda." },
-        };
-      }
-    }
+    const precheckError = await getUpdateTiendaPrecheckError({
+      input,
+      currentName: currentTienda.nombre,
+      tiendaId,
+      currentPlaceId,
+    });
+    if (precheckError) return precheckError;
 
     const payload: UpdateTiendaPayload = {
       ...(input.nombre !== undefined ? { nombre: input.nombre } : {}),
       ...(input.horario !== undefined ? { horario: input.horario } : {}),
     };
 
-    const shouldUpdateAddress =
-      (input.direccion !== undefined ||
-        input.direccion_place_id !== undefined) &&
-      !isCurrentAddressSameAsInput;
-
-    if (shouldUpdateAddress) {
-      const addressResult = await createAddress({
+    if (shouldUpdateAddress({ input, currentPlaceId })) {
+      const addressResult = await createTiendaAddress({
         direccion: input.direccion ?? "",
         placeId: input.direccion_place_id ?? "",
       });
+      if (addressResult.errorResponse) return addressResult.errorResponse;
 
-      if (!addressResult.success || !addressResult.id) {
-        return {
-          success: false,
-          errors: {
-            direccion:
-              addressResult.error ?? "No se pudo registrar la dirección.",
-          },
-        };
-      }
-
-      createdAddressId = addressResult.id;
-      payload.id_direccion = addressResult.id;
+      createdAddressId = addressResult.id ?? null;
+      payload.id_direccion = addressResult.id as number;
     }
 
     const result = await updateTiendaById(tiendaId, payload);
     if (!result.success) {
-      if (createdAddressId) {
-        await deleteAddress(createdAddressId);
-      }
+      await deleteAddressIfCreated({ addressId: createdAddressId });
       return {
         success: false,
         errors: { form: result.error ?? "No se pudo actualizar la tienda." },
@@ -253,19 +230,15 @@ export async function updateTienda(
       };
     }
 
-    const actor = await getCurrentUser();
-    if (actor) {
-      await logAdminAction({
-        actorId: actor.id,
-        action: AccionAdministrador.MODIFICAR,
-        description: `Se actualizó la tienda "${payload.nombre ?? currentTienda.nombre}".`,
-        entity: {
-          id: tiendaId,
-          entity_type: "tienda",
-          display_name: payload.nombre ?? currentTienda.nombre,
-        },
-      });
-    }
+    await logTiendaAction({
+      action: AccionAdministrador.MODIFICAR,
+      description: `Se actualizó la tienda "${payload.nombre ?? currentTienda.nombre}".`,
+      entity: {
+        id: tiendaId,
+        entity_type: "tienda",
+        display_name: payload.nombre ?? currentTienda.nombre,
+      },
+    });
 
     return {
       success: true,
@@ -287,28 +260,28 @@ export async function updateTienda(
 /**
  * Elimina lógicamente una tienda activa si no tiene copias asociadas.
  */
-export async function deleteTienda(
-  tiendaId: string,
-): Promise<TiendaActionResponse> {
+export async function deleteTienda({
+  tiendaId,
+}: DeleteTiendaParams): Promise<TiendaActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 
   try {
-    const currentTienda = await getActiveTiendaById(tiendaId);
-    if (!currentTienda) {
-      return {
-        success: false,
-        errors: { form: "La tienda no existe o ya fue eliminada." },
-      };
+    const currentTiendaResult = await getActiveTiendaOrError(tiendaId);
+    if (!currentTiendaResult.success) {
+      return currentTiendaResult.response;
     }
+    const currentTienda = currentTiendaResult.tienda;
 
     const activeCopyCount = await getActiveCopyCountForTienda(tiendaId);
     if (activeCopyCount > 0) {
+      const cannotDeleteMessage = `No se puede eliminar la tienda porque tiene ${activeCopyCount} copia${activeCopyCount === 1 ? "" : "s"} activa${activeCopyCount === 1 ? "" : "s"} asociada${activeCopyCount === 1 ? "" : "s"}.`;
       return {
         success: false,
         errors: {
-          form: `No se puede eliminar la tienda porque tiene ${activeCopyCount} copia${activeCopyCount === 1 ? "" : "s"} activa${activeCopyCount === 1 ? "" : "s"} asociada${activeCopyCount === 1 ? "" : "s"}.`,
+          form: cannotDeleteMessage,
         },
+        message: cannotDeleteMessage,
       };
     }
 

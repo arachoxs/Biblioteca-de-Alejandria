@@ -14,11 +14,11 @@ import {
   type TiendasListResponse,
   type UpdateTiendaInput,
 } from "@/lib/types/tienda";
-import { validateTienda, validateTiendaUpdate } from "@/lib/validations/tienda";
 import {
-  sanitizeText,
-  toSafePositiveInt,
-} from "@/lib/validations/rules";
+  validateTienda,
+  validateTiendaUpdate,
+} from "@/lib/validations/tienda/tiendaData";
+import { sanitizeText, toSafePositiveInt } from "@/lib/validations/rules";
 
 function sanitizeHorario(horario: TiendaHorario): TiendaHorario {
   const sanitized = {} as TiendaHorario;
@@ -47,12 +47,18 @@ function sanitizeCreatePayload(input: CreateTiendaInput): CreateTiendaInput {
 
 function sanitizeUpdatePayload(input: UpdateTiendaInput): UpdateTiendaInput {
   return {
-    ...(input.nombre !== undefined ? { nombre: sanitizeText(input.nombre) } : {}),
-    ...(input.direccion !== undefined ? { direccion: sanitizeText(input.direccion) } : {}),
+    ...(input.nombre !== undefined
+      ? { nombre: sanitizeText(input.nombre) }
+      : {}),
+    ...(input.direccion !== undefined
+      ? { direccion: sanitizeText(input.direccion) }
+      : {}),
     ...(input.direccion_place_id !== undefined
       ? { direccion_place_id: input.direccion_place_id.trim() }
       : {}),
-    ...(input.horario !== undefined ? { horario: sanitizeHorario(input.horario) } : {}),
+    ...(input.horario !== undefined
+      ? { horario: sanitizeHorario(input.horario) }
+      : {}),
   };
 }
 
@@ -67,7 +73,11 @@ export async function getTiendasAction(
   const safePage = toSafePositiveInt(page, 1);
   const safePageSize = toSafePositiveInt(pageSize, 10);
   const cleanTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
-  return await fetchTiendas(safePage, safePageSize, cleanTerm);
+  return await fetchTiendas({
+    page: safePage,
+    pageSize: safePageSize,
+    searchTerm: cleanTerm,
+  });
 }
 
 /**
@@ -114,7 +124,7 @@ export async function updateTiendaAction(
     };
   }
 
-  return await updateTienda(cleanTiendaId, sanitized);
+  return await updateTienda({ tiendaId: cleanTiendaId, input: sanitized });
 }
 
 /**
@@ -131,5 +141,5 @@ export async function deleteTiendaAction(
     };
   }
 
-  return await deleteTienda(cleanTiendaId);
+  return await deleteTienda({ tiendaId: cleanTiendaId });
 }
