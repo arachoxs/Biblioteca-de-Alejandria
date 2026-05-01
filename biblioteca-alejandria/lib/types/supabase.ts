@@ -47,21 +47,21 @@ export type Database = {
           fecha_nacimiento: string | null
           id: number
           nacionalidad: string | null
-          nombre: string | null
+          nombre: string
         }
         Insert: {
           deleted_at?: string | null
           fecha_nacimiento?: string | null
           id?: number
           nacionalidad?: string | null
-          nombre?: string | null
+          nombre: string
         }
         Update: {
           deleted_at?: string | null
           fecha_nacimiento?: string | null
           id?: number
           nacionalidad?: string | null
-          nombre?: string | null
+          nombre?: string
         }
         Relationships: []
       }
@@ -558,6 +558,7 @@ export type Database = {
           fecha_publicacion: string
           id: string
           id_libro: string
+          imagenes: Json | null
         }
         Insert: {
           deleted_at?: string | null
@@ -566,6 +567,7 @@ export type Database = {
           fecha_publicacion: string
           id?: string
           id_libro: string
+          imagenes?: Json | null
         }
         Update: {
           deleted_at?: string | null
@@ -574,6 +576,7 @@ export type Database = {
           fecha_publicacion?: string
           id?: string
           id_libro?: string
+          imagenes?: Json | null
         }
         Relationships: [
           {
@@ -852,6 +855,7 @@ export type Database = {
       tienda: {
         Row: {
           deleted_at: string | null
+          es_bodega: boolean
           horario: Json
           id: string
           id_direccion: number
@@ -859,6 +863,7 @@ export type Database = {
         }
         Insert: {
           deleted_at?: string | null
+          es_bodega?: boolean
           horario: Json
           id?: string
           id_direccion: number
@@ -866,6 +871,7 @@ export type Database = {
         }
         Update: {
           deleted_at?: string | null
+          es_bodega?: boolean
           horario?: Json
           id?: string
           id_direccion?: number
