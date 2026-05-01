@@ -143,7 +143,7 @@ export default function AuthorFormModal({
     }
   };
 
-  // CanSubmit: no hay errores de validación y los campos obligatorios están llenos
+  // CanSubmit: el nombre no está vacío y no hay errores de validación
   const canSubmit =
     values.nombre.trim() !== "" &&
     Object.keys(errors).length === 0;
