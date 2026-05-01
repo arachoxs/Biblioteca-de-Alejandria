@@ -30,6 +30,114 @@ function isSameName(left: string, right: string): boolean {
   return left.toLocaleLowerCase() === right.toLocaleLowerCase();
 }
 
+function buildDuplicatedNameResponse(): TiendaActionResponse {
+  return {
+    success: false,
+    errors: { nombre: "Ya existe una tienda con ese nombre." },
+    message: "Ya existe una tienda con ese nombre.",
+  };
+}
+
+function buildAddressInUseResponse(): TiendaActionResponse {
+  return {
+    success: false,
+    errors: { direccion: "La dirección ya está asociada a otra tienda." },
+    message: "La dirección ya está asociada a otra tienda.",
+  };
+}
+
+function buildAddressCreateErrorResponse(error?: string): TiendaActionResponse {
+  const message = error ?? "No se pudo registrar la dirección.";
+  return {
+    success: false,
+    errors: { direccion: message },
+    message,
+  };
+}
+
+async function getCreateTiendaPrecheckError(
+  input: CreateTiendaInput,
+): Promise<TiendaActionResponse | null> {
+  const duplicatedTienda = await getActiveTiendaByExactName(input.nombre);
+  if (duplicatedTienda) return buildDuplicatedNameResponse();
+
+  const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
+  if (isAddressUsed) return buildAddressInUseResponse();
+
+  return null;
+}
+
+async function getUpdateTiendaPrecheckError(
+  input: UpdateTiendaInput,
+  currentName: string,
+  tiendaId: string,
+  currentPlaceId?: string | null,
+): Promise<TiendaActionResponse | null> {
+  if (input.nombre !== undefined && !isSameName(input.nombre, currentName)) {
+    const duplicatedTienda = await getActiveTiendaByExactNameExcludingId(
+      input.nombre,
+      tiendaId,
+    );
+    if (duplicatedTienda) return buildDuplicatedNameResponse();
+  }
+
+  if (input.direccion_place_id && currentPlaceId !== input.direccion_place_id) {
+    const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
+    if (isAddressUsed) return buildAddressInUseResponse();
+  }
+
+  return null;
+}
+
+async function createTiendaAddress(
+  direccion: string,
+  placeId: string,
+): Promise<{ id?: number; errorResponse?: TiendaActionResponse }> {
+  const addressResult = await createAddress({ direccion, placeId });
+  if (!addressResult.success || !addressResult.id) {
+    return { errorResponse: buildAddressCreateErrorResponse(addressResult.error) };
+  }
+
+  return { id: addressResult.id };
+}
+
+function shouldUpdateAddress(
+  input: UpdateTiendaInput,
+  currentPlaceId?: string | null,
+): boolean {
+  const hasAddressUpdate =
+    input.direccion !== undefined || input.direccion_place_id !== undefined;
+  if (!hasAddressUpdate) return false;
+  if (input.direccion_place_id !== undefined && currentPlaceId === input.direccion_place_id) {
+    return false;
+  }
+  return true;
+}
+
+async function deleteAddressIfCreated(addressId: number | null): Promise<void> {
+  if (!addressId) return;
+  await deleteAddress(addressId);
+}
+
+async function logTiendaAction(payload: {
+  action: AccionAdministrador;
+  description: string;
+  entity: {
+    id: string;
+    entity_type: "tienda";
+    display_name: string;
+  };
+}): Promise<void> {
+  const actor = await getCurrentUser();
+  if (!actor) return;
+  await logAdminAction({
+    actorId: actor.id,
+    action: payload.action,
+    description: payload.description,
+    entity: payload.entity,
+  });
+}
+
 /**
  * Obtiene tiendas activas paginadas para el panel administrativo.
  */
@@ -72,54 +180,25 @@ export async function createTienda(
   let createdAddressId: number | null = null;
 
   try {
-    const duplicatedTienda = await getActiveTiendaByExactName(input.nombre);
-    if (duplicatedTienda) {
-      return {
-        success: false,
-        errors: { nombre: "Ya existe una tienda con ese nombre." },
-        message: "Ya existe una tienda con ese nombre.",
-      };
-    }
+    const precheckError = await getCreateTiendaPrecheckError(input);
+    if (precheckError) return precheckError;
 
-    //verificar que la nueva direccion no este asociada a otra tienda activa
-    const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
+    const addressResult = await createTiendaAddress(
+      input.direccion,
+      input.direccion_place_id,
+    );
+    if (addressResult.errorResponse) return addressResult.errorResponse;
 
-    if (isAddressUsed) {
-      return {
-        success: false,
-        errors: { direccion: "La dirección ya está asociada a otra tienda." },
-        message: "La dirección ya está asociada a otra tienda.",
-      };
-    }
-
-    const addressResult = await createAddress({
-      direccion: input.direccion,
-      placeId: input.direccion_place_id,
-    });
-
-    if (!addressResult.success || !addressResult.id) {
-      return {
-        success: false,
-        errors: {
-          direccion:
-            addressResult.error ?? "No se pudo registrar la dirección.",
-        },
-        message: addressResult.error ?? "No se pudo registrar la dirección.",
-      };
-    }
-
-    createdAddressId = addressResult.id;
+    createdAddressId = addressResult.id ?? null;
 
     const result = await createTiendaModel({
       nombre: input.nombre,
       horario: input.horario,
-      id_direccion: addressResult.id,
+      id_direccion: addressResult.id as number,
     });
 
     if (!result.success) {
-      if (createdAddressId) {
-        await deleteAddress(createdAddressId);
-      }
+      await deleteAddressIfCreated(createdAddressId);
       return {
         success: false,
         errors: { form: result.error ?? "No se pudo crear la tienda." },
@@ -127,19 +206,15 @@ export async function createTienda(
       };
     }
 
-    const actor = await getCurrentUser();
-    if (actor) {
-      await logAdminAction({
-        actorId: actor.id,
-        action: AccionAdministrador.CREAR,
-        description: `Se creó la tienda "${input.nombre}".`,
-        entity: {
-          id: String(result.id),
-          entity_type: "tienda",
-          display_name: input.nombre,
-        },
-      });
-    }
+    await logTiendaAction({
+      action: AccionAdministrador.CREAR,
+      description: `Se creó la tienda "${input.nombre}".`,
+      entity: {
+        id: String(result.id),
+        entity_type: "tienda",
+        display_name: input.nombre,
+      },
+    });
 
     return {
       success: true,
@@ -179,80 +254,37 @@ export async function updateTienda(
       };
     }
 
-    if (
-      input.nombre !== undefined &&
-      !isSameName(input.nombre, currentTienda.nombre)
-    ) {
-      const duplicatedTienda = await getActiveTiendaByExactNameExcludingId(
-        input.nombre,
-        tiendaId,
-      );
-
-      if (duplicatedTienda) {
-        return {
-          success: false,
-          errors: { nombre: "Ya existe una tienda con ese nombre." },
-          message: "Ya existe una tienda con ese nombre.",
-        };
-      }
-    }
-
     const currentPlaceId = await getPlaceIdByAddressId(
       currentTienda.id_direccion,
     );
 
-    const isCurrentAddressSameAsInput =
-      input.direccion_place_id !== undefined &&
-      currentPlaceId === input.direccion_place_id;
-
-    if (input.direccion_place_id && !isCurrentAddressSameAsInput) {
-      const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
-
-      if (isAddressUsed) {
-        return {
-          success: false,
-          errors: { direccion: "La dirección ya está asociada a otra tienda." },
-          message: "La dirección ya está asociada a otra tienda.",
-        };
-      }
-    }
+    const precheckError = await getUpdateTiendaPrecheckError(
+      input,
+      currentTienda.nombre,
+      tiendaId,
+      currentPlaceId,
+    );
+    if (precheckError) return precheckError;
 
     const payload: UpdateTiendaPayload = {
       ...(input.nombre !== undefined ? { nombre: input.nombre } : {}),
       ...(input.horario !== undefined ? { horario: input.horario } : {}),
     };
 
-    const shouldUpdateAddress =
-      (input.direccion !== undefined ||
-        input.direccion_place_id !== undefined) &&
-      !isCurrentAddressSameAsInput;
+    if (shouldUpdateAddress(input, currentPlaceId)) {
+      const addressResult = await createTiendaAddress(
+        input.direccion ?? "",
+        input.direccion_place_id ?? "",
+      );
+      if (addressResult.errorResponse) return addressResult.errorResponse;
 
-    if (shouldUpdateAddress) {
-      const addressResult = await createAddress({
-        direccion: input.direccion ?? "",
-        placeId: input.direccion_place_id ?? "",
-      });
-
-      if (!addressResult.success || !addressResult.id) {
-        return {
-          success: false,
-          errors: {
-            direccion:
-              addressResult.error ?? "No se pudo registrar la dirección.",
-          },
-          message: addressResult.error ?? "No se pudo registrar la dirección.",
-        };
-      }
-
-      createdAddressId = addressResult.id;
-      payload.id_direccion = addressResult.id;
+      createdAddressId = addressResult.id ?? null;
+      payload.id_direccion = addressResult.id as number;
     }
 
     const result = await updateTiendaById(tiendaId, payload);
     if (!result.success) {
-      if (createdAddressId) {
-        await deleteAddress(createdAddressId);
-      }
+      await deleteAddressIfCreated(createdAddressId);
       return {
         success: false,
         errors: { form: result.error ?? "No se pudo actualizar la tienda." },
@@ -260,19 +292,15 @@ export async function updateTienda(
       };
     }
 
-    const actor = await getCurrentUser();
-    if (actor) {
-      await logAdminAction({
-        actorId: actor.id,
-        action: AccionAdministrador.MODIFICAR,
-        description: `Se actualizó la tienda "${payload.nombre ?? currentTienda.nombre}".`,
-        entity: {
-          id: tiendaId,
-          entity_type: "tienda",
-          display_name: payload.nombre ?? currentTienda.nombre,
-        },
-      });
-    }
+    await logTiendaAction({
+      action: AccionAdministrador.MODIFICAR,
+      description: `Se actualizó la tienda "${payload.nombre ?? currentTienda.nombre}".`,
+      entity: {
+        id: tiendaId,
+        entity_type: "tienda",
+        display_name: payload.nombre ?? currentTienda.nombre,
+      },
+    });
 
     return {
       success: true,
