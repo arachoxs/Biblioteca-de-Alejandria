@@ -67,7 +67,11 @@ export async function getTiendasAction(
   const safePage = toSafePositiveInt(page, 1);
   const safePageSize = toSafePositiveInt(pageSize, 10);
   const cleanTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
-  return await fetchTiendas(safePage, safePageSize, cleanTerm);
+  return await fetchTiendas({
+    page: safePage,
+    pageSize: safePageSize,
+    searchTerm: cleanTerm,
+  });
 }
 
 /**
@@ -114,7 +118,7 @@ export async function updateTiendaAction(
     };
   }
 
-  return await updateTienda(cleanTiendaId, sanitized);
+  return await updateTienda({ tiendaId: cleanTiendaId, input: sanitized });
 }
 
 /**
@@ -131,5 +135,5 @@ export async function deleteTiendaAction(
     };
   }
 
-  return await deleteTienda(cleanTiendaId);
+  return await deleteTienda({ tiendaId: cleanTiendaId });
 }
