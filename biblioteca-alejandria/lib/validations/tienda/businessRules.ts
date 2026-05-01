@@ -33,9 +33,9 @@ function buildAddressInUseResponse(): TiendaActionResponse {
   };
 }
 
-export function buildAddressCreateErrorResponse(
-  { error }: AddressErrorOptions = {},
-): TiendaActionResponse {
+export function buildAddressCreateErrorResponse({
+  error,
+}: AddressErrorOptions = {}): TiendaActionResponse {
   const message = error ?? "No se pudo registrar la dirección.";
   return {
     success: false,
@@ -56,31 +56,59 @@ export async function getCreateTiendaPrecheckError(
   return null;
 }
 
-export async function getUpdateTiendaPrecheckError(
-  { input, currentName, tiendaId, currentPlaceId }: UpdateTiendaPrecheckParams,
-): Promise<TiendaActionResponse | null> {
-  if (
-    input.nombre !== undefined &&
-    !isSameName({ left: input.nombre, right: currentName })
-  ) {
-    const duplicatedTienda = await getActiveTiendaByExactNameExcludingId(
-      input.nombre,
-      tiendaId,
-    );
-    if (duplicatedTienda) return buildDuplicatedNameResponse();
-  }
+export async function getUpdateTiendaPrecheckError({
+  input,
+  currentName,
+  tiendaId,
+  currentPlaceId,
+}: UpdateTiendaPrecheckParams): Promise<TiendaActionResponse | null> {
+  // 1. Validación de Nombre (Aislada)
+  const nameError = await validateUniqueName(
+    input.nombre,
+    currentName,
+    tiendaId,
+  );
+  if (nameError) return nameError;
 
-  if (input.direccion_place_id && currentPlaceId !== input.direccion_place_id) {
-    const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
-    if (isAddressUsed) return buildAddressInUseResponse();
-  }
+  // 2. Validación de Dirección (Aislada)
+  const addressError = await validateAddressAvailability(
+    input.direccion_place_id,
+    currentPlaceId,
+  );
+  if (addressError) return addressError;
 
   return null;
 }
 
-export function shouldUpdateAddress(
-  { input, currentPlaceId }: UpdateAddressDecisionParams,
-): boolean {
+// Funciones atómicas auxiliares (reducen la complejidad ciclomática de la función principal)
+async function validateUniqueName(
+  newName?: string,
+  currentName?: string | null,
+  id?: string,
+) {
+  if (!newName || isSameName({ left: newName, right: currentName ?? "" }))
+    return null;
+
+  const duplicated = await getActiveTiendaByExactNameExcludingId(
+    newName,
+    id ?? "",
+  );
+  return duplicated ? buildDuplicatedNameResponse() : null;
+}
+
+async function validateAddressAvailability(
+  newPlaceId?: string,
+  currentPlaceId?: string | null,
+) {
+  if (!newPlaceId || newPlaceId === currentPlaceId) return null;
+
+  const isUsed = await isTiendaAddressUsed(newPlaceId);
+  return isUsed ? buildAddressInUseResponse() : null;
+}
+export function shouldUpdateAddress({
+  input,
+  currentPlaceId,
+}: UpdateAddressDecisionParams): boolean {
   const hasAddressUpdate =
     input.direccion !== undefined || input.direccion_place_id !== undefined;
   if (!hasAddressUpdate) return false;
