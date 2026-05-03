@@ -16,6 +16,7 @@ import type {
   InventarioOptionsResponse,
 } from "@/lib/types/inventario";
 import {
+  MAX_COPIAS_POR_INSERCION,
   isValidUUID,
   sanitizeText,
   toSafePositiveInt,
@@ -103,23 +104,14 @@ export async function getInventarioCopiasAction(
 export async function createInventarioAction(input: {
   id_libro: string;
   cantidad: number;
-  id_tienda: string;
 }): Promise<CopiaActionResponse> {
   const cleanLibroId = sanitizeText(input.id_libro);
-  const cleanStoreId = sanitizeText(input.id_tienda);
   const safeQuantity = toSafePositiveInt(input.cantidad, 0);
 
   if (!isValidUUID(cleanLibroId)) {
     return {
       success: false,
       errors: { id_libro: "El libro seleccionado no es válido." },
-    };
-  }
-
-  if (!isValidUUID(cleanStoreId)) {
-    return {
-      success: false,
-      errors: { id_tienda: "La tienda seleccionada no es válida." },
     };
   }
 
@@ -130,9 +122,17 @@ export async function createInventarioAction(input: {
     };
   }
 
+  if (safeQuantity > MAX_COPIAS_POR_INSERCION) {
+    return {
+      success: false,
+      errors: {
+        cantidad: `La cantidad no puede ser mayor a ${MAX_COPIAS_POR_INSERCION}.`,
+      },
+    };
+  }
+
   return await createCopias({
     id_libro: cleanLibroId,
-    id_tienda: cleanStoreId,
     cantidad: safeQuantity,
     estado: "disponible",
   });

@@ -249,7 +249,6 @@ export default function InventarioContent() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleCreateSuccess}
-        storeOptions={storeOptions}
       />
 
       <InventarioDetailModal

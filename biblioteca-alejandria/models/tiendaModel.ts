@@ -159,7 +159,7 @@ export async function getAllActiveTiendas(): Promise<
   };
 }
 
-export default async function getDefaultTienda(): Promise<TiendaGlobal | null> {
+export async function getDefaultTienda(): Promise<TiendaGlobal | null> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
