@@ -31,7 +31,7 @@ const authorColumns: Column<AuthorWithBookCount>[] = [
               {nombre}
             </span>
             <span className="text-xs text-brand-secondary/70 lg:hidden">
-              {item.nacionalidad || "Sin nacionalidad"}
+              {item.nacionalidad || "Desconocido"}
             </span>
           </div>
         </div>
@@ -40,13 +40,13 @@ const authorColumns: Column<AuthorWithBookCount>[] = [
   },
   {
     header: "Nacionalidad",
-    render: (item) => item.nacionalidad || "Sin nacionalidad",
+    render: (item) => item.nacionalidad || "Desconocido",
     className: "hidden lg:table-cell",
   },
   {
     header: "Fecha de nacimiento",
     render: (item) => {
-      if (!item.fecha_nacimiento) return "Sin fecha";
+      if (!item.fecha_nacimiento) return "Desconocido";
       const date = new Date(item.fecha_nacimiento + "T00:00:00");
       return date.toLocaleDateString("es-ES", {
         year: "numeric",

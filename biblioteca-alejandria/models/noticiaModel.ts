@@ -20,6 +20,7 @@ interface NoticiaBaseRow {
   fecha_expiracion: string;
   es_visible: boolean;
   deleted_at: string | null;
+  imagenes: string[] | null;
 }
 
 interface NoticiaConLibroTitulo extends NoticiaBaseRow {
@@ -39,6 +40,7 @@ function mapNoticiaBase(row: NoticiaBaseRow) {
     fecha_expiracion: row.fecha_expiracion,
     es_visible: row.es_visible,
     deleted_at: row.deleted_at,
+    imagenes: row.imagenes,
   };
 }
 

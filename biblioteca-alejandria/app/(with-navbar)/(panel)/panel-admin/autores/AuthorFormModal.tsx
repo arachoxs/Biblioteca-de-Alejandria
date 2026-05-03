@@ -131,10 +131,6 @@ export default function AuthorFormModal({
           onSuccess(response.id);
         }, 1500);
       } else {
-        // Mapear errores de servidor al formulario
-        if (response.errors) {
-          setErrors((prev) => ({ ...prev, ...response.errors }));
-        }
         setAlertState(response);
       }
     } catch {
@@ -147,11 +143,9 @@ export default function AuthorFormModal({
     }
   };
 
-  // CanSubmit: no hay errores de validación y los campos obligatorios están llenos
+  // CanSubmit: el nombre no está vacío y no hay errores de validación
   const canSubmit =
     values.nombre.trim() !== "" &&
-    values.nacionalidad.trim() !== "" &&
-    values.fecha_nacimiento.trim() !== "" &&
     Object.keys(errors).length === 0;
 
   return (
@@ -188,7 +182,6 @@ export default function AuthorFormModal({
           onChange={(e) => handleChange("nacionalidad", e.target.value)}
           onBlur={() => handleBlur("nacionalidad")}
           error={errors.nacionalidad}
-          required
           disabled={isSubmitting}
         />
 
@@ -200,7 +193,6 @@ export default function AuthorFormModal({
           onChange={(e) => handleChange("fecha_nacimiento", e.target.value)}
           onBlur={() => handleBlur("fecha_nacimiento")}
           error={errors.fecha_nacimiento}
-          required
           disabled={isSubmitting}
         />
 

@@ -6,7 +6,7 @@ import {
   removeAuthor,
   fetchAuthors,
 } from "@/services/authors/authorService";
-import { sanitizeText } from "@/lib/validations/rules";
+import { sanitizeText, sanitizeNullableText } from "@/lib/validations/rules";
 import { validateAuthor } from "@/lib/validations/author";
 import type {
   AuthorsListResponse,
@@ -24,8 +24,8 @@ export async function crearAutor(
   fechaNacimiento: string
 ): Promise<AuthorActionResponse> {
   const cleanNombre = sanitizeText(nombre);
-  const cleanNacionalidad = sanitizeText(nacionalidad);
-  const cleanFecha = fechaNacimiento.trim();
+  const cleanNacionalidad = sanitizeNullableText(nacionalidad);
+  const cleanFecha = sanitizeNullableText(fechaNacimiento);
 
   const errors = validateAuthor({
     nombre: cleanNombre,
@@ -58,8 +58,8 @@ export async function actualizarAutor(
   }
 
   const cleanNombre = sanitizeText(nombre);
-  const cleanNacionalidad = sanitizeText(nacionalidad);
-  const cleanFecha = fechaNacimiento.trim();
+  const cleanNacionalidad = sanitizeNullableText(nacionalidad);
+  const cleanFecha = sanitizeNullableText(fechaNacimiento);
 
   const errors = validateAuthor({
     nombre: cleanNombre,

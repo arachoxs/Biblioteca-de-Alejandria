@@ -18,15 +18,15 @@ export interface AuthorWithBookCount extends AuthorRow {
 /** Payload para crear un nuevo autor. */
 export interface InsertAuthorPayload {
   nombre: string;
-  nacionalidad: string;
-  fecha_nacimiento: string;
+  nacionalidad: string | null;
+  fecha_nacimiento: string | null;
 }
 
 /** Payload para actualizar un autor existente. */
 export interface UpdateAuthorPayload {
   nombre: string;
-  nacionalidad: string;
-  fecha_nacimiento: string;
+  nacionalidad: string | null;
+  fecha_nacimiento: string | null;
 }
 
 // ─── Valores del formulario (frontend) ─────────────────────────────
