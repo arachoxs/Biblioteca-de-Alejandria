@@ -15,6 +15,7 @@ import { getActiveLibroById, getLibros } from "@/models/libroModel";
 import {
   getActiveTiendaByExactName,
   getActiveTiendaById,
+  getAllActiveTiendas,
   getTiendas,
 } from "@/models/tiendaModel";
 
@@ -712,11 +713,19 @@ export async function fetchInventarioStoreOptions(
   if (!roleCheck.success) return roleCheck;
 
   try {
-    const stores = await getTiendas(1, MAX_PAGE_SIZE, searchTerm);
+    const stores = await getAllActiveTiendas();
+
+    if (!stores.data) {
+      return {
+        success: false,
+        errors: { form: "No se pudieron cargar las tiendas disponibles." },
+        message: "No se pudieron cargar las tiendas disponibles.",
+      };
+    }
+
     const options: InventarioOption[] = stores.data.map((store) => ({
       value: store.id,
       label: store.nombre,
-      subtitle: store.direccion_formateada,
     }));
 
     return {

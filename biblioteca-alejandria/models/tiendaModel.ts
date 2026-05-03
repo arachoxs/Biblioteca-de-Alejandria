@@ -1,5 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import type { ModelResult, Paginated } from "@/lib/types/common";
+import type {
+  ModelResult,
+  Paginated,
+  DataResponse,
+  DataResponseArray,
+} from "@/lib/types/common";
 import type { Database } from "@/lib/types/supabase";
 import type {
   InsertTiendaPayload,
@@ -122,6 +127,35 @@ export async function getTiendas(
     page: safePage,
     pageSize: safePageSize,
     totalPages: Math.ceil(totalCount / safePageSize),
+  };
+}
+
+// obtener todas las tiendas para las mostrar listas (traslado , inventario , etc..)
+
+export async function getAllActiveTiendas(): Promise<
+  DataResponseArray<TiendaGlobal>
+> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("tienda")
+    .select("id, nombre")
+    .is("deleted_at", null)
+    .order("nombre", { ascending: true });
+
+  if (error) {
+    console.error("[tiendaModel] Error al obtener todas las tiendas:", error);
+    throw error;
+  }
+
+  const normalized = (data ?? []).map((row) => ({
+    id: row.id,
+    nombre: row.nombre,
+  }));
+
+  return {
+    success: true,
+    data: normalized,
   };
 }
 

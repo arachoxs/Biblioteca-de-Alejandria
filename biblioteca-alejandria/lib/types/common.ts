@@ -41,6 +41,10 @@ export interface DataResponse<T> extends ActionResponse {
   data?: T;
 }
 
+export interface DataResponseArray<T> extends ActionResponse {
+  data?: T[];
+}
+
 // ─── Paginación ────────────────────────────────────────────────────
 
 /**
