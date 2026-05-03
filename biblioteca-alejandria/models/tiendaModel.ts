@@ -131,6 +131,7 @@ export default async function getDefaultTienda(): Promise<TiendaGlobal | null> {
     .from("tienda")
     .select("id, nombre")
     .is("es_bodega", true)
+    .is("deleted_at", null)
     .limit(1)
     .maybeSingle();
 
