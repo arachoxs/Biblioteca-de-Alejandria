@@ -55,8 +55,7 @@ export async function getInventarioAction(
 export async function getInventarioStoreOptionsAction(
   searchTerm?: string,
 ): Promise<InventarioOptionsResponse> {
-  const cleanSearchTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
-  return await fetchInventarioStoreOptions(cleanSearchTerm || undefined);
+  return await fetchInventarioStoreOptions();
 }
 
 export async function getInventarioBookOptionsAction(

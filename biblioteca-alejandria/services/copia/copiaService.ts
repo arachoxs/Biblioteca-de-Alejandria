@@ -706,9 +706,7 @@ export async function fetchInventarioCopiasByLibro(
 /**
  * Opciones de tiendas activas para filtros y formularios de inventario.
  */
-export async function fetchInventarioStoreOptions(
-  searchTerm?: string,
-): Promise<InventarioOptionsResponse> {
+export async function fetchInventarioStoreOptions(): Promise<InventarioOptionsResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 
