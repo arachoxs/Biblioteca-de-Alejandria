@@ -96,6 +96,7 @@ export async function getTiendas(
       },
     )
     .is("deleted_at", null)
+    .is("es_bodega", false)
     .range(from, to)
     .order("nombre", { ascending: true });
 
