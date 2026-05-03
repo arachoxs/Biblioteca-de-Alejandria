@@ -39,6 +39,11 @@ export interface InsertTiendaPayload {
   id_direccion: number;
 }
 
+export type TiendaGlobal = {
+  id: string;
+  nombre: string;
+};
+
 /** Payload para actualizar una tienda existente. */
 export interface UpdateTiendaPayload {
   nombre?: string;
