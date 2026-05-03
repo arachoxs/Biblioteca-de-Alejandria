@@ -7,6 +7,7 @@ import type {
   TiendaRow,
   TiendaWithDireccion,
   UpdateTiendaPayload,
+  TiendaGlobal,
 } from "@/lib/types/tienda";
 import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
@@ -22,7 +23,8 @@ type TiendaListRow = TiendaRow & {
   > | null;
 };
 
-const TIENDA_BASE_COLUMNS = "id, nombre, horario, id_direccion, es_bodega, deleted_at";
+const TIENDA_BASE_COLUMNS =
+  "id, nombre, horario, id_direccion, es_bodega, deleted_at";
 
 function normalizeTiendaRow(row: TiendaRow): TiendaRead {
   return {
@@ -94,6 +96,7 @@ export async function getTiendas(
       },
     )
     .is("deleted_at", null)
+    .is("es_bodega", false)
     .range(from, to)
     .order("nombre", { ascending: true });
 
@@ -120,6 +123,25 @@ export async function getTiendas(
     pageSize: safePageSize,
     totalPages: Math.ceil(totalCount / safePageSize),
   };
+}
+
+export default async function getDefaultTienda(): Promise<TiendaGlobal | null> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("tienda")
+    .select("id, nombre")
+    .is("es_bodega", true)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[tiendaModel] Error al obtener tienda por defecto:", error);
+    throw error;
+  }
+
+  return data ? { id: data.id, nombre: data.nombre } : null;
 }
 
 /**
