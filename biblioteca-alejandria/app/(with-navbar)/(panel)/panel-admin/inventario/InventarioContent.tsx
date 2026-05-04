@@ -4,7 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
 import Alert from "@/components/ui/Alert";
-import { AlertCircle, Boxes, CheckCircle, Loader2, Plus } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRightLeft,
+  Boxes,
+  CheckCircle,
+  Loader2,
+  Plus,
+} from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import type {
   InventarioLibroItem,
@@ -13,6 +20,7 @@ import type {
 import InventarioTable from "./InventarioTable";
 import AddInventarioModal from "./AddInventarioModal";
 import InventarioDetailModal from "./InventarioDetailModal";
+import TransferInventarioModal from "./TransferInventarioModal";
 import { getInventarioAction, getInventarioStoreOptionsAction } from "./action";
 
 interface FeedbackState {
@@ -34,6 +42,7 @@ export default function InventarioContent() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [detailLibro, setDetailLibro] = useState<InventarioLibroItem | null>(
     null,
   );
@@ -124,6 +133,11 @@ export default function InventarioContent() {
     await refreshCurrentData();
   };
 
+  const handleTransferSuccess = async (message: string) => {
+    setFeedback({ success: true, message });
+    await refreshCurrentData();
+  };
+
   const handleDetailSuccess = async (message: string) => {
     setFeedback({ success: true, message });
     await refreshCurrentData();
@@ -172,13 +186,23 @@ export default function InventarioContent() {
           </p>
         </div>
 
-        <Button
-          className="flex items-center justify-center gap-2 w-full md:w-auto min-w-60 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30 transition-shadow"
-          onClick={() => setIsCreateModalOpen(true)}
-          disabled={isLoadingStores}>
-          <Plus className="w-4 h-4" />
-          Agregar inventario
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <Button
+            className="flex items-center justify-center gap-2 w-full md:w-auto min-w-60 shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30 transition-shadow"
+            onClick={() => setIsCreateModalOpen(true)}
+            disabled={isLoadingStores}>
+            <Plus className="w-4 h-4" />
+            Agregar inventario
+          </Button>
+          <Button
+            className="flex items-center justify-center gap-2 w-full md:w-auto min-w-60"
+            variant="secondary"
+            onClick={() => setIsTransferModalOpen(true)}
+            disabled={isLoadingStores}>
+            <ArrowRightLeft className="w-4 h-4" />
+            Trasladar inventario
+          </Button>
+        </div>
       </div>
 
       <section className="mb-6 bg-white border border-brand-accent/20 rounded-xl shadow-sm p-4">
@@ -249,6 +273,13 @@ export default function InventarioContent() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleCreateSuccess}
+      />
+
+      <TransferInventarioModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        onSuccess={handleTransferSuccess}
+        storeOptions={storeOptions}
       />
 
       <InventarioDetailModal

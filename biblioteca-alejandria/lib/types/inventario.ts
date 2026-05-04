@@ -26,6 +26,14 @@ export interface InventarioOption {
   subtitle?: string;
 }
 
+export interface InventarioTransferBookOption extends InventarioOption {
+  max_copias_disponibles: number;
+}
+
 export type InventarioListResponse = PaginatedResponse<InventarioLibroItem>;
 export type InventarioCopiasResponse = PaginatedResponse<InventarioCopiaDetalle>;
 export type InventarioOptionsResponse = DataResponse<InventarioOption[]>;
+export type InventarioOptionResponse = DataResponse<InventarioOption>;
+export type InventarioTransferBooksResponse = DataResponse<
+  InventarioTransferBookOption[]
+>;

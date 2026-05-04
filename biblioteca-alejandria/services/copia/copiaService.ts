@@ -2,10 +2,12 @@ import {
   getCopias as getCopiasModel,
   getCopiaById as getCopiaByIdModel,
   getCopiasByIds as getCopiasByIdsModel,
+  getAvailableCopiasByLibroAndStore,
   getInventarioRows as getInventarioRowsModel,
   insertCopias,
   softDeleteCopias,
   transferCopias as transferCopiasModel,
+  transferCopiasByQuantityAtomic,
 } from "@/models/copiaModel";
 import {
   getHistoricoSyncSnapshotsByLibros,
@@ -27,6 +29,7 @@ import type {
   DeleteCopiasInput,
   OneOrManyCopyIds,
   TransferCopiasInput,
+  TransferCopiasByQuantityInput,
 } from "@/lib/types/copia";
 import type {
   InventarioCopiasResponse,
@@ -52,6 +55,10 @@ function toUniqueIds(ids: OneOrManyCopyIds): string[] {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Error desconocido";
+}
+
+function getInsufficientStockMessage(availableCount: number): string {
+  return `Solo hay ${availableCount} copia${availableCount === 1 ? "" : "s"} disponible${availableCount === 1 ? "" : "s"} para trasladar en la tienda origen.`;
 }
 
 function getMissingCopyIds(
@@ -402,6 +409,126 @@ export async function transferCopias(
       success: false,
       errors: { form: getErrorMessage(error) },
       message: "No se pudieron trasladar las copias.",
+    };
+  }
+}
+
+export async function transferCopiasByQuantity(
+  input: TransferCopiasByQuantityInput,
+): Promise<CopiaActionResponse> {
+  const roleCheck = await requireAdminRole();
+  if (!roleCheck.success) return roleCheck;
+
+  const safeQuantity = Math.max(1, input.cantidad);
+
+  try {
+    const originStore = await getActiveTiendaById(input.id_tienda_origen);
+    if (!originStore) {
+      return {
+        success: false,
+        errors: {
+          id_tienda_origen: "La tienda origen no existe o fue eliminada.",
+        },
+        message: "La tienda origen no existe o fue eliminada.",
+      };
+    }
+
+    const destinationStore = await getActiveTiendaById(input.id_tienda_destino);
+    if (!destinationStore) {
+      return {
+        success: false,
+        errors: {
+          id_tienda_destino: "La tienda destino no existe o fue eliminada.",
+        },
+        message: "La tienda destino no existe o fue eliminada.",
+      };
+    }
+
+    if (originStore.id === destinationStore.id) {
+      return {
+        success: false,
+        errors: {
+          id_tienda_destino:
+            "La tienda destino debe ser distinta a la tienda origen.",
+        },
+        message:
+          "La tienda destino debe ser distinta a la tienda origen para realizar el traslado.",
+      };
+    }
+
+    const libro = await getActiveLibroById(input.id_libro);
+    if (!libro) {
+      return {
+        success: false,
+        errors: {
+          id_libro: "El libro indicado no existe o fue eliminado.",
+        },
+        message: "El libro indicado no existe o fue eliminado.",
+      };
+    }
+
+    const availableCopies = await getAvailableCopiasByLibroAndStore(
+      input.id_libro,
+      input.id_tienda_origen,
+      safeQuantity,
+    );
+
+    if (availableCopies.length < safeQuantity) {
+      return {
+        success: false,
+        errors: {
+          cantidad: getInsufficientStockMessage(availableCopies.length),
+        },
+        message:
+          "No hay suficientes copias disponibles en la tienda origen para completar el traslado.",
+      };
+    }
+
+    const transferResult = await transferCopiasByQuantityAtomic({
+      id_tienda_origen: input.id_tienda_origen,
+      id_tienda_destino: input.id_tienda_destino,
+      id_libro: input.id_libro,
+      cantidad: safeQuantity,
+    });
+
+    if (!transferResult.success) {
+      if (transferResult.errorCode === "INSUFFICIENT_STOCK") {
+        return {
+          success: false,
+          errors: { cantidad: "La disponibilidad cambió durante el traslado." },
+          message:
+            "No hay suficientes copias disponibles en la tienda origen para completar el traslado.",
+        };
+      }
+
+      return {
+        success: false,
+        errors: {
+          form: transferResult.error ?? "No se pudo trasladar el inventario.",
+        },
+        message: transferResult.error ?? "No se pudo trasladar el inventario.",
+      };
+    }
+
+    const transferredIds = transferResult.transferredIds ?? [];
+    await logTransferCopiasAudit(transferredIds, destinationStore);
+
+    return {
+      success: true,
+      message:
+        safeQuantity === 1
+          ? "Inventario trasladado exitosamente."
+          : `${safeQuantity} copias trasladadas exitosamente.`,
+    };
+  } catch (error: unknown) {
+    console.error(
+      "[copiaServices] Error inesperado al trasladar inventario por cantidad:",
+      error,
+    );
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "No se pudo trasladar el inventario por cantidad.",
     };
   }
 }
