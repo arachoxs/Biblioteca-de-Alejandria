@@ -12,7 +12,7 @@ import {
   toSafePositiveInt,
 } from "@/lib/validations/rules";
 
-export function sanitizeUuidList(ids: string[]): string[] {
+export function sanitizeUuidList({ ids }: { ids: string[] }): string[] {
   return Array.from(
     new Set(
       ids.map((id) => sanitizeText(id)).filter((id) => id && isValidUUID(id)),
@@ -20,12 +20,20 @@ export function sanitizeUuidList(ids: string[]): string[] {
   );
 }
 
-export function sanitizeOptionalSearchTerm(searchTerm?: string): string | undefined {
+export function sanitizeOptionalSearchTerm({
+  searchTerm,
+}: {
+  searchTerm?: string;
+}): string | undefined {
   const cleanSearchTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
   return cleanSearchTerm || undefined;
 }
 
-export function sanitizeOptionalStoreId(id_tienda?: string): string | undefined {
+export function sanitizeOptionalStoreId({
+  id_tienda,
+}: {
+  id_tienda?: string;
+}): string | undefined {
   const sanitizedStoreId = id_tienda ? sanitizeText(id_tienda) : undefined;
   return sanitizedStoreId && isValidUUID(sanitizedStoreId)
     ? sanitizedStoreId
@@ -46,8 +54,8 @@ export function sanitizeInventarioListInput({
   return {
     page: toSafePositiveInt(page, 1),
     pageSize: toSafePositiveInt(pageSize, 10),
-    searchTerm: sanitizeOptionalSearchTerm(searchTerm),
-    id_tienda: sanitizeOptionalStoreId(id_tienda),
+    searchTerm: sanitizeOptionalSearchTerm({ searchTerm }),
+    id_tienda: sanitizeOptionalStoreId({ id_tienda }),
   };
 }
 
@@ -66,7 +74,7 @@ export function sanitizeTransferInventarioCopiasInput(input: {
   id_tienda: string;
 }) {
   return {
-    ids: sanitizeUuidList(input.ids),
+    ids: sanitizeUuidList({ ids: input.ids }),
     id_tienda: sanitizeText(input.id_tienda),
   };
 }
@@ -86,7 +94,7 @@ export function sanitizeTransferInventarioByQuantityInput(input: {
 }
 
 export function getTransferBooksStoreIdValidationError(
-  storeId: string,
+  { storeId }: { storeId: string },
 ): InventarioTransferBooksResponse | null {
   if (isValidUUID(storeId)) return null;
   return {
@@ -96,7 +104,7 @@ export function getTransferBooksStoreIdValidationError(
 }
 
 export function getInventarioLibroIdValidationError(
-  libroId: string,
+  { libroId }: { libroId: string },
 ): InventarioCopiasResponse | null {
   if (isValidUUID(libroId)) return null;
   return {
@@ -106,7 +114,7 @@ export function getInventarioLibroIdValidationError(
 }
 
 export function getCreateInventarioLibroIdValidationError(
-  libroId: string,
+  { libroId }: { libroId: string },
 ): CopiaActionResponse | null {
   if (isValidUUID(libroId)) return null;
   return {
@@ -116,7 +124,7 @@ export function getCreateInventarioLibroIdValidationError(
 }
 
 export function getCreateInventarioMinQuantityValidationError(
-  quantity: number,
+  { quantity }: { quantity: number },
 ): CopiaActionResponse | null {
   if (quantity > 0) return null;
   return {
@@ -126,7 +134,7 @@ export function getCreateInventarioMinQuantityValidationError(
 }
 
 export function getCreateInventarioMaxQuantityValidationError(
-  quantity: number,
+  { quantity }: { quantity: number },
 ): CopiaActionResponse | null {
   if (quantity <= MAX_COPIAS_POR_INSERCION) return null;
   return {
@@ -138,7 +146,7 @@ export function getCreateInventarioMaxQuantityValidationError(
 }
 
 export function getTransferInventarioIdsValidationError(
-  ids: string[],
+  { ids }: { ids: string[] },
 ): CopiaActionResponse | null {
   if (ids.length > 0) return null;
   return {
@@ -148,7 +156,7 @@ export function getTransferInventarioIdsValidationError(
 }
 
 export function getTransferInventarioStoreIdValidationError(
-  storeId: string,
+  { storeId }: { storeId: string },
 ): CopiaActionResponse | null {
   if (isValidUUID(storeId)) return null;
   return {
@@ -158,7 +166,7 @@ export function getTransferInventarioStoreIdValidationError(
 }
 
 export function getTransferOriginStoreValidationError(
-  storeId: string,
+  { storeId }: { storeId: string },
 ): CopiaActionResponse | null {
   if (isValidUUID(storeId)) return null;
   return {
@@ -168,7 +176,7 @@ export function getTransferOriginStoreValidationError(
 }
 
 export function getTransferDestinationStoreValidationError(
-  storeId: string,
+  { storeId }: { storeId: string },
 ): CopiaActionResponse | null {
   if (isValidUUID(storeId)) return null;
   return {
@@ -178,8 +186,13 @@ export function getTransferDestinationStoreValidationError(
 }
 
 export function getTransferDifferentStoresValidationError(
-  originStoreId: string,
-  destinationStoreId: string,
+  {
+    originStoreId,
+    destinationStoreId,
+  }: {
+    originStoreId: string;
+    destinationStoreId: string;
+  },
 ): CopiaActionResponse | null {
   if (originStoreId !== destinationStoreId) return null;
   return {
@@ -192,7 +205,7 @@ export function getTransferDifferentStoresValidationError(
 }
 
 export function getTransferLibroIdValidationError(
-  libroId: string,
+  { libroId }: { libroId: string },
 ): CopiaActionResponse | null {
   if (isValidUUID(libroId)) return null;
   return {
@@ -202,7 +215,7 @@ export function getTransferLibroIdValidationError(
 }
 
 export function getTransferQuantityValidationError(
-  quantity: number,
+  { quantity }: { quantity: number },
 ): CopiaActionResponse | null {
   if (quantity > 0) return null;
   return {
@@ -218,19 +231,23 @@ export function getTransferInventarioByQuantityValidationError(input: {
   cantidad: number;
 }): CopiaActionResponse | null {
   return (
-    getTransferOriginStoreValidationError(input.id_tienda_origen) ??
-    getTransferDestinationStoreValidationError(input.id_tienda_destino) ??
+    getTransferOriginStoreValidationError({ storeId: input.id_tienda_origen }) ??
+    getTransferDestinationStoreValidationError({
+      storeId: input.id_tienda_destino,
+    }) ??
     getTransferDifferentStoresValidationError(
-      input.id_tienda_origen,
-      input.id_tienda_destino,
+      {
+        originStoreId: input.id_tienda_origen,
+        destinationStoreId: input.id_tienda_destino,
+      },
     ) ??
-    getTransferLibroIdValidationError(input.id_libro) ??
-    getTransferQuantityValidationError(input.cantidad)
+    getTransferLibroIdValidationError({ libroId: input.id_libro }) ??
+    getTransferQuantityValidationError({ quantity: input.cantidad })
   );
 }
 
 export function getDeleteInventarioIdsValidationError(
-  ids: string[],
+  { ids }: { ids: string[] },
 ): CopiaActionResponse | null {
   if (ids.length > 0) return null;
   return {

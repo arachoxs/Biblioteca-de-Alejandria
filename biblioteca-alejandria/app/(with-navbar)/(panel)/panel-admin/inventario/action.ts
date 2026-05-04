@@ -69,7 +69,7 @@ export async function getInventarioBookOptionsAction(
   searchTerm?: string,
 ): Promise<InventarioOptionsResponse> {
   return await fetchInventarioBookOptions(
-    sanitizeOptionalSearchTerm(searchTerm),
+    sanitizeOptionalSearchTerm({ searchTerm }),
   );
 }
 
@@ -106,8 +106,10 @@ export async function getInventarioDefaultStoreAction(): Promise<InventarioOptio
 export async function getInventarioTransferBooksByStoreAction(
   storeId: string,
 ): Promise<InventarioTransferBooksResponse> {
-  const cleanStoreId = sanitizeUuidList([storeId])[0] ?? "";
-  const storeError = getTransferBooksStoreIdValidationError(cleanStoreId);
+  const cleanStoreId = sanitizeUuidList({ ids: [storeId] })[0] ?? "";
+  const storeError = getTransferBooksStoreIdValidationError({
+    storeId: cleanStoreId,
+  });
   if (storeError) return storeError;
 
   const roleCheck = await requireAdminRole();
@@ -137,8 +139,10 @@ export async function getInventarioCopiasAction(
   searchTerm?: string,
   storeIdFilter?: string,
 ): Promise<InventarioCopiasResponse> {
-  const cleanLibroId = sanitizeUuidList([libroId])[0] ?? "";
-  const libroError = getInventarioLibroIdValidationError(cleanLibroId);
+  const cleanLibroId = sanitizeUuidList({ ids: [libroId] })[0] ?? "";
+  const libroError = getInventarioLibroIdValidationError({
+    libroId: cleanLibroId,
+  });
   if (libroError) return libroError;
   const sanitizedInput = sanitizeInventarioListInput({
     page,
@@ -162,9 +166,15 @@ export async function createInventarioAction(input: {
 }): Promise<CopiaActionResponse> {
   const sanitizedInput = sanitizeCreateInventarioInput(input);
   const validationError =
-    getCreateInventarioLibroIdValidationError(sanitizedInput.id_libro) ??
-    getCreateInventarioMinQuantityValidationError(sanitizedInput.cantidad) ??
-    getCreateInventarioMaxQuantityValidationError(sanitizedInput.cantidad);
+    getCreateInventarioLibroIdValidationError({
+      libroId: sanitizedInput.id_libro,
+    }) ??
+    getCreateInventarioMinQuantityValidationError({
+      quantity: sanitizedInput.cantidad,
+    }) ??
+    getCreateInventarioMaxQuantityValidationError({
+      quantity: sanitizedInput.cantidad,
+    });
   if (validationError) return validationError;
 
   return await createCopias({
@@ -183,8 +193,10 @@ export async function transferInventarioCopiasAction(
     id_tienda,
   });
   const validationError =
-    getTransferInventarioIdsValidationError(sanitizedInput.ids) ??
-    getTransferInventarioStoreIdValidationError(sanitizedInput.id_tienda);
+    getTransferInventarioIdsValidationError({ ids: sanitizedInput.ids }) ??
+    getTransferInventarioStoreIdValidationError({
+      storeId: sanitizedInput.id_tienda,
+    });
   if (validationError) return validationError;
 
   return await transferCopias({
@@ -215,8 +227,8 @@ export async function transferInventarioByQuantityAction(input: {
 export async function deleteInventarioCopiasAction(
   ids: string[],
 ): Promise<CopiaActionResponse> {
-  const cleanIds = sanitizeUuidList(ids);
-  const idsError = getDeleteInventarioIdsValidationError(cleanIds);
+  const cleanIds = sanitizeUuidList({ ids });
+  const idsError = getDeleteInventarioIdsValidationError({ ids: cleanIds });
   if (idsError) return idsError;
 
   return await deleteCopias({
