@@ -58,7 +58,7 @@ export default function Modal({
 <div
           className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full ${
             allowOverflow
-              ? "overflow-y-visible overflow-x-hidden"
+              ? "overflow-visible"
               : "overflow-hidden overflow-y-scroll"
           } animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
         role="dialog"
