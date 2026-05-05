@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
 import Alert from "@/components/ui/Alert";
-import { AlertCircle, CheckCircle, Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import type {
   CategoryActionResponse,
@@ -130,11 +130,7 @@ export default function CategoriasContent() {
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
       {errorLoadingCategorias && (
-        <Alert
-          variant="error"
-          className="mb-6 flex items-center gap-2 !relative !left-0 !translate-x-0"
-        >
-          <AlertCircle className="w-4 h-4" />
+        <Alert variant="error">
           {errorLoadingCategorias}
         </Alert>
       )}
@@ -142,10 +138,8 @@ export default function CategoriasContent() {
       {actionResponse?.success && actionResponse.message && (
         <Alert
           variant="success"
-          className="mb-6 flex items-center gap-2 !relative !left-0 !translate-x-0"
           onClose={() => setActionResponse(null)}
         >
-          <CheckCircle className="w-4 h-4" />
           {actionResponse.message}
         </Alert>
       )}
@@ -153,10 +147,8 @@ export default function CategoriasContent() {
       {!actionResponse?.success && actionResponse?.message && (
         <Alert
           variant="error"
-          className="mb-6 flex items-center gap-2 !relative !left-0 !translate-x-0"
           onClose={() => setActionResponse(null)}
         >
-          <AlertCircle className="w-4 h-4" />
           {actionResponse.message}
         </Alert>
       )}

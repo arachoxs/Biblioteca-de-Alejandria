@@ -3,7 +3,7 @@
 import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
 import Alert from "@/components/ui/Alert";
-import { Plus, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getLibrosAction, eliminarLibroAction } from "./action";
@@ -125,8 +125,7 @@ export default function LibrosContent() {
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
       {/* Alerts */}
       {errorLoading && (
-        <Alert variant="error" className="mb-6 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" />
+        <Alert variant="error">
           {errorLoading}
         </Alert>
       )}
@@ -134,9 +133,7 @@ export default function LibrosContent() {
       {actionResponse?.success === true && (
         <Alert
           variant="success"
-          className="mb-6 flex items-center gap-2"
           onClose={() => setActionResponse(null)}>
-          <CheckCircle className="w-4 h-4" />
           {actionResponse.message || "Operación completada exitosamente"}
         </Alert>
       )}
@@ -144,9 +141,7 @@ export default function LibrosContent() {
       {actionResponse?.success === false && (
         <Alert
           variant="error"
-          className="mb-6 flex items-center gap-2"
           onClose={() => setActionResponse(null)}>
-          <AlertCircle className="w-4 h-4" />
           {actionResponse.message || "Error al procesar la operación"}
         </Alert>
       )}

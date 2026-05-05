@@ -1,53 +1,194 @@
 "use client";
 
-import { HTMLAttributes, ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
-interface AlertProps extends HTMLAttributes<HTMLDivElement> {
+interface AlertProps {
   variant?: "success" | "error" | "warning" | "info";
-  className?: string;
   children: ReactNode;
   duration?: number;
   onClose?: () => void;
 }
 
-export default function Alert({
-  variant = "info",
-  className = "",
-  children,
-  duration = 2500,
-  onClose,
-  ...props
-}: AlertProps) {
-  const [isVisible, setIsVisible] = useState(true);
+const CHECK_CIRCLE_SVG = (
+  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9 12l2 2 4-4" />
+  </svg>
+);
 
-  useEffect(() => {
-    if (!duration) return;
+const X_CIRCLE_SVG = (
+  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M15 9l-6 6M9 9l6 6" />
+  </svg>
+);
 
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-      if (onClose) onClose();
-    }, duration);
+const ALERT_TRIANGLE_SVG = (
+  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
 
-    return () => clearTimeout(timer);
-  }, [duration, onClose]);
+const INFO_SVG = (
+  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
 
-  if (!isVisible) return null;
+const X_BUTTON_SVG = (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 6L6 18M6 6l12 12" />
+  </svg>
+);
 
-  const variants = {
-    success: "bg-green-50 border-green-200 text-green-600",
-    error: "bg-red-50 border-red-200 text-red-600",
-    warning: "bg-yellow-50 border-yellow-200 text-yellow-600",
-    info: "bg-blue-50 border-blue-200 text-blue-600",
+const VARIANTS = {
+  success: {
+    container: "bg-emerald-50 border-emerald-200 text-emerald-800",
+    icon: CHECK_CIRCLE_SVG,
+  },
+  error: {
+    container: "bg-red-50 border-red-200 text-red-800",
+    icon: X_CIRCLE_SVG,
+  },
+  warning: {
+    container: "bg-amber-50 border-amber-200 text-amber-800",
+    icon: ALERT_TRIANGLE_SVG,
+  },
+  info: {
+    container: "bg-blue-50 border-blue-200 text-blue-800",
+    icon: INFO_SVG,
+  },
+};
+
+const EXIT_DURATION_MS = 300;
+
+function useProgressTimer(duration: number, isExitingExternal: boolean) {
+  const [progress, setProgress] = useState(1);
+  const [isExiting, setIsExiting] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startTimeRef = useRef(0);
+  const onExpireRef = useRef<(() => void) | null>(null);
+
+  const setOnExpire = (fn: () => void) => {
+    onExpireRef.current = fn;
   };
 
-  const baseStyles = "border px-4 py-3 rounded-lg text-sm z-[100]";
+  useEffect(() => {
+    if (!duration || duration <= 0) return;
+    if (isExitingExternal) return;
 
-  return (
+    startTimeRef.current = performance.now();
+    let rafId: number;
+    let tickCount = 0;
+
+    const tick = () => {
+      const elapsed = performance.now() - startTimeRef.current;
+      const remaining = Math.max(0, 1 - elapsed / duration);
+
+      if (tickCount % 2 === 0) {
+        setProgress(remaining);
+      }
+      tickCount++;
+
+      if (remaining <= 0) {
+        setIsExiting(true);
+        timeoutRef.current = setTimeout(() => onExpireRef.current?.(), EXIT_DURATION_MS);
+      } else {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [duration, isExitingExternal]);
+
+  return { progress, isExiting, setOnExpire };
+}
+
+function useDismissTimer(onDismiss: () => void) {
+  const [isExiting, setIsExiting] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const dismiss = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIsExiting(true);
+    timeoutRef.current = setTimeout(onDismiss, EXIT_DURATION_MS);
+  };
+
+  return { isExiting, dismiss };
+}
+
+export default function Alert({
+  variant = "info",
+  children,
+  duration = 3000,
+  onClose,
+}: AlertProps) {
+  const [isVisible, setIsVisible] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const { dismiss, isExiting: isExitingFromDismiss } = useDismissTimer(() => {
+    setIsVisible(false);
+    if (onClose) onClose();
+  });
+
+  const { progress, isExiting: isExitingFromTimer, setOnExpire } = useProgressTimer(
+    duration,
+    isExitingFromDismiss
+  );
+
+  useEffect(() => {
+    setOnExpire(() => () => setIsVisible(false));
+  }, [setOnExpire]);
+
+  const isExiting = isExitingFromTimer || isExitingFromDismiss;
+
+  if (!isMounted || !isVisible) return null;
+
+  const { container, icon } = VARIANTS[variant];
+
+  const alertElement = (
     <div
-      className={`${baseStyles} absolute left-1/2 -translate-x-1/2 ${variants[variant]} ${className}`}
+      className={`fixed top-4 left-0 right-0 mx-auto z-[9999] w-fit max-w-[90vw] md:max-w-md
+        flex items-center gap-3 border px-4 py-3 rounded-lg text-sm shadow-lg
+        ${container}
+        ${isExiting ? "toast-slide-out" : "toast-slide-in"}`}
       role="alert"
-      {...props}>
-      {children}
+      aria-live="assertive"
+    >
+      <div className="flex-shrink-0">{icon}</div>
+      <span className="flex-1 min-w-0 break-words font-medium">{children}</span>
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Cerrar notificación"
+        className="ml-1 opacity-60 hover:opacity-100 transition-opacity cursor-pointer p-0.5 rounded hover:bg-black/10"
+      >
+        {X_BUTTON_SVG}
+      </button>
+      {duration > 0 && !isExiting && (
+        <div
+          className="absolute bottom-0 left-0 h-0.5 bg-current opacity-30 rounded-b-lg"
+          style={{ width: `${progress * 100}%` }}
+        />
+      )}
     </div>
   );
+
+  const portalRoot = typeof document !== "undefined" ? document.body : null;
+  if (!portalRoot) return null;
+
+  return createPortal(alertElement, portalRoot);
 }

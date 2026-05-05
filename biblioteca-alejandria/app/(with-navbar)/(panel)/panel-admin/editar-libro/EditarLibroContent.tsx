@@ -306,8 +306,7 @@ export default function EditarLibroContent() {
 
       {alertState?.message && (
         <Alert
-          variant={alertState.success ? "success" : "error"}
-          className="mb-6 !relative !left-0 !translate-x-0">
+          variant={alertState.success ? "success" : "error"}>
           {alertState.message}
         </Alert>
       )}
