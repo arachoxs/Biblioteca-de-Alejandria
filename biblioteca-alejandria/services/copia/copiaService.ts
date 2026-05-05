@@ -2,10 +2,12 @@ import {
   getCopias as getCopiasModel,
   getCopiaById as getCopiaByIdModel,
   getCopiasByIds as getCopiasByIdsModel,
+  getAvailableCopiasByLibroAndStore,
   getInventarioRows as getInventarioRowsModel,
   insertCopias,
   softDeleteCopias,
   transferCopias as transferCopiasModel,
+  transferCopiasByQuantityAtomic,
 } from "@/models/copiaModel";
 import {
   getHistoricoSyncSnapshotsByLibros,
@@ -13,8 +15,9 @@ import {
 } from "@/models/historicoModel";
 import { getActiveLibroById, getLibros } from "@/models/libroModel";
 import {
-  getActiveTiendaByExactName,
   getActiveTiendaById,
+  getAllActiveTiendas,
+  getDefaultTienda,
   getTiendas,
 } from "@/models/tiendaModel";
 
@@ -26,6 +29,7 @@ import type {
   DeleteCopiasInput,
   OneOrManyCopyIds,
   TransferCopiasInput,
+  TransferCopiasByQuantityInput,
 } from "@/lib/types/copia";
 import type {
   InventarioCopiasResponse,
@@ -40,11 +44,15 @@ import type { EstadoHistorico } from "@/lib/types/historico";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { isValidUUID, MAX_PAGE_SIZE } from "@/lib/validations/rules";
+import {
+  buildTransferCopiasByQuantitySuccessMessage,
+  getTransferCopiasByQuantityModelError,
+  getTransferCopiasByQuantityStockError,
+  validateTransferCopiasByQuantityEntities,
+} from "@/lib/validations/copia/businessRules";
 import { getCurrentUser } from "@/models/authModel";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
-
-const DEFAULT_STORE = "Inventario General";
 
 function toUniqueIds(ids: OneOrManyCopyIds): string[] {
   const source = Array.isArray(ids) ? ids : [ids];
@@ -184,33 +192,6 @@ async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
   }
 }
 
-async function resolveStoreId(idTienda?: string): Promise<{
-  success: boolean;
-  id_tienda?: string;
-  error?: string;
-}> {
-  if (idTienda) {
-    const store = await getActiveTiendaById(idTienda);
-    if (!store) {
-      return {
-        success: false,
-        error: "La tienda indicada no existe o fue eliminada.",
-      };
-    }
-    return { success: true, id_tienda: store.id };
-  }
-
-  const inventoryStore = await getActiveTiendaByExactName(DEFAULT_STORE);
-  if (!inventoryStore) {
-    return {
-      success: false,
-      error: `No existe una tienda activa '${DEFAULT_STORE}' para inventario general.`,
-    };
-  }
-
-  return { success: true, id_tienda: inventoryStore.id };
-}
-
 // ─── Audit helpers ─────────────────────────────────────────────────
 // Encapsulan getCurrentUser() + if (!actor) para no añadir ramas
 // de complejidad ciclomática a las funciones de escritura.
@@ -275,10 +256,10 @@ async function logDeleteCopiasAudit(copyIds: string[]): Promise<void> {
 
 /**
  * Crea una o varias copias de un libro.
- * Si no se envía `id_tienda`, usa la tienda de inventario general.
+ * Las nuevas copias de inventario se asignan siempre a la bodega principal.
  *
  * Complejidad ciclomática: 8
- *   if roleCheck · if !libro · if !storeResolution
+ *   if roleCheck · if !libro · if !defaultStore
  *   if !result · catch historico · ternary mensaje · catch externo
  */
 export async function createCopias(
@@ -299,21 +280,18 @@ export async function createCopias(
       };
     }
 
-    const storeResolution = await resolveStoreId(input.id_tienda);
-    // resolveStoreId garantiza id_tienda cuando success=true,
-    // así que no se necesita la condición compuesta.
-    if (!storeResolution.success) {
-      const storeResolutionMessage =
-        storeResolution.error ?? "No se pudo resolver la tienda.";
+    const defaultStore = await getDefaultTienda();
+    if (!defaultStore) {
       return {
         success: false,
         errors: {
-          id_tienda: storeResolutionMessage,
+          form: "No existe una tienda bodega activa para asignar el inventario general.",
         },
-        message: storeResolutionMessage,
+        message:
+          "No existe una tienda bodega activa para asignar el inventario general.",
       };
     }
-    const targetStoreId = storeResolution.id_tienda as string;
+    const targetStoreId = defaultStore.id;
 
     const copiesToInsert = Array.from({ length: input.cantidad }, () => ({
       id_libro: input.id_libro,
@@ -433,6 +411,70 @@ export async function transferCopias(
       success: false,
       errors: { form: getErrorMessage(error) },
       message: "No se pudieron trasladar las copias.",
+    };
+  }
+}
+
+export async function transferCopiasByQuantity(
+  input: TransferCopiasByQuantityInput,
+): Promise<CopiaActionResponse> {
+  const roleCheck = await requireAdminRole();
+  if (!roleCheck.success) return roleCheck;
+
+  const safeQuantity = Math.max(1, input.cantidad);
+
+  try {
+    const originStore = await getActiveTiendaById(input.id_tienda_origen);
+    const destinationStore = await getActiveTiendaById(input.id_tienda_destino);
+    const libro = await getActiveLibroById(input.id_libro);
+    const entityValidation = validateTransferCopiasByQuantityEntities({
+      originStore,
+      destinationStore,
+      libroExists: Boolean(libro),
+    });
+    if (!entityValidation.success) return entityValidation.response;
+
+    const availableCopies = await getAvailableCopiasByLibroAndStore(
+      input.id_libro,
+      input.id_tienda_origen,
+      safeQuantity,
+    );
+
+    const stockValidationError = getTransferCopiasByQuantityStockError({
+      availableCount: availableCopies.length,
+      requestedQuantity: safeQuantity,
+    });
+    if (stockValidationError) return stockValidationError;
+
+    const transferResult = await transferCopiasByQuantityAtomic({
+      id_tienda_origen: input.id_tienda_origen,
+      id_tienda_destino: input.id_tienda_destino,
+      id_libro: input.id_libro,
+      cantidad: safeQuantity,
+    });
+
+    const transferError = getTransferCopiasByQuantityModelError(transferResult);
+    if (transferError) return transferError;
+
+    const transferredIds = transferResult.transferredIds ?? [];
+    await logTransferCopiasAudit(
+      transferredIds,
+      entityValidation.destinationStore,
+    );
+
+    return {
+      success: true,
+      message: buildTransferCopiasByQuantitySuccessMessage(safeQuantity),
+    };
+  } catch (error: unknown) {
+    console.error(
+      "[copiaServices] Error inesperado al trasladar inventario por cantidad:",
+      error,
+    );
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "No se pudo trasladar el inventario por cantidad.",
     };
   }
 }
@@ -705,18 +747,24 @@ export async function fetchInventarioCopiasByLibro(
 /**
  * Opciones de tiendas activas para filtros y formularios de inventario.
  */
-export async function fetchInventarioStoreOptions(
-  searchTerm?: string,
-): Promise<InventarioOptionsResponse> {
+export async function fetchInventarioStoreOptions(): Promise<InventarioOptionsResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 
   try {
-    const stores = await getTiendas(1, MAX_PAGE_SIZE, searchTerm);
+    const stores = await getAllActiveTiendas();
+
+    if (!stores.data) {
+      return {
+        success: false,
+        errors: { form: "No se pudieron cargar las tiendas disponibles." },
+        message: "No se pudieron cargar las tiendas disponibles.",
+      };
+    }
+
     const options: InventarioOption[] = stores.data.map((store) => ({
       value: store.id,
       label: store.nombre,
-      subtitle: store.direccion_formateada,
     }));
 
     return {

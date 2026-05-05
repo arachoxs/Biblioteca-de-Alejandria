@@ -12,6 +12,9 @@ import type { CopiaActionResponse } from "@/lib/types/copia";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useValidation } from "@/hooks/useValidation";
 import {
+  MAX_COPIAS_POR_INSERCION,
+} from "@/lib/validations/rules";
+import {
   createInventarioAction,
   getInventarioBookOptionsAction,
 } from "./action";
@@ -20,18 +23,15 @@ interface AddInventarioModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (message: string) => void;
-  storeOptions: InventarioOption[];
 }
 
 interface AddInventarioFormValues extends Record<string, unknown> {
   id_libro: string;
-  id_tienda: string;
   cantidad: string;
 }
 
 const INITIAL_VALUES: AddInventarioFormValues = {
   id_libro: "",
-  id_tienda: "",
   cantidad: "1",
 };
 
@@ -45,14 +45,12 @@ function validateAddInventario(
     errors.id_libro = "Debes seleccionar un libro.";
   }
 
-  if (!values.id_tienda.trim()) {
-    errors.id_tienda = "Debes seleccionar una tienda.";
-  }
-
   if (!values.cantidad.trim()) {
     errors.cantidad = "La cantidad es obligatoria.";
   } else if (!Number.isInteger(parsedCantidad) || parsedCantidad < 1) {
     errors.cantidad = "La cantidad debe ser mayor a 0.";
+  } else if (parsedCantidad > MAX_COPIAS_POR_INSERCION) {
+    errors.cantidad = `La cantidad no puede ser mayor a ${MAX_COPIAS_POR_INSERCION}.`;
   }
 
   return errors;
@@ -62,7 +60,6 @@ export default function AddInventarioModal({
   isOpen,
   onClose,
   onSuccess,
-  storeOptions,
 }: AddInventarioModalProps) {
   const [bookOptions, setBookOptions] = useState<InventarioOption[]>([]);
   const [isLoadingBooks, setIsLoadingBooks] = useState(false);
@@ -134,7 +131,6 @@ export default function AddInventarioModal({
     try {
       const response = await createInventarioAction({
         id_libro: values.id_libro,
-        id_tienda: values.id_tienda,
         cantidad: parsedCantidad,
       });
 
@@ -194,37 +190,20 @@ export default function AddInventarioModal({
           }
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            id="inventario-cantidad"
-            label="Cantidad de copias"
-            type="number"
-            min={1}
-            step={1}
-            required
-            disabled={isSubmitting}
-            value={values.cantidad}
-            onChange={(event) => handleChange("cantidad", event.target.value)}
-            onBlur={() => handleBlur("cantidad")}
-            error={errors.cantidad}
-          />
-
-          <SearchableSelect
-            id="inventario-tienda"
-            label="Tienda destino"
-            value={values.id_tienda}
-            options={storeOptions}
-            onChange={(value) => handleChange("id_tienda", value)}
-            onBlur={() => {
-              handleBlur("id_tienda");
-            }}
-            required
-            disabled={isSubmitting}
-            error={errors.id_tienda}
-            placeholder="Selecciona una tienda"
-            noOptionsText="No hay tiendas disponibles."
-          />
-        </div>
+        <Input
+          id="inventario-cantidad"
+          label="Cantidad de copias"
+          type="number"
+          min={1}
+          max={MAX_COPIAS_POR_INSERCION}
+          step={1}
+          required
+          disabled={isSubmitting}
+          value={values.cantidad}
+          onChange={(event) => handleChange("cantidad", event.target.value)}
+          onBlur={() => handleBlur("cantidad")}
+          error={errors.cantidad}
+        />
 
         <div className="flex justify-end gap-3 pt-2">
           <Button
@@ -240,8 +219,7 @@ export default function AddInventarioModal({
             disabled={
               isSubmitting ||
               Object.keys(errors).length > 0 ||
-              values.id_libro === "" ||
-              values.id_tienda === ""
+              values.id_libro === ""
             }
             className="w-auto! px-6 py-1! text-sm inline-flex items-center justify-center gap-2">
             {isSubmitting ? (

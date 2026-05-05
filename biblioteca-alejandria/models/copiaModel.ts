@@ -3,6 +3,7 @@ import type { ModelResult, Paginated } from "@/lib/types/common";
 import type {
   CopiaRow,
   InsertCopiaPayload,
+  TransferCopiasByQuantityInput,
   UpdateCopiaPayload,
 } from "@/lib/types/copia";
 import type {
@@ -13,6 +14,15 @@ import { buildOrILikeFilter } from "@/lib/validations/db-utils";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 
 // ─── Escritura ─────────────────────────────────────────────────────
+
+export type TransferCopiasByQuantityErrorCode =
+  | "INSUFFICIENT_STOCK"
+  | "ROLLBACK_FAILED";
+
+export interface TransferCopiasByQuantityModelResult extends ModelResult {
+  transferredIds?: string[];
+  errorCode?: TransferCopiasByQuantityErrorCode;
+}
 
 export async function insertCopias(
   data: InsertCopiaPayload[],
@@ -89,6 +99,66 @@ export async function transferCopias(
   return { success: true };
 }
 
+export async function transferCopiasByQuantityAtomic(
+  input: TransferCopiasByQuantityInput,
+): Promise<TransferCopiasByQuantityModelResult> {
+  const adminClient = createAdminClient();
+  const safeQuantity = Math.max(1, input.cantidad);
+
+  const { data: updatedRows, error } = await adminClient
+    .from("copia")
+    .update({ id_tienda: input.id_tienda_destino })
+    .eq("id_libro", input.id_libro)
+    .eq("id_tienda", input.id_tienda_origen)
+    .eq("estado", "disponible")
+    .is("deleted_at", null)
+    .order("id", { ascending: true })
+    .limit(safeQuantity)
+    .select("id");
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error trasladando copias por cantidad de forma atómica:",
+      error,
+    );
+    return { success: false, error: error.message };
+  }
+
+  const transferredIds = (updatedRows ?? []).map((row) => row.id);
+  if (transferredIds.length === safeQuantity) {
+    return { success: true, transferredIds };
+  }
+
+  if (transferredIds.length > 0) {
+    const { data: rollbackRows, error: rollbackError } = await adminClient
+      .from("copia")
+      .update({ id_tienda: input.id_tienda_origen })
+      .in("id", transferredIds)
+      .eq("id_tienda", input.id_tienda_destino)
+      .select("id");
+
+    if (rollbackError || (rollbackRows ?? []).length !== transferredIds.length) {
+      console.error(
+        "[copiaModel] Falló el rollback de traslado parcial por cantidad:",
+        rollbackError,
+      );
+      return {
+        success: false,
+        errorCode: "ROLLBACK_FAILED",
+        error:
+          "No se pudo completar ni revertir correctamente el traslado por cantidad.",
+      };
+    }
+  }
+
+  return {
+    success: false,
+    errorCode: "INSUFFICIENT_STOCK",
+    error:
+      "No hay suficientes copias disponibles en la tienda origen para completar el traslado.",
+  };
+}
+
 export async function softDeleteCopias(ids: string[]): Promise<ModelResult> {
   // Usamos el Admin Client para asegurar permisos de escritura
   const adminClient = createAdminClient();
@@ -162,6 +232,35 @@ export async function getCopiasByIds(ids: string[]): Promise<CopiaRow[]> {
   }
 
   return rows;
+}
+
+export async function getAvailableCopiasByLibroAndStore(
+  id_libro: string,
+  id_tienda: string,
+  limit: number,
+): Promise<CopiaRow[]> {
+  const adminClient = createAdminClient();
+  const safeLimit = Math.max(1, limit);
+
+  const { data, error } = await adminClient
+    .from("copia")
+    .select("*")
+    .eq("id_libro", id_libro)
+    .eq("id_tienda", id_tienda)
+    .eq("estado", "disponible")
+    .is("deleted_at", null)
+    .order("id", { ascending: true })
+    .limit(safeLimit);
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error obteniendo copias disponibles por libro y tienda:",
+      error,
+    );
+    throw error;
+  }
+
+  return data ?? [];
 }
 
 export async function getInventarioRows(

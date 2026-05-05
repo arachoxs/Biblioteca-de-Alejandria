@@ -44,6 +44,14 @@ export interface TransferCopiasInput {
   id_tienda: string;
 }
 
+/** Entrada para trasladar copias por cantidad de un libro desde una tienda origen. */
+export interface TransferCopiasByQuantityInput {
+  id_tienda_origen: string;
+  id_tienda_destino: string;
+  id_libro: string;
+  cantidad: number;
+}
+
 /** Entrada para eliminar lógicamente una o varias copias. */
 export interface DeleteCopiasInput {
   ids: OneOrManyCopyIds;
