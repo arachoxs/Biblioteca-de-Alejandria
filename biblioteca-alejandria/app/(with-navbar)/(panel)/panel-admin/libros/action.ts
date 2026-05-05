@@ -9,6 +9,7 @@ import {
   fetchBooks,
 } from "@/services/libros/libroService";
 import { getActiveLibroById } from "@/models/libroModel";
+import { getDefaultTienda } from "@/models/tiendaModel";
 import { fetchAuthors } from "@/services/authors/authorService";
 import { fetchCategories } from "@/services/categories/categoryService";
 import { fetchInventarioStoreOptions } from "@/services/copia/copiaService";
@@ -119,7 +120,7 @@ export async function getLibroHistoricoTimelineAction(
 
 export async function crearLibroAction(
   formData: Record<string, string>,
-  inventario?: { id_tienda: string; cantidad: number },
+  cantidadInventario?: number,
 ): Promise<LibroActionResponse> {
   // Sanitizar
   const cleaned = {
@@ -156,12 +157,19 @@ export async function crearLibroAction(
     editorial: cleaned.editorial,
   };
 
-  // Decidir flujo
-  if (inventario && inventario.id_tienda && inventario.cantidad > 0) {
+  // Inventario obligatorio → bodega principal
+  if (cantidadInventario !== undefined && cantidadInventario > 0) {
+    const bodega = await getDefaultTienda();
+    if (!bodega) {
+      return {
+        success: false,
+        message: "No se encontró la bodega principal. Configura una tienda como bodega.",
+      };
+    }
     return await createBookWithInventory(
       payload,
-      sanitizeText(inventario.id_tienda),
-      toSafePositiveInt(inventario.cantidad, 1),
+      bodega.id,
+      toSafePositiveInt(cantidadInventario, 1),
     );
   }
 

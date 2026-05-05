@@ -23,12 +23,12 @@ import {
   crearLibroAction,
   getAuthorOptionsAction,
   getCategoryOptionsAction,
-  getStoreOptionsAction,
 } from "../libros/action";
 
 import { createCategoryAction } from "../categorias/action";
 import type { LibroActionResponse } from "@/lib/types/libro";
-import type { InventarioOption } from "@/lib/types/inventario";
+import { validateInventarioCantidad } from "@/lib/validations/libro";
+import { MAX_COPIAS_POR_INSERCION } from "@/lib/validations/rules";
 
 // ─── Form values ───────────────────────────────────────────────────
 
@@ -44,8 +44,6 @@ interface LibroFormValues extends Record<string, unknown> {
   id_categoria: string;
   fecha_publicacion: string;
   editorial: string;
-  // Inventario opcional
-  inv_id_tienda: string;
   inv_cantidad: string;
 }
 
@@ -61,12 +59,11 @@ const INITIAL_VALUES: LibroFormValues = {
   id_categoria: "",
   fecha_publicacion: "",
   editorial: "",
-  inv_id_tienda: "",
   inv_cantidad: "",
 };
 
 function validateForm(values: LibroFormValues): Record<string, string> {
-  return validateLibro({
+  const errors = validateLibro({
     titulo: values.titulo,
     isbn: values.isbn,
     idioma: values.idioma,
@@ -79,6 +76,13 @@ function validateForm(values: LibroFormValues): Record<string, string> {
     fecha_publicacion: values.fecha_publicacion,
     editorial: values.editorial,
   });
+
+  const cantidadErr = validateInventarioCantidad(values.inv_cantidad);
+  if (cantidadErr) {
+    errors.inv_cantidad = cantidadErr;
+  }
+
+  return errors;
 }
 
 const ESTADO_OPTIONS = [
@@ -107,7 +111,6 @@ export default function RegistrarLibroContent() {
   // Opciones selects
   const [authorOptions, setAuthorOptions] = useState<SearchableSelectOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<SearchableSelectOption[]>([]);
-  const [storeOptions, setStoreOptions] = useState<InventarioOption[]>([]);
 
   // Modales reutilizados
   const [isAuthorModalOpen, setIsAuthorModalOpen] = useState(false);
@@ -138,22 +141,12 @@ export default function RegistrarLibroContent() {
     }
   }, []);
 
-  const loadStoreOptions = useCallback(async () => {
-    try {
-      const res = await getStoreOptionsAction();
-      if (res.success && res.data) setStoreOptions(res.data);
-    } catch (err) {
-      console.error("Error cargando tiendas:", err);
-    }
-  }, []);
-
   useEffect(() => {
     void Promise.all([
       loadAuthorOptions(),
       loadCategoryOptions(),
-      loadStoreOptions(),
     ]);
-  }, [loadAuthorOptions, loadCategoryOptions, loadStoreOptions]);
+  }, [loadAuthorOptions, loadCategoryOptions]);
 
   // ─── Submit ────────────────────────────────────────────────────
 
@@ -165,26 +158,6 @@ export default function RegistrarLibroContent() {
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
-    }
-
-    // Validar inventario si se llenó parcialmente
-    const hasInventory =
-      values.inv_id_tienda.trim() !== "" || values.inv_cantidad.trim() !== "";
-    if (hasInventory) {
-      const invErrors: Record<string, string> = {};
-      if (!values.inv_id_tienda.trim()) {
-        invErrors.inv_id_tienda = "Selecciona una tienda para el inventario.";
-      }
-      const parsedQty = Number.parseInt(values.inv_cantidad, 10);
-      if (!values.inv_cantidad.trim()) {
-        invErrors.inv_cantidad = "Ingresa la cantidad de copias.";
-      } else if (!Number.isInteger(parsedQty) || parsedQty < 1) {
-        invErrors.inv_cantidad = "La cantidad debe ser mayor a 0.";
-      }
-      if (Object.keys(invErrors).length > 0) {
-        setErrors((prev) => ({ ...prev, ...invErrors }));
-        return;
-      }
     }
 
     setIsSubmitting(true);
@@ -204,14 +177,8 @@ export default function RegistrarLibroContent() {
         editorial: values.editorial,
       };
 
-      const inventario = hasInventory
-        ? {
-            id_tienda: values.inv_id_tienda,
-            cantidad: Number.parseInt(values.inv_cantidad, 10),
-          }
-        : undefined;
-
-      const response = await crearLibroAction(formData, inventario);
+      const parsedCantidad = Number.parseInt(values.inv_cantidad, 10);
+      const response = await crearLibroAction(formData, parsedCantidad);
       setAlertState(response);
 
       if (response.success) {
@@ -258,6 +225,7 @@ export default function RegistrarLibroContent() {
     values.id_autor.trim() !== "" &&
     values.id_categoria.trim() !== "" &&
     values.editorial.trim() !== "" &&
+    values.inv_cantidad.trim() !== "" &&
     Object.keys(errors).length === 0;
 
   return (
@@ -500,45 +468,34 @@ export default function RegistrarLibroContent() {
           </div>
         </section>
 
-        {/* ── Sección: Inventario inicial (opcional) ──────────────── */}
-        <section className="bg-white rounded-xl border border-dashed border-brand-accent/30 shadow-sm p-6 space-y-5">
+        {/* ── Sección: Inventario inicial ────────────────────────────── */}
+        <section className="bg-white rounded-xl border border-brand-accent/10 shadow-sm p-6 space-y-5">
           <div className="flex items-center gap-3 border-b border-brand-accent/10 pb-3">
-            <PackagePlus className="w-5 h-5 text-brand-accent" />
+            <PackagePlus className="w-5 h-5 text-brand-primary" />
             <div>
               <h2 className="text-lg font-bold text-brand-primary font-display tracking-tight">
                 Inventario Inicial
               </h2>
               <p className="text-xs text-brand-secondary mt-0.5">
-                Opcional — Si deseas agregar copias al registrar el libro, completa estos campos.
+                Indica la cantidad de copias a enviar a bodega principal.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SearchableSelect
-              id="libro-inv-tienda"
-              label="Tienda destino"
-              value={values.inv_id_tienda}
-              options={storeOptions}
-              onChange={(val) => handleChange("inv_id_tienda", val)}
-              onBlur={() => handleBlur("inv_id_tienda")}
-              error={errors.inv_id_tienda}
-              disabled={isSubmitting}
-              placeholder="Selecciona una tienda"
-              noOptionsText="No hay tiendas disponibles."
-            />
-
+          <div className="grid grid-cols-1 gap-4">
             <Input
               id="libro-inv-cantidad"
               label="Cantidad de copias"
               type="number"
               min={1}
+              max={MAX_COPIAS_POR_INSERCION}
               step={1}
               placeholder="Ej: 5"
               value={values.inv_cantidad}
               onChange={(e) => handleChange("inv_cantidad", e.target.value)}
               onBlur={() => handleBlur("inv_cantidad")}
               error={errors.inv_cantidad}
+              required
               disabled={isSubmitting}
             />
           </div>
