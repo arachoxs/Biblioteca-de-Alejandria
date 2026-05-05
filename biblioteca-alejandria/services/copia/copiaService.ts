@@ -437,13 +437,24 @@ export async function transferCopiasByQuantity(
     const availableCopies = await getAvailableCopiasByLibroAndStore(
       input.id_libro,
       input.id_tienda_origen,
-      safeQuantity,
     );
 
+    if (availableCopies === null) {
+      return {
+        success: false,
+        errors: {
+          form: "No se pudo verificar el stock disponible en la tienda de origen.",
+        },
+        message:
+          "No se pudo verificar el stock disponible en la tienda de origen.",
+      };
+    }
+
     const stockValidationError = getTransferCopiasByQuantityStockError({
-      availableCount: availableCopies.length,
+      availableCount: availableCopies ?? 0,
       requestedQuantity: safeQuantity,
     });
+
     if (stockValidationError) return stockValidationError;
 
     const transferResult = await transferCopiasByQuantityAtomic({
@@ -454,6 +465,7 @@ export async function transferCopiasByQuantity(
     });
 
     const transferError = getTransferCopiasByQuantityModelError(transferResult);
+
     if (transferError) return transferError;
 
     const transferredIds = transferResult.transferredIds ?? [];

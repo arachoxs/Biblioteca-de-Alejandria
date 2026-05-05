@@ -308,8 +308,7 @@ export default function TransferInventarioModal({
       isOpen={isOpen}
       onClose={handleClose}
       title="Trasladar inventario por cantidad"
-      maxWidth="2xl"
-      allowOverflow>
+      maxWidth="2xl">
       <form onSubmit={handleSubmit} className="space-y-5">
         {responseState?.message && (
           <Alert variant={responseState.success ? "success" : "error"}>
