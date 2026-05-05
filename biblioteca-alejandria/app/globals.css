@@ -55,11 +55,6 @@
   to   { opacity: 0; transform: translateY(-150%); }
 }
 
-@keyframes toastProgress {
-  from { width: 100%; }
-  to   { width: 0%; }
-}
-
 .toast-slide-in {
   animation: toastSlideIn 0.3s ease-out both;
 }
