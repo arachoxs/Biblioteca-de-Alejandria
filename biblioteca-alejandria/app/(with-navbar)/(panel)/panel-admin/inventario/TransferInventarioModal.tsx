@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -90,6 +90,7 @@ export default function TransferInventarioModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [responseState, setResponseState] =
     useState<CopiaActionResponse | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const validateForm = useCallback(
     (vals: TransferInventarioFormValues) => {
@@ -152,6 +153,10 @@ export default function TransferInventarioModal({
   }, []);
 
   const handleClose = () => {
+    if (successTimerRef.current !== null) {
+      clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
     reset();
     setBookOptions([]);
     setIsLoadingBooks(false);
@@ -159,6 +164,14 @@ export default function TransferInventarioModal({
     setResponseState(null);
     onClose();
   };
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current !== null) {
+        clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -285,8 +298,11 @@ export default function TransferInventarioModal({
       setResponseState(response);
 
       if (response.success) {
-        onSuccess(response.message ?? "Inventario trasladado exitosamente.");
-        handleClose();
+        successTimerRef.current = setTimeout(() => {
+          successTimerRef.current = null;
+          handleClose();
+          onSuccess(response.message ?? "Inventario trasladado exitosamente.");
+        }, 1500);
         return;
       }
 
@@ -294,6 +310,7 @@ export default function TransferInventarioModal({
         setErrors((prev) => ({ ...prev, ...response.errors }));
       }
     } catch {
+      setErrors({});
       setResponseState({
         success: false,
         message: "Ocurrió un error inesperado al trasladar inventario.",
