@@ -1,19 +1,23 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Alert from "@/components/ui/Alert";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
-import type { InventarioOption, InventarioTransferBookOption } from "@/lib/types/inventario";
+import type {
+  InventarioOption,
+  InventarioTransferBookOption,
+} from "@/lib/types/inventario";
 import type { CopiaActionResponse } from "@/lib/types/copia";
 import {
   getInventarioDefaultStoreAction,
   getInventarioTransferBooksByStoreAction,
   transferInventarioByQuantityAction,
 } from "./action";
+import { useValidation } from "@/hooks/useValidation";
 
 interface TransferInventarioModalProps {
   isOpen: boolean;
@@ -22,7 +26,7 @@ interface TransferInventarioModalProps {
   storeOptions: InventarioOption[];
 }
 
-interface TransferInventarioFormValues {
+interface TransferInventarioFormValues extends Record<string, unknown> {
   id_tienda_origen: string;
   id_tienda_destino: string;
   id_libro: string;
@@ -36,12 +40,11 @@ const INITIAL_VALUES: TransferInventarioFormValues = {
   cantidad: "1",
 };
 
-function validateTransferInventario(
+function validateTransferInventarioFields(
   values: TransferInventarioFormValues,
   maxAvailableCopies: number,
 ): Record<string, string> {
   const errors: Record<string, string> = {};
-  const parsedCantidad = Number.parseInt(values.cantidad, 10);
 
   if (!values.id_tienda_origen.trim()) {
     errors.id_tienda_origen = "Debes seleccionar una tienda origen.";
@@ -57,6 +60,8 @@ function validateTransferInventario(
   if (!values.id_libro.trim()) {
     errors.id_libro = "Debes seleccionar un libro.";
   }
+
+  const parsedCantidad = Number.parseInt(values.cantidad, 10);
 
   if (!values.cantidad.trim()) {
     errors.cantidad = "La cantidad es obligatoria.";
@@ -77,54 +82,48 @@ export default function TransferInventarioModal({
   onSuccess,
   storeOptions,
 }: TransferInventarioModalProps) {
-  const [values, setValues] =
-    useState<TransferInventarioFormValues>(INITIAL_VALUES);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [bookOptions, setBookOptions] = useState<InventarioTransferBookOption[]>(
-    [],
-  );
+  const [bookOptions, setBookOptions] = useState<
+    InventarioTransferBookOption[]
+  >([]);
   const [isLoadingDefaultStore, setIsLoadingDefaultStore] = useState(false);
   const [isLoadingBooks, setIsLoadingBooks] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [responseState, setResponseState] =
     useState<CopiaActionResponse | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const validateForm = useCallback(
+    (vals: TransferInventarioFormValues) => {
+      const availableCopies =
+        bookOptions.find((book) => book.value === vals.id_libro)
+          ?.max_copias_disponibles ?? 0;
+      return validateTransferInventarioFields(vals, availableCopies);
+    },
+    [bookOptions],
+  );
+
+  const {
+    values,
+    errors,
+    handleChange,
+    handleBlur,
+    setErrors,
+    setValues,
+    reset,
+  } = useValidation<TransferInventarioFormValues>(
+    INITIAL_VALUES,
+    validateForm,
+    {
+      onFieldChange: () => setResponseState(null),
+    },
+  );
 
   const selectedBook = useMemo(
     () => bookOptions.find((book) => book.value === values.id_libro) ?? null,
     [bookOptions, values.id_libro],
   );
+
   const maxAvailableCopies = selectedBook?.max_copias_disponibles ?? 0;
-
-  const clearFieldError = (field: keyof TransferInventarioFormValues) => {
-    setErrors((prev) => {
-      if (!(field in prev)) return prev;
-      const next = { ...prev };
-      delete next[field];
-      return next;
-    });
-  };
-
-  const validateField = (field: keyof TransferInventarioFormValues) => {
-    const validationResult = validateTransferInventario(values, maxAvailableCopies);
-    setErrors((prev) => {
-      const next = { ...prev };
-      if (validationResult[field]) {
-        next[field] = validationResult[field];
-      } else {
-        delete next[field];
-      }
-      return next;
-    });
-  };
-
-  const updateField = (
-    field: keyof TransferInventarioFormValues,
-    value: string,
-  ) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
-    clearFieldError(field);
-    setResponseState(null);
-  };
 
   const loadBooksByStore = useCallback(async (storeId: string) => {
     setIsLoadingBooks(true);
@@ -153,19 +152,26 @@ export default function TransferInventarioModal({
     }
   }, []);
 
-  const resetForm = useCallback(() => {
-    setValues(INITIAL_VALUES);
-    setErrors({});
-    setBookOptions([]);
-    setResponseState(null);
-    setIsLoadingBooks(false);
-    setIsSubmitting(false);
-  }, []);
-
   const handleClose = () => {
-    resetForm();
+    if (successTimerRef.current !== null) {
+      clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
+    reset();
+    setBookOptions([]);
+    setIsLoadingBooks(false);
+    setIsLoadingDefaultStore(false);
+    setResponseState(null);
     onClose();
   };
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current !== null) {
+        clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -181,7 +187,7 @@ export default function TransferInventarioModal({
         const fallbackOrigin =
           response.success && response.data
             ? response.data.value
-            : storeOptions[0]?.value ?? "";
+            : (storeOptions[0]?.value ?? "");
         const fallbackDestination =
           storeOptions.find((store) => store.value !== fallbackOrigin)?.value ??
           "";
@@ -221,7 +227,7 @@ export default function TransferInventarioModal({
     };
 
     void setupDefaultStore();
-  }, [isOpen, storeOptions]);
+  }, [isOpen, storeOptions, setErrors, setValues]);
 
   useEffect(() => {
     if (!isOpen || !values.id_tienda_origen) return;
@@ -235,7 +241,7 @@ export default function TransferInventarioModal({
     );
     if (bookStillExists) return;
     setValues((prev) => ({ ...prev, id_libro: "", cantidad: "1" }));
-  }, [bookOptions, values.id_libro]);
+  }, [bookOptions, values.id_libro, setValues]);
 
   const destinationOptions = useMemo(
     () =>
@@ -252,27 +258,28 @@ export default function TransferInventarioModal({
       availableDestinations[0]?.value ??
       "";
 
-    setValues({
-      id_tienda_origen: storeId,
-      id_tienda_destino:
-        values.id_tienda_destino && values.id_tienda_destino !== storeId
-          ? values.id_tienda_destino
-          : fallbackDestination,
-      id_libro: "",
-      cantidad: "1",
-    });
+    handleChange("id_tienda_origen", storeId);
+    handleChange(
+      "id_tienda_destino",
+      values.id_tienda_destino && values.id_tienda_destino !== storeId
+        ? values.id_tienda_destino
+        : fallbackDestination,
+    );
+    handleChange("id_libro", "");
+    handleChange("cantidad", "1");
     setErrors({});
     setResponseState(null);
   };
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setResponseState(null);
 
-    const validationErrors = validateTransferInventario(
+    const validationErrors = validateTransferInventarioFields(
       values,
       maxAvailableCopies,
     );
+
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) {
       return;
@@ -291,8 +298,11 @@ export default function TransferInventarioModal({
       setResponseState(response);
 
       if (response.success) {
-        onSuccess(response.message ?? "Inventario trasladado exitosamente.");
-        handleClose();
+        successTimerRef.current = setTimeout(() => {
+          successTimerRef.current = null;
+          handleClose();
+          onSuccess(response.message ?? "Inventario trasladado exitosamente.");
+        }, 1500);
         return;
       }
 
@@ -300,6 +310,7 @@ export default function TransferInventarioModal({
         setErrors((prev) => ({ ...prev, ...response.errors }));
       }
     } catch {
+      setErrors({});
       setResponseState({
         success: false,
         message: "Ocurrió un error inesperado al trasladar inventario.",
@@ -314,8 +325,7 @@ export default function TransferInventarioModal({
       isOpen={isOpen}
       onClose={handleClose}
       title="Trasladar inventario por cantidad"
-      maxWidth="2xl"
-      allowOverflow>
+      maxWidth="2xl">
       <form onSubmit={handleSubmit} className="space-y-5">
         {responseState?.message && (
           <Alert variant={responseState.success ? "success" : "error"}>
@@ -329,7 +339,7 @@ export default function TransferInventarioModal({
           value={values.id_tienda_origen}
           options={storeOptions}
           onChange={handleOriginStoreChange}
-          onBlur={() => validateField("id_tienda_origen")}
+          onBlur={() => handleBlur("id_tienda_origen")}
           required
           disabled={isSubmitting || isLoadingDefaultStore}
           error={errors.id_tienda_origen}
@@ -342,8 +352,8 @@ export default function TransferInventarioModal({
           label="Tienda destino"
           value={values.id_tienda_destino}
           options={destinationOptions}
-          onChange={(value) => updateField("id_tienda_destino", value)}
-          onBlur={() => validateField("id_tienda_destino")}
+          onChange={(value) => handleChange("id_tienda_destino", value)}
+          onBlur={() => handleBlur("id_tienda_destino")}
           required
           disabled={isSubmitting || isLoadingDefaultStore}
           error={errors.id_tienda_destino}
@@ -357,10 +367,10 @@ export default function TransferInventarioModal({
           value={values.id_libro}
           options={bookOptions}
           onChange={(value) => {
-            updateField("id_libro", value);
-            updateField("cantidad", "1");
+            handleChange("id_libro", value);
+            handleChange("cantidad", "1");
           }}
-          onBlur={() => validateField("id_libro")}
+          onBlur={() => handleBlur("id_libro")}
           required
           disabled={isSubmitting || isLoadingBooks || isLoadingDefaultStore}
           error={errors.id_libro}
@@ -393,8 +403,10 @@ export default function TransferInventarioModal({
             maxAvailableCopies === 0
           }
           value={values.cantidad}
-          onChange={(event) => updateField("cantidad", event.target.value)}
-          onBlur={() => validateField("cantidad")}
+          onChange={(event) => handleChange("cantidad", event.target.value)}
+          onBlur={() => {
+            handleBlur("cantidad");
+          }}
           error={errors.cantidad}
         />
 

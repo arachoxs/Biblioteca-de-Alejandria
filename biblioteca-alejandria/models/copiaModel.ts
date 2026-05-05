@@ -99,30 +99,84 @@ export async function transferCopias(
   return { success: true };
 }
 
+async function getCopiasForTransferByQuantity(
+  id_libro: string,
+  id_tienda_origen: string,
+  cantidad: number,
+): Promise<string[]> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("copia")
+    .select("id")
+    .eq("id_libro", id_libro)
+    .eq("id_tienda", id_tienda_origen)
+    .eq("estado", "disponible")
+    .is("deleted_at", null)
+    .order("id", { ascending: true })
+    .limit(cantidad);
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error obteniendo copias para traslado por cantidad:",
+      error,
+    );
+    throw error;
+  }
+
+  return (data ?? []).map((c) => c.id);
+}
+
+async function rollbackTransferByQuantity(
+  ids: string[],
+  id_tienda_origen: string,
+): Promise<void> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("copia")
+    .update({ id_tienda: id_tienda_origen })
+    .in("id", ids)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error en rollback de traslado por cantidad:",
+      error,
+    );
+    throw error;
+  }
+}
+
 export async function transferCopiasByQuantityAtomic(
   input: TransferCopiasByQuantityInput,
 ): Promise<TransferCopiasByQuantityModelResult> {
   const adminClient = createAdminClient();
   const safeQuantity = Math.max(1, input.cantidad);
 
-  const { data: updatedRows, error } = await adminClient
+  const copiasForTransfer = await getCopiasForTransferByQuantity(
+    input.id_libro,
+    input.id_tienda_origen,
+    safeQuantity,
+  );
+
+  if (copiasForTransfer.length === 0) {
+    return {
+      success: false,
+      errorCode: "INSUFFICIENT_STOCK",
+      error:
+        "No hay copias disponibles en la tienda origen para el libro especificado.",
+    };
+  }
+
+  // PASO 2: Actualizar solo esos IDs específicos
+  const { data: updatedRows, error: updateError } = await adminClient
     .from("copia")
     .update({ id_tienda: input.id_tienda_destino })
-    .eq("id_libro", input.id_libro)
-    .eq("id_tienda", input.id_tienda_origen)
-    .eq("estado", "disponible")
-    .is("deleted_at", null)
-    .order("id", { ascending: true })
-    .limit(safeQuantity)
+    .in("id", copiasForTransfer) // Usamos .in() para afectar solo a los que encontramos
     .select("id");
 
-  if (error) {
-    console.error(
-      "[copiaModel] Error trasladando copias por cantidad de forma atómica:",
-      error,
-    );
-    return { success: false, error: error.message };
-  }
+  if (updateError) throw updateError;
 
   const transferredIds = (updatedRows ?? []).map((row) => row.id);
   if (transferredIds.length === safeQuantity) {
@@ -130,25 +184,14 @@ export async function transferCopiasByQuantityAtomic(
   }
 
   if (transferredIds.length > 0) {
-    const { data: rollbackRows, error: rollbackError } = await adminClient
-      .from("copia")
-      .update({ id_tienda: input.id_tienda_origen })
-      .in("id", transferredIds)
-      .eq("id_tienda", input.id_tienda_destino)
-      .select("id");
-
-    if (rollbackError || (rollbackRows ?? []).length !== transferredIds.length) {
-      console.error(
-        "[copiaModel] Falló el rollback de traslado parcial por cantidad:",
-        rollbackError,
-      );
-      return {
-        success: false,
-        errorCode: "ROLLBACK_FAILED",
-        error:
-          "No se pudo completar ni revertir correctamente el traslado por cantidad.",
-      };
-    }
+    rollbackTransferByQuantity(transferredIds, input.id_tienda_origen).catch(
+      (rollbackError) => {
+        console.error(
+          "[copiaModel] Error durante el rollback de traslado por cantidad después de una actualización parcial:",
+          rollbackError,
+        );
+      },
+    );
   }
 
   return {
@@ -237,20 +280,15 @@ export async function getCopiasByIds(ids: string[]): Promise<CopiaRow[]> {
 export async function getAvailableCopiasByLibroAndStore(
   id_libro: string,
   id_tienda: string,
-  limit: number,
-): Promise<CopiaRow[]> {
+): Promise<number | null> {
   const adminClient = createAdminClient();
-  const safeLimit = Math.max(1, limit);
 
   const { data, error } = await adminClient
-    .from("copia")
-    .select("*")
-    .eq("id_libro", id_libro)
-    .eq("id_tienda", id_tienda)
-    .eq("estado", "disponible")
-    .is("deleted_at", null)
-    .order("id", { ascending: true })
-    .limit(safeLimit);
+    .from("vista_inventario")
+    .select("stock_disponible")
+    .eq("libro_id", id_libro)
+    .eq("tienda_id", id_tienda)
+    .maybeSingle();
 
   if (error) {
     console.error(
@@ -260,7 +298,10 @@ export async function getAvailableCopiasByLibroAndStore(
     throw error;
   }
 
-  return data ?? [];
+  return (
+    (data as { stock_disponible?: number | null } | null)?.stock_disponible ??
+    null
+  );
 }
 
 export async function getInventarioRows(
