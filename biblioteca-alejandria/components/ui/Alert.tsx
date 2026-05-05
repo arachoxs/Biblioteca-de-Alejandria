@@ -67,20 +67,9 @@ const VARIANTS = {
 
 const EXIT_DURATION_MS = 300;
 
-export default function Alert({
-  variant = "info",
-  children,
-  duration = 3000,
-  onClose,
-}: AlertProps) {
-  const [isVisible, setIsVisible] = useState(true);
-  const [isExiting, setIsExiting] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+function useProgressTimer(duration: number, onExpire: () => void) {
   const [progress, setProgress] = useState(1);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
     if (!duration || duration <= 0) return;
@@ -95,10 +84,7 @@ export default function Alert({
 
       if (remaining <= 0) {
         setIsExiting(true);
-        setTimeout(() => {
-          setIsVisible(false);
-          if (onClose) onClose();
-        }, EXIT_DURATION_MS);
+        setTimeout(onExpire, EXIT_DURATION_MS);
       } else {
         rafId = requestAnimationFrame(tick);
       }
@@ -106,15 +92,43 @@ export default function Alert({
 
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [duration, onClose]);
+  }, [duration, onExpire]);
 
-  const handleDismiss = () => {
+  return { progress, isExiting };
+}
+
+function useDismissTimer(onDismiss: () => void) {
+  const [isExiting, setIsExiting] = useState(false);
+
+  const dismiss = () => {
     setIsExiting(true);
-    setTimeout(() => {
-      setIsVisible(false);
-      if (onClose) onClose();
-    }, EXIT_DURATION_MS);
+    setTimeout(onDismiss, EXIT_DURATION_MS);
   };
+
+  return { isExiting, dismiss };
+}
+
+export default function Alert({
+  variant = "info",
+  children,
+  duration = 3000,
+  onClose,
+}: AlertProps) {
+  const [isVisible, setIsVisible] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const { progress, isExiting } = useProgressTimer(duration, () => {
+    setIsVisible(false);
+  });
+
+  const { dismiss } = useDismissTimer(() => {
+    setIsVisible(false);
+    if (onClose) onClose();
+  });
 
   if (!isMounted || !isVisible) return null;
 
@@ -133,7 +147,7 @@ export default function Alert({
       <span className="flex-1 min-w-0 break-words font-medium">{children}</span>
       <button
         type="button"
-        onClick={handleDismiss}
+        onClick={dismiss}
         aria-label="Cerrar notificación"
         className="ml-1 opacity-60 hover:opacity-100 transition-opacity cursor-pointer p-0.5 rounded hover:bg-black/10"
       >
