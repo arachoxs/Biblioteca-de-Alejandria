@@ -18,7 +18,6 @@ import {
   transferInventarioByQuantityAction,
 } from "./action";
 import { useValidation } from "@/hooks/useValidation";
-import { on } from "events";
 
 interface TransferInventarioModalProps {
   isOpen: boolean;
@@ -155,6 +154,8 @@ export default function TransferInventarioModal({
   const handleClose = () => {
     reset();
     setBookOptions([]);
+    setIsLoadingBooks(false);
+    setIsLoadingDefaultStore(false);
     setResponseState(null);
     onClose();
   };
@@ -389,22 +390,6 @@ export default function TransferInventarioModal({
           onChange={(event) => handleChange("cantidad", event.target.value)}
           onBlur={() => {
             handleBlur("cantidad");
-            if (maxAvailableCopies === 0) return;
-            const parsedCantidad = Number.parseInt(values.cantidad, 10);
-            if (
-              values.cantidad &&
-              (Number.isNaN(parsedCantidad) || parsedCantidad < 1)
-            ) {
-              setErrors((prev) => ({
-                ...prev,
-                cantidad: "La cantidad debe ser mayor a 0.",
-              }));
-            } else if (parsedCantidad > maxAvailableCopies) {
-              setErrors((prev) => ({
-                ...prev,
-                cantidad: `La cantidad no puede superar ${maxAvailableCopies}.`,
-              }));
-            }
           }}
           error={errors.cantidad}
         />

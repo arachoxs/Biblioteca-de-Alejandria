@@ -56,11 +56,7 @@ export default function Modal({
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
 <div
-          className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full ${
-            allowOverflow
-              ? "overflow-visible"
-              : "overflow-hidden overflow-y-scroll"
-          } animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
+          className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title">
@@ -77,7 +73,11 @@ export default function Modal({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 relative">{children}</div>
+        <div className={`p-6 relative ${
+          allowOverflow
+            ? "overflow-visible"
+            : "overflow-y-scroll"
+        } max-h-[calc(100vh-180px)]`}>{children}</div>
       </div>
     </div>,
     document.body,
