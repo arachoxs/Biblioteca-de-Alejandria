@@ -55,12 +55,12 @@ export default function Modal({
       {/* Backdrop click handler */}
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
-      <div
-        className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full ${
-          allowOverflow
-            ? "overflow-visible"
-            : "overflow-hidden overflow-y-scroll"
-        } animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
+<div
+          className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full ${
+            allowOverflow
+              ? "overflow-y-visible overflow-x-hidden"
+              : "overflow-hidden overflow-y-scroll"
+          } animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title">
