@@ -146,7 +146,6 @@ export default function ChangePasswordModal({
           <Alert
             key={`error-${submitCount}`}
             variant="error"
-            className="top-1"
           >
             {serverError}
           </Alert>
@@ -155,7 +154,6 @@ export default function ChangePasswordModal({
           <Alert
             key={`success-${submitCount}`}
             variant="success"
-            className="top-1"
           >
             Contraseña actualizada. Redirigiendo al inicio de sesión…
           </Alert>

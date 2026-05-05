@@ -2,7 +2,7 @@
 
 import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
-import { Plus, CheckCircle, UserX, Loader2, AlertCircle } from "lucide-react";
+import { Plus, CheckCircle, UserX, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getAdminUsersAction, habilitarAdministradores, deshabilitarAdministradores  } from "./action";
 import Alert from "@/components/ui/Alert";
@@ -185,47 +185,25 @@ export default function AdministradoresContent() {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
         {/* Alert para errores de carga */}
         {errorLoadingAdmins && (
-          <Alert 
-            variant="error"
-            className="mb-6 flex items-center gap-2"
-          >
-            <AlertCircle className="w-4 h-4" />
+          <Alert variant="error">
             {errorLoadingAdmins}
           </Alert>
         )}
 
-        {/* Alert para operaciones exitosas */}
         {changeStateUserResponse?.success === true && !changeStateUserResponse?.errorIds?.length && (
-          <Alert 
-            variant="success" 
-            className="mb-6 flex items-center gap-2"
-            onClose={() => setChangeStateUserResponse(null)}
-          >
-            <CheckCircle className="w-4 h-4" />
+          <Alert variant="success" onClose={() => setChangeStateUserResponse(null)}>
             {changeStateUserResponse.message || "Operación completada exitosamente"}
           </Alert>
         )}
 
-        {/* Alert para operaciones parcialmente exitosas */}
         {changeStateUserResponse?.success === true && changeStateUserResponse?.errorIds && changeStateUserResponse.errorIds.length > 0 && (
-          <Alert 
-            variant="warning" 
-            className="mb-6 flex items-center gap-2"
-            onClose={() => setChangeStateUserResponse(null)}
-          >
-            <AlertCircle className="w-4 h-4" />
+          <Alert variant="warning" onClose={() => setChangeStateUserResponse(null)}>
             {`Operación parcialmente completada. ${changeStateUserResponse.errorIds.length} administrador(es) no pudieron ser procesados. ${changeStateUserResponse.message || ""}`}
           </Alert>
         )}
 
-        {/* Alert para operaciones fallidas */}
         {changeStateUserResponse?.success === false && (
-          <Alert 
-            variant="error" 
-            className="mb-6 flex items-center gap-2"
-            onClose={() => setChangeStateUserResponse(null)}
-          >
-            <AlertCircle className="w-4 h-4" />
+          <Alert variant="error" onClose={() => setChangeStateUserResponse(null)}>
             {changeStateUserResponse.message || "Error al procesar la operación"}
           </Alert>
         )}

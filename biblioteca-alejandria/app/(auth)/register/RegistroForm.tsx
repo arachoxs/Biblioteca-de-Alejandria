@@ -235,7 +235,7 @@ export default function RegistroForm() {
             )}
 
             {success && (
-                <Alert variant="success" className="absolute left-1/2 -translate-x-1/2 z-50">
+                <Alert variant="success">
                     Registro exitoso. ¡Bienvenido!
                 </Alert>
             )}

@@ -97,7 +97,7 @@ export default function LoginForm() {
 
       {/* Mensaje de error global */}
       {error && (
-        <Alert variant="error" className="top-1">
+        <Alert variant="error">
           {error}
         </Alert>
       )}

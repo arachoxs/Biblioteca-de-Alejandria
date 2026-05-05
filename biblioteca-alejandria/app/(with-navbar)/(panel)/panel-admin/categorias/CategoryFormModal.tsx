@@ -129,9 +129,7 @@ export default function CategoryFormModal({
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
       <form onSubmit={handleSubmit} className="space-y-5">
         {alertState?.message && (
-          <Alert
-            variant={alertState.success ? "success" : "error"}
-            className="!relative !left-0 !translate-x-0">
+          <Alert variant={alertState.success ? "success" : "error"}>
             {alertState.message}
           </Alert>
         )}

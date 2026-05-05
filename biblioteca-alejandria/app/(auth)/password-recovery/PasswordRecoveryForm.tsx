@@ -315,9 +315,9 @@ export default function PasswordRecoveryForm() {
 
       {/* Mensajes de error/éxito */}
       {error ? (
-        <Alert variant="error" className="top-1">{error}</Alert>
+        <Alert variant="error">{error}</Alert>
       ) : successMessage && currentStep < 3 ? (
-        <Alert variant="success" className="top-1">{successMessage}</Alert>
+        <Alert variant="success">{successMessage}</Alert>
       ) : null}
 
       {/* ─── Step 1: Email ─── */}

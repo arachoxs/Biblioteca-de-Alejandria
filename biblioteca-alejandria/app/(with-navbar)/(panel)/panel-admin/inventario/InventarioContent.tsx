@@ -5,10 +5,8 @@ import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
 import Alert from "@/components/ui/Alert";
 import {
-  AlertCircle,
   ArrowRightLeft,
   Boxes,
-  CheckCircle,
   Loader2,
   Plus,
 } from "lucide-react";
@@ -146,8 +144,7 @@ export default function InventarioContent() {
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
       {errorLoading && (
-        <Alert variant="error" className="mb-6 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" />
+        <Alert variant="error">
           {errorLoading}
         </Alert>
       )}
@@ -155,13 +152,7 @@ export default function InventarioContent() {
       {feedback && (
         <Alert
           variant={feedback.success ? "success" : "error"}
-          className="mb-6 flex items-center gap-2"
           onClose={() => setFeedback(null)}>
-          {feedback.success ? (
-            <CheckCircle className="w-4 h-4" />
-          ) : (
-            <AlertCircle className="w-4 h-4" />
-          )}
           {feedback.message}
         </Alert>
       )}

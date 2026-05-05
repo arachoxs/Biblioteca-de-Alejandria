@@ -44,3 +44,27 @@
   border: 1px solid rgba(255, 255, 255, 0.55);
 }
 
+/* ── Toast / Alert overlay animations ─────────────────────────────── */
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(-150%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-150%); }
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+.toast-slide-in {
+  animation: toastSlideIn 0.3s ease-out both;
+}
+
+.toast-slide-out {
+  animation: toastSlideOut 0.3s ease-in both;
+}
+
