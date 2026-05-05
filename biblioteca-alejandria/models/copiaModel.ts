@@ -99,39 +99,81 @@ export async function transferCopias(
   return { success: true };
 }
 
+async function getCopiasForTransferByQuantity(
+  id_libro: string,
+  id_tienda_origen: string,
+  cantidad: number,
+): Promise<string[]> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("copia")
+    .select("id")
+    .eq("id_libro", id_libro)
+    .eq("id_tienda", id_tienda_origen)
+    .eq("estado", "disponible")
+    .is("deleted_at", null)
+    .order("id", { ascending: true })
+    .limit(cantidad);
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error obteniendo copias para traslado por cantidad:",
+      error,
+    );
+    throw error;
+  }
+
+  return (data ?? []).map((c) => c.id);
+}
+
+async function rollbackTransferByQuantity(
+  ids: string[],
+  id_tienda_origen: string,
+): Promise<void> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("copia")
+    .update({ id_tienda: id_tienda_origen })
+    .in("id", ids)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error en rollback de traslado por cantidad:",
+      error,
+    );
+    throw error;
+  }
+}
+
 export async function transferCopiasByQuantityAtomic(
   input: TransferCopiasByQuantityInput,
 ): Promise<TransferCopiasByQuantityModelResult> {
   const adminClient = createAdminClient();
   const safeQuantity = Math.max(1, input.cantidad);
 
-  //1. obtener las copias disponibles para el libro y tienda origen, ordenadas por id asc, limitadas a la cantidad solicitada
-  const { data, error } = await adminClient
-    .from("copia")
-    .select("id")
-    .eq("id_libro", input.id_libro)
-    .eq("id_tienda", input.id_tienda_origen)
-    .eq("estado", "disponible")
-    .is("deleted_at", null)
-    .order("id", { ascending: true })
-    .limit(safeQuantity);
+  const copiasForTransfer = await getCopiasForTransferByQuantity(
+    input.id_libro,
+    input.id_tienda_origen,
+    safeQuantity,
+  );
 
-  if (error) {
-    console.error(
-      "[copiaModel] Error obteniendo las copias por cantidad de forma atómica:",
-      error,
-    );
-    return { success: false, error: error.message };
+  if (copiasForTransfer.length === 0) {
+    return {
+      success: false,
+      errorCode: "INSUFFICIENT_STOCK",
+      error:
+        "No hay copias disponibles en la tienda origen para el libro especificado.",
+    };
   }
-
-  // Extraemos solo los IDs: [1, 2, 3]
-  const ids = (data ?? []).map((c) => c.id);
 
   // PASO 2: Actualizar solo esos IDs específicos
   const { data: updatedRows, error: updateError } = await adminClient
     .from("copia")
     .update({ id_tienda: input.id_tienda_destino })
-    .in("id", ids) // Usamos .in() para afectar solo a los que encontramos
+    .in("id", copiasForTransfer) // Usamos .in() para afectar solo a los que encontramos
     .select("id");
 
   if (updateError) throw updateError;
@@ -141,31 +183,15 @@ export async function transferCopiasByQuantityAtomic(
     return { success: true, transferredIds };
   }
 
-  console.log(transferredIds);
-
   if (transferredIds.length > 0) {
-    const { data: rollbackRows, error: rollbackError } = await adminClient
-      .from("copia")
-      .update({ id_tienda: input.id_tienda_origen })
-      .in("id", transferredIds)
-      .eq("id_tienda", input.id_tienda_destino)
-      .select("id");
-
-    if (
-      rollbackError ||
-      (rollbackRows ?? []).length !== transferredIds.length
-    ) {
-      console.error(
-        "[copiaModel] Falló el rollback de traslado parcial por cantidad:",
-        rollbackError,
-      );
-      return {
-        success: false,
-        errorCode: "ROLLBACK_FAILED",
-        error:
-          "No se pudo completar ni revertir correctamente el traslado por cantidad.",
-      };
-    }
+    rollbackTransferByQuantity(transferredIds, input.id_tienda_origen).catch(
+      (rollbackError) => {
+        console.error(
+          "[copiaModel] Error durante el rollback de traslado por cantidad después de una actualización parcial:",
+          rollbackError,
+        );
+      },
+    );
   }
 
   return {
