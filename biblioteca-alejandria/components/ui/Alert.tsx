@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface AlertProps {
@@ -67,42 +67,60 @@ const VARIANTS = {
 
 const EXIT_DURATION_MS = 300;
 
-function useProgressTimer(duration: number, onExpire: () => void) {
+function useProgressTimer(duration: number, isExitingExternal: boolean) {
   const [progress, setProgress] = useState(1);
   const [isExiting, setIsExiting] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startTimeRef = useRef(0);
+  const onExpireRef = useRef<(() => void) | null>(null);
+
+  const setOnExpire = (fn: () => void) => {
+    onExpireRef.current = fn;
+  };
 
   useEffect(() => {
     if (!duration || duration <= 0) return;
+    if (isExitingExternal) return;
 
-    const startTime = performance.now();
+    startTimeRef.current = performance.now();
     let rafId: number;
+    let tickCount = 0;
 
     const tick = () => {
-      const elapsed = performance.now() - startTime;
+      const elapsed = performance.now() - startTimeRef.current;
       const remaining = Math.max(0, 1 - elapsed / duration);
-      setProgress(remaining);
+
+      if (tickCount % 2 === 0) {
+        setProgress(remaining);
+      }
+      tickCount++;
 
       if (remaining <= 0) {
         setIsExiting(true);
-        setTimeout(onExpire, EXIT_DURATION_MS);
+        timeoutRef.current = setTimeout(() => onExpireRef.current?.(), EXIT_DURATION_MS);
       } else {
         rafId = requestAnimationFrame(tick);
       }
     };
 
     rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [duration, onExpire]);
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [duration, isExitingExternal]);
 
-  return { progress, isExiting };
+  return { progress, isExiting, setOnExpire };
 }
 
 function useDismissTimer(onDismiss: () => void) {
   const [isExiting, setIsExiting] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dismiss = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setIsExiting(true);
-    setTimeout(onDismiss, EXIT_DURATION_MS);
+    timeoutRef.current = setTimeout(onDismiss, EXIT_DURATION_MS);
   };
 
   return { isExiting, dismiss };
@@ -121,14 +139,21 @@ export default function Alert({
     setIsMounted(true);
   }, []);
 
-  const { progress, isExiting } = useProgressTimer(duration, () => {
-    setIsVisible(false);
-  });
-
-  const { dismiss } = useDismissTimer(() => {
+  const { dismiss, isExiting: isExitingFromDismiss } = useDismissTimer(() => {
     setIsVisible(false);
     if (onClose) onClose();
   });
+
+  const { progress, isExiting: isExitingFromTimer, setOnExpire } = useProgressTimer(
+    duration,
+    isExitingFromDismiss
+  );
+
+  useEffect(() => {
+    setOnExpire(() => () => setIsVisible(false));
+  }, [setOnExpire]);
+
+  const isExiting = isExitingFromTimer || isExitingFromDismiss;
 
   if (!isMounted || !isVisible) return null;
 
