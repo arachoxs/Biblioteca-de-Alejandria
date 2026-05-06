@@ -11,9 +11,7 @@ import type { InventarioOption } from "@/lib/types/inventario";
 import type { CopiaActionResponse } from "@/lib/types/copia";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useValidation } from "@/hooks/useValidation";
-import {
-  MAX_COPIAS_POR_INSERCION,
-} from "@/lib/validations/rules";
+import { MAX_COPIAS_POR_INSERCION } from "@/lib/validations/rules";
 import {
   createInventarioAction,
   getInventarioBookOptionsAction,
