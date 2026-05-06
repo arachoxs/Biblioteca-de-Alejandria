@@ -3,6 +3,7 @@
 import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
 import Alert from "@/components/ui/Alert";
+import BackLink from "@/components/ui/BackLink";
 import { Plus, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -123,6 +124,7 @@ export default function LibrosContent() {
 
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
+      <BackLink href="/panel-admin" label="Panel de Administración" />
       {/* Alerts */}
       {errorLoading && (
         <Alert variant="error">

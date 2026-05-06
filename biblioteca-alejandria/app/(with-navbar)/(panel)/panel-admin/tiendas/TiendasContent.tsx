@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
 import Alert from "@/components/ui/Alert";
+import BackLink from "@/components/ui/BackLink";
 import { Plus, Loader2 } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import type {
@@ -142,6 +143,7 @@ export default function TiendasContent() {
 
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
+      <BackLink href="/panel-admin" label="Panel de Administración" />
       {errorLoadingTiendas && (
         <Alert variant="error">
           {errorLoadingTiendas}

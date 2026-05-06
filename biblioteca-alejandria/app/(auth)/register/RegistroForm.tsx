@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
@@ -239,6 +240,16 @@ export default function RegistroForm() {
                     Registro exitoso. ¡Bienvenido!
                 </Alert>
             )}
+
+            {/* Back link */}
+            <div className="mb-2">
+                <Link
+                    href="/"
+                    className="inline-flex items-center gap-1.5 text-sm text-brand-secondary hover:text-brand-primary transition-colors">
+                    <ArrowLeft className="w-4 h-4" />
+                    Ir al inicio
+                </Link>
+            </div>
 
             {/* Datos personales — componente reutilizable */}
             <PersonalDataFields

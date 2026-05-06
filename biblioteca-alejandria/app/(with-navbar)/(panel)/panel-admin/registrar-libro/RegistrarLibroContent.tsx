@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Alert from "@/components/ui/Alert";
+import BackLink from "@/components/ui/BackLink";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import type { SearchableSelectOption } from "@/components/ui/SearchableSelect";
 import AuthorFormModal from "../autores/AuthorFormModal";
@@ -13,7 +14,6 @@ import CategoryFormModal from "../categorias/CategoryFormModal";
 import { useValidation } from "@/hooks/useValidation";
 import { validateLibro } from "@/lib/validations/libro";
 import {
-  ArrowLeft,
   BookPlus,
   Loader2,
   Plus,
@@ -262,14 +262,7 @@ export default function RegistrarLibroContent() {
 
   return (
     <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
-      {/* Navegación */}
-      <button
-        type="button"
-        onClick={() => router.push("/panel-admin/libros")}
-        className="inline-flex items-center gap-2 text-sm text-brand-secondary hover:text-brand-primary transition-colors mb-6 cursor-pointer group">
-        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        Volver a libros
-      </button>
+      <BackLink href="/panel-admin/libros" label="Volver a libros" />
 
       {/* Header */}
       <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both">

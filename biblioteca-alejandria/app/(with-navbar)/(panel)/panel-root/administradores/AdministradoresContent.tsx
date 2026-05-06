@@ -2,6 +2,7 @@
 
 import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
+import BackLink from "@/components/ui/BackLink";
 import { Plus, CheckCircle, UserX, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getAdminUsersAction, habilitarAdministradores, deshabilitarAdministradores  } from "./action";
@@ -183,6 +184,7 @@ export default function AdministradoresContent() {
 
   return (
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
+        <BackLink href="/panel-root" label="Panel de Control" />
         {/* Alert para errores de carga */}
         {errorLoadingAdmins && (
           <Alert variant="error">
