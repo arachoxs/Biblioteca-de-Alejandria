@@ -118,6 +118,24 @@ export async function getLibroHistoricoTimelineAction(
 
 // ─── Mutaciones ────────────────────────────────────────────────────
 
+async function resolveBodegaYValidarCantidad(
+  cantidad: number,
+): Promise<{ error?: string; bodegaId?: string }> {
+  if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad)) {
+    return { error: "La cantidad debe ser un entero válido." };
+  }
+  if (cantidad < 1 || cantidad > 100) {
+    return { error: "La cantidad debe ser entre 1 y 100." };
+  }
+  const bodega = await getDefaultTienda();
+  if (!bodega) {
+    return {
+      error: "No se encontró la bodega principal. Configura una tienda como bodega.",
+    };
+  }
+  return { bodegaId: bodega.id };
+}
+
 export async function crearLibroAction(
   formData: Record<string, string>,
   cantidadInventario?: number,
@@ -159,24 +177,11 @@ export async function crearLibroAction(
 
   // Inventario obligatorio → bodega principal
   if (cantidadInventario !== undefined && cantidadInventario > 0) {
-    if (!Number.isFinite(cantidadInventario) || !Number.isInteger(cantidadInventario)) {
-      return { success: false, message: "La cantidad debe ser un entero válido." };
+    const result = await resolveBodegaYValidarCantidad(cantidadInventario);
+    if (result.error) {
+      return { success: false, message: result.error };
     }
-    if (cantidadInventario > 100) {
-      return { success: false, message: `Máximo 100 copias por registro.` };
-    }
-    const bodega = await getDefaultTienda();
-    if (!bodega) {
-      return {
-        success: false,
-        message: "No se encontró la bodega principal. Configura una tienda como bodega.",
-      };
-    }
-    return await createBookWithInventory(
-      payload,
-      bodega.id,
-      cantidadInventario,
-    );
+    return await createBookWithInventory(payload, result.bodegaId!, cantidadInventario);
   }
 
   return await createBook(payload);
