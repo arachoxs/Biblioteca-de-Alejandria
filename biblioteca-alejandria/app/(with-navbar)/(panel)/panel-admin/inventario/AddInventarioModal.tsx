@@ -46,7 +46,7 @@ function validateAddInventario(
   if (!values.cantidad.trim()) {
     errors.cantidad = "La cantidad es obligatoria.";
   } else if (!Number.isInteger(parsedCantidad) || parsedCantidad < 1) {
-    errors.cantidad = "La cantidad debe ser mayor a 0.";
+    errors.cantidad = "La cantidad debe ser un número entero mayor a 0.";
   } else if (parsedCantidad > MAX_COPIAS_POR_INSERCION) {
     errors.cantidad = `La cantidad no puede ser mayor a ${MAX_COPIAS_POR_INSERCION}.`;
   }

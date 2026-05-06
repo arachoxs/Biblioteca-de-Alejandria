@@ -3,6 +3,7 @@ import {
   maxLengthRule,
   minLengthRule,
   validateFieldRules,
+  MAX_COPIAS_POR_INSERCION,
 } from "./rules";
 
 export interface LibroValidationPayload {
@@ -131,4 +132,24 @@ export function validateLibro(
   if (editorialErr) errors.editorial = editorialErr;
 
   return errors;
+}
+
+/**
+ * Valida la cantidad de copias del inventario (cliente/servidor).
+ */
+export function validateInventarioCantidad(cantidad: string): string | null {
+  if (!cantidad.trim()) {
+    return "La cantidad es obligatoria.";
+  }
+  if (!/^\d+$/.test(cantidad)) {
+    return "La cantidad debe ser un número entero mayor a 0.";
+  }
+  const parsed = Number(cantidad);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return "La cantidad debe ser un número entero mayor a 0.";
+  }
+  if (parsed > MAX_COPIAS_POR_INSERCION) {
+    return `Máximo ${MAX_COPIAS_POR_INSERCION} copias por registro.`;
+  }
+  return null;
 }

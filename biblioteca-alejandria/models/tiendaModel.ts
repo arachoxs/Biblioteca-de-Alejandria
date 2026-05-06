@@ -167,6 +167,7 @@ export async function getDefaultTienda(): Promise<TiendaGlobal | null> {
     .select("id, nombre")
     .is("es_bodega", true)
     .is("deleted_at", null)
+    .order("id", { ascending: true })
     .limit(1)
     .maybeSingle();
 

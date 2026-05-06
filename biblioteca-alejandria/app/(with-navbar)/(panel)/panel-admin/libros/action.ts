@@ -9,6 +9,7 @@ import {
   fetchBooks,
 } from "@/services/libros/libroService";
 import { getActiveLibroById } from "@/models/libroModel";
+import { getDefaultTienda } from "@/models/tiendaModel";
 import { fetchAuthors } from "@/services/authors/authorService";
 import { fetchCategories } from "@/services/categories/categoryService";
 import { fetchInventarioStoreOptions } from "@/services/copia/copiaService";
@@ -117,9 +118,27 @@ export async function getLibroHistoricoTimelineAction(
 
 // ─── Mutaciones ────────────────────────────────────────────────────
 
+async function resolveBodegaYValidarCantidad(
+  cantidad: number,
+): Promise<{ error?: string; bodegaId?: string }> {
+  if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad)) {
+    return { error: "La cantidad debe ser un entero válido." };
+  }
+  if (cantidad < 1 || cantidad > 100) {
+    return { error: "La cantidad debe ser entre 1 y 100." };
+  }
+  const bodega = await getDefaultTienda();
+  if (!bodega) {
+    return {
+      error: "No se encontró la bodega principal. Configura una tienda como bodega.",
+    };
+  }
+  return { bodegaId: bodega.id };
+}
+
 export async function crearLibroAction(
   formData: Record<string, string>,
-  inventario?: { id_tienda: string; cantidad: number },
+  cantidadInventario?: number,
 ): Promise<LibroActionResponse> {
   // Sanitizar
   const cleaned = {
@@ -156,13 +175,13 @@ export async function crearLibroAction(
     editorial: cleaned.editorial,
   };
 
-  // Decidir flujo
-  if (inventario && inventario.id_tienda && inventario.cantidad > 0) {
-    return await createBookWithInventory(
-      payload,
-      sanitizeText(inventario.id_tienda),
-      toSafePositiveInt(inventario.cantidad, 1),
-    );
+  // Inventario obligatorio → bodega principal
+  if (cantidadInventario !== undefined && cantidadInventario > 0) {
+    const result = await resolveBodegaYValidarCantidad(cantidadInventario);
+    if (result.error) {
+      return { success: false, message: result.error };
+    }
+    return await createBookWithInventory(payload, result.bodegaId!, cantidadInventario);
   }
 
   return await createBook(payload);
