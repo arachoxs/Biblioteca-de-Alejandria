@@ -141,7 +141,10 @@ export function validateInventarioCantidad(cantidad: string): string | null {
   if (!cantidad.trim()) {
     return "La cantidad es obligatoria.";
   }
-  const parsed = Number.parseInt(cantidad, 10);
+  if (!/^\d+$/.test(cantidad)) {
+    return "La cantidad debe ser un número entero mayor a 0.";
+  }
+  const parsed = Number(cantidad);
   if (!Number.isInteger(parsed) || parsed < 1) {
     return "La cantidad debe ser un número entero mayor a 0.";
   }

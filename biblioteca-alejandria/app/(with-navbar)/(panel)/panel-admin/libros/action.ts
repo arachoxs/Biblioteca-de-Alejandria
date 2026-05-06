@@ -159,6 +159,12 @@ export async function crearLibroAction(
 
   // Inventario obligatorio → bodega principal
   if (cantidadInventario !== undefined && cantidadInventario > 0) {
+    if (!Number.isFinite(cantidadInventario) || !Number.isInteger(cantidadInventario)) {
+      return { success: false, message: "La cantidad debe ser un entero válido." };
+    }
+    if (cantidadInventario > 100) {
+      return { success: false, message: `Máximo 100 copias por registro.` };
+    }
     const bodega = await getDefaultTienda();
     if (!bodega) {
       return {
@@ -169,7 +175,7 @@ export async function crearLibroAction(
     return await createBookWithInventory(
       payload,
       bodega.id,
-      toSafePositiveInt(cantidadInventario, 1),
+      cantidadInventario,
     );
   }
 

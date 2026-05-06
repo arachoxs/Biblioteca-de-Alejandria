@@ -177,7 +177,7 @@ export default function RegistrarLibroContent() {
         editorial: values.editorial,
       };
 
-      const parsedCantidad = Number.parseInt(values.inv_cantidad, 10);
+      const parsedCantidad = Number(values.inv_cantidad);
       const response = await crearLibroAction(formData, parsedCantidad);
       setAlertState(response);
 
