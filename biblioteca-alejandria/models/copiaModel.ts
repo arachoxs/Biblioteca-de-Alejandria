@@ -364,10 +364,10 @@ export async function getCopias(
     query = query.eq("id_libro", id_libro);
   }
 
+  console.log("searchTerm en getCopias:", searchTerm);
+
   if (searchTerm && searchTerm.trim() !== "") {
-    // Si la tabla copia tiene uuid, busqueda por uuid exacto
-    // asumiendo uuid
-    query = query.eq("id", searchTerm.trim());
+    query = query.ilike("codigo_seq", `%${searchTerm.trim()}%`);
   }
 
   const { data, error, count } = await query;

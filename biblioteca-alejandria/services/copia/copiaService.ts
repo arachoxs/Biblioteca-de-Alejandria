@@ -131,6 +131,7 @@ function mapCopiasToInventarioDetalle(
 ): InventarioCopiaDetalle[] {
   return rows.map((copy) => ({
     id_copia: copy.id,
+    id_copia_seq: copy.codigo_seq ?? "",
     tienda_id: copy.id_tienda,
     nombre_tienda: storeNames.get(copy.id_tienda) ?? "Sin tienda asociada",
     estado_copia: copy.estado,
@@ -678,59 +679,78 @@ export async function fetchInventarioCopiasByLibro(
 
     const normalizedSearchTerm = searchTerm?.trim();
     let copySearchTerm: string | undefined;
+    let storeFilterIdFromSearch: string | undefined;
 
     if (normalizedSearchTerm) {
-      if (isValidUUID(normalizedSearchTerm)) {
-        copySearchTerm = normalizedSearchTerm;
-      } else {
-        const storesByTerm = await getTiendas(
-          1,
-          MAX_PAGE_SIZE,
-          normalizedSearchTerm,
-        );
-        const exactMatch = storesByTerm.data.find(
-          (store) =>
-            store.nombre.toLocaleLowerCase() ===
-            normalizedSearchTerm.toLocaleLowerCase(),
-        );
+      // Asumimos que el término puede ser un `codigo_seq` o un nombre de tienda.
+      // Pasamos el término de búsqueda para que el modelo de copia busque por `codigo_seq`.
+      copySearchTerm = normalizedSearchTerm;
 
-        storeFilterId = exactMatch?.id ?? storesByTerm.data[0]?.id;
+      // También intentamos buscar una tienda que coincida, por si el usuario
+      // escribió un nombre de tienda.
+      const storesByTerm = await getTiendas(
+        1,
+        MAX_PAGE_SIZE,
+        normalizedSearchTerm,
+      );
+      const exactMatch = storesByTerm.data.find(
+        (store) =>
+          store.nombre.toLocaleLowerCase() ===
+          normalizedSearchTerm.toLocaleLowerCase(),
+      );
 
-        if (!storeFilterId) {
-          const safePage = Math.max(1, page);
-          const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-          return {
-            success: true,
-            data: {
-              data: [],
-              total: 0,
-              page: safePage,
-              pageSize: safePageSize,
-              totalPages: 0,
-            },
-          };
-        }
+      storeFilterIdFromSearch = exactMatch?.id ?? storesByTerm.data[0]?.id;
+
+      // Si no se encuentra ni una copia ni una tienda, devolvemos vacío.
+      if (!copySearchTerm && !storeFilterIdFromSearch) {
+        const safePage = Math.max(1, page);
+        const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+        return {
+          success: true,
+          data: {
+            data: [],
+            total: 0,
+            page: safePage,
+            pageSize: safePageSize,
+            totalPages: 0,
+          },
+        };
       }
     }
+
+    const finalStoreFilterId = storeFilterId ?? storeFilterIdFromSearch;
+
+    const copySearchTermForQuery =
+      storeFilterIdFromSearch && normalizedSearchTerm
+        ? undefined
+        : copySearchTerm;
+
+    console.log(
+      "copySearchTerm en fetchInventarioCopiasByLibro:",
+      copySearchTerm,
+    );
 
     const paginatedCopies = await getCopiasModel(
       page,
       pageSize,
-      copySearchTerm,
-      storeFilterId,
+      copySearchTermForQuery,
+      finalStoreFilterId,
       libroId,
     );
 
     const uniqueStoreIds = Array.from(
       new Set(paginatedCopies.data.map((copy) => copy.id_tienda)),
     );
+
     const storeEntries = await Promise.all(
       uniqueStoreIds.map(async (storeId) => {
         const storeName = await getStoreNameById(storeId);
         return [storeId, storeName] as const;
       }),
     );
+
     const storeNames = new Map<string, string>(storeEntries);
+
     const copies = mapCopiasToInventarioDetalle(
       paginatedCopies.data,
       storeNames,

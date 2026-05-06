@@ -152,6 +152,7 @@ export async function getInventarioCopiasAction(
   });
 
   return await fetchInventarioCopiasByLibro(
+    //no esta llegando el objeto completo
     cleanLibroId,
     sanitizedInput.page,
     sanitizedInput.pageSize,
