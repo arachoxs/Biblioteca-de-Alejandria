@@ -56,15 +56,11 @@ export default function Modal({
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
       <div
-        className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full ${
-          allowOverflow
-            ? "overflow-visible"
-            : "overflow-hidden overflow-y-scroll"
-        } animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
+        className={`relative bg-white rounded-xl shadow-2xl w-full ${modalWidthClass} max-h-full flex flex-col animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ring-1 ring-brand-primary/5`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-accent/10 bg-brand-bg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-accent/10 bg-brand-bg rounded-t-xl">
           <h2
             id="modal-title"
             className="text-xl font-bold text-brand-primary font-display tracking-tight">
@@ -77,7 +73,9 @@ export default function Modal({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 relative">{children}</div>
+        <div className={`p-6 relative flex-1 min-h-0 ${allowOverflow ? "overflow-visible" : "overflow-y-auto overflow-x-hidden"} rounded-b-xl`}>
+          {children}
+        </div>
       </div>
     </div>,
     document.body,
