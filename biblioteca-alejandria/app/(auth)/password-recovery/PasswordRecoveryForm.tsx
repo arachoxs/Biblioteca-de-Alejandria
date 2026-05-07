@@ -370,6 +370,15 @@ export default function PasswordRecoveryForm() {
               ← Volver a Iniciar Sesión
             </Link>
           </p>
+
+          <p className="text-center text-sm text-brand-secondary/60 font-light pt-4 border-t border-brand-accent/10">
+            <Link
+              href="/"
+              className="hover:text-brand-primary transition-colors"
+            >
+              ← Ir al inicio
+            </Link>
+          </p>
         </form>
       )}
 
@@ -427,6 +436,15 @@ export default function PasswordRecoveryForm() {
               className="text-brand-primary font-medium hover:underline underline-offset-2 transition-all"
             >
               ← Volver a Iniciar Sesión
+            </Link>
+          </p>
+
+          <p className="text-center text-sm text-brand-secondary/60 font-light pt-4 border-t border-brand-accent/10">
+            <Link
+              href="/"
+              className="hover:text-brand-primary transition-colors"
+            >
+              ← Ir al inicio
             </Link>
           </p>
         </form>
@@ -498,6 +516,15 @@ export default function PasswordRecoveryForm() {
               className="text-brand-primary font-medium hover:underline underline-offset-2 transition-all"
             >
               ← Volver a Iniciar Sesión
+            </Link>
+          </p>
+
+          <p className="text-center text-sm text-brand-secondary/60 font-light pt-4 border-t border-brand-accent/10">
+            <Link
+              href="/"
+              className="hover:text-brand-primary transition-colors"
+            >
+              ← Ir al inicio
             </Link>
           </p>
         </form>

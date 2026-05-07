@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import FilterActionBar from "@/components/ui/FilterActionBar";
 import Alert from "@/components/ui/Alert";
+import BackLink from "@/components/ui/BackLink";
 import {
   ArrowRightLeft,
   Boxes,
@@ -79,20 +80,7 @@ export default function InventarioContent() {
           storeId || undefined,
         );
 
-        if (response.success && response.data) {
-          if (response.data.data.length === 0 && page > 1) {
-            setCurrentPage((prev) => Math.max(1, prev - 1));
-            return;
-          }
-
-          setInventarioData(response.data.data);
-          setTotalPages(response.data.totalPages);
-          setTotalItems(response.data.total);
-          return;
-        }
-
-        setInventarioData([]);
-        setErrorLoading(response.message ?? "No se pudo cargar el inventario.");
+        handleInventarioResponse(response, page);
       } catch (error) {
         console.error("Error cargando inventario:", error);
         setInventarioData([]);
@@ -103,6 +91,26 @@ export default function InventarioContent() {
     },
     [],
   );
+
+  const handleInventarioResponse = (
+    response: { success: boolean; data?: { data: InventarioLibroItem[]; totalPages: number; total: number }; message?: string },
+    page: number,
+  ) => {
+    if (response.success && response.data) {
+      if (response.data.data.length === 0 && page > 1) {
+        setCurrentPage((prev) => Math.max(1, prev - 1));
+        return;
+      }
+
+      setInventarioData(response.data.data);
+      setTotalPages(response.data.totalPages);
+      setTotalItems(response.data.total);
+      return;
+    }
+
+    setInventarioData([]);
+    setErrorLoading(response.message ?? "No se pudo cargar el inventario.");
+  };
 
   useEffect(() => {
     void loadStoreOptions();
@@ -126,23 +134,21 @@ export default function InventarioContent() {
     await loadInventario(currentPage, debouncedSearchTerm, selectedStoreId);
   };
 
-  const handleCreateSuccess = async (message: string) => {
+  const handleSuccess = async (message: string) => {
     setFeedback({ success: true, message });
     await refreshCurrentData();
   };
 
-  const handleTransferSuccess = async (message: string) => {
-    setFeedback({ success: true, message });
-    await refreshCurrentData();
-  };
-
-  const handleDetailSuccess = async (message: string) => {
-    setFeedback({ success: true, message });
-    await refreshCurrentData();
-  };
+  const getFilterButtonClass = (isSelected: boolean) =>
+    `px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${
+      isSelected
+        ? "bg-brand-primary text-white border-brand-primary"
+        : "bg-brand-bg text-brand-secondary border-brand-accent/30 hover:bg-brand-primary/10 hover:text-brand-primary"
+    }`;
 
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12 relative">
+      <BackLink href="/panel-admin" label="Panel de Administración" />
       {errorLoading && (
         <Alert variant="error">
           {errorLoading}
@@ -213,11 +219,7 @@ export default function InventarioContent() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className={`px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${
-                selectedStoreId === ""
-                  ? "bg-brand-primary text-white border-brand-primary"
-                  : "bg-brand-bg text-brand-secondary border-brand-accent/30 hover:bg-brand-primary/10 hover:text-brand-primary"
-              }`}
+              className={getFilterButtonClass(selectedStoreId === "")}
               onClick={() => handleStoreFilter("")}>
               Todas las tiendas
             </button>
@@ -225,11 +227,7 @@ export default function InventarioContent() {
               <button
                 key={store.value}
                 type="button"
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${
-                  selectedStoreId === store.value
-                    ? "bg-brand-primary text-white border-brand-primary"
-                    : "bg-brand-bg text-brand-secondary border-brand-accent/30 hover:bg-brand-primary/10 hover:text-brand-primary"
-                }`}
+                className={getFilterButtonClass(selectedStoreId === store.value)}
                 onClick={() => handleStoreFilter(store.value)}>
                 {store.label}
               </button>
@@ -263,13 +261,13 @@ export default function InventarioContent() {
       <AddInventarioModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={handleCreateSuccess}
+        onSuccess={handleSuccess}
       />
 
       <TransferInventarioModal
         isOpen={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
-        onSuccess={handleTransferSuccess}
+        onSuccess={handleSuccess}
         storeOptions={storeOptions}
       />
 
@@ -277,7 +275,7 @@ export default function InventarioContent() {
         isOpen={Boolean(detailLibro)}
         libro={detailLibro}
         onClose={() => setDetailLibro(null)}
-        onSuccess={handleDetailSuccess}
+        onSuccess={handleSuccess}
         storeOptions={storeOptions}
         storeIdFilter={selectedStoreId ? selectedStoreId : undefined}
       />

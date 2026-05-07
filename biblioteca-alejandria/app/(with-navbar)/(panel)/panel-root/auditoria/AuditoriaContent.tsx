@@ -6,6 +6,7 @@ import type { AuditoriaRow } from "@/lib/types/audit";
 import Table from "@/components/ui/Table";
 import type { Column } from "@/components/ui/Table";
 import Alert from "@/components/ui/Alert";
+import BackLink from "@/components/ui/BackLink";
 import { FileClock, Loader2, Search } from "lucide-react";
 
 import JsonDataDisplay from "@/components/ui/JsonDataDisplay";
@@ -133,6 +134,7 @@ export default function AuditoriaContent() {
 
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+      <BackLink href="/panel-root" label="Panel de Control" />
       {error && (
         <Alert variant="error">
           {error}

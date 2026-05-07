@@ -177,6 +177,16 @@ export default function LoginForm() {
             Regístrate aquí
           </Link>
         </p>
+
+        {/* Link a inicio */}
+        <p className="text-center text-sm text-brand-secondary/60 font-light pt-4 border-t border-brand-accent/10">
+          <Link
+            href="/"
+            className="hover:text-brand-primary transition-colors"
+          >
+            ← Ir al inicio
+          </Link>
+        </p>
       </form>
     </div>
   );
