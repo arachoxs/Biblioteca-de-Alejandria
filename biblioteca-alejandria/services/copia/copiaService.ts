@@ -16,6 +16,7 @@ import {
 import { getActiveLibroById, getLibros } from "@/models/libroModel";
 import {
   getActiveTiendaById,
+  getActiveTiendasByIds,
   getAllActiveTiendas,
   getDefaultTienda,
   getTiendas,
@@ -720,14 +721,10 @@ export async function fetchInventarioCopiasByLibro(
       new Set(paginatedCopies.data.map((copy) => copy.id_tienda)),
     );
 
-    const storeEntries = await Promise.all(
-      uniqueStoreIds.map(async (storeId) => {
-        const storeName = await getStoreNameById(storeId);
-        return [storeId, storeName] as const;
-      }),
+    const tiendas = await getActiveTiendasByIds(uniqueStoreIds);
+    const storeNames = new Map<string, string>(
+      tiendas.map((t) => [t.id, t.nombre]),
     );
-
-    const storeNames = new Map<string, string>(storeEntries);
 
     const copies = mapCopiasToInventarioDetalle(
       paginatedCopies.data,
