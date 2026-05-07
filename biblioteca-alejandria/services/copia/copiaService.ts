@@ -709,11 +709,6 @@ export async function fetchInventarioCopiasByLibro(
         ? undefined
         : copySearchTerm;
 
-    console.log(
-      "copySearchTerm en fetchInventarioCopiasByLibro:",
-      copySearchTerm,
-    );
-
     const paginatedCopies = await getCopiasModel(
       page,
       pageSize,
