@@ -700,22 +700,6 @@ export async function fetchInventarioCopiasByLibro(
       );
 
       storeFilterIdFromSearch = exactMatch?.id ?? storesByTerm.data[0]?.id;
-
-      // Si no se encuentra ni una copia ni una tienda, devolvemos vacío.
-      if (!copySearchTerm && !storeFilterIdFromSearch) {
-        const safePage = Math.max(1, page);
-        const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-        return {
-          success: true,
-          data: {
-            data: [],
-            total: 0,
-            page: safePage,
-            pageSize: safePageSize,
-            totalPages: 0,
-          },
-        };
-      }
     }
 
     const finalStoreFilterId = storeFilterId ?? storeFilterIdFromSearch;
