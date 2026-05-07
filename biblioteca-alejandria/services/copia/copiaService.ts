@@ -681,25 +681,24 @@ export async function fetchInventarioCopiasByLibro(
     let copySearchTerm: string | undefined;
     let storeFilterIdFromSearch: string | undefined;
 
-    if (normalizedSearchTerm) {
-      // Asumimos que el término puede ser un `codigo_seq` o un nombre de tienda.
-      // Pasamos el término de búsqueda para que el modelo de copia busque por `codigo_seq`.
-      copySearchTerm = normalizedSearchTerm;
+    const isCodigoCopia = /^COP-\d{6}$/i.test(normalizedSearchTerm ?? "");
 
+    if (normalizedSearchTerm?.length) {
+      copySearchTerm = normalizedSearchTerm;
+    }
+
+    if (!isCodigoCopia && normalizedSearchTerm?.length) {
       // También intentamos buscar una tienda que coincida, por si el usuario
       // escribió un nombre de tienda.
-      const storesByTerm = await getTiendas(
-        1,
-        MAX_PAGE_SIZE,
-        normalizedSearchTerm,
-      );
+      const storesByTerm = await getTiendas(1, 5, normalizedSearchTerm);
+
       const exactMatch = storesByTerm.data.find(
         (store) =>
           store.nombre.toLocaleLowerCase() ===
           normalizedSearchTerm.toLocaleLowerCase(),
       );
 
-      storeFilterIdFromSearch = exactMatch?.id ?? storesByTerm.data[0]?.id;
+      storeFilterIdFromSearch = exactMatch?.id;
     }
 
     const finalStoreFilterId = storeFilterId ?? storeFilterIdFromSearch;
