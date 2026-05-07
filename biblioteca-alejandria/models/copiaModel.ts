@@ -364,8 +364,6 @@ export async function getCopias(
     query = query.eq("id_libro", id_libro);
   }
 
-  console.log("searchTerm en getCopias:", searchTerm);
-
   if (searchTerm && searchTerm.trim() !== "") {
     query = query.ilike("codigo_seq", `%${searchTerm.trim()}%`);
   }
