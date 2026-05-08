@@ -365,9 +365,7 @@ export async function getCopias(
   }
 
   if (searchTerm && searchTerm.trim() !== "") {
-    // Si la tabla copia tiene uuid, busqueda por uuid exacto
-    // asumiendo uuid
-    query = query.eq("id", searchTerm.trim());
+    query = query.ilike("codigo_seq", `%${searchTerm.trim()}%`);
   }
 
   const { data, error, count } = await query;

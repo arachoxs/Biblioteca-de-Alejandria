@@ -231,7 +231,7 @@ export default function InventarioDetailModal({
       header: "ID copia",
       render: (item) => (
         <span className="font-mono text-xs text-brand-text">
-          {item.id_copia}
+          {item.id_copia_seq}
         </span>
       ),
     },

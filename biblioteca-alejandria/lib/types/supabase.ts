@@ -120,6 +120,7 @@ export type Database = {
       }
       copia: {
         Row: {
+          codigo_seq: string | null
           deleted_at: string | null
           estado: Database["public"]["Enums"]["estado_copia"]
           id: string
@@ -127,6 +128,7 @@ export type Database = {
           id_tienda: string
         }
         Insert: {
+          codigo_seq?: string | null
           deleted_at?: string | null
           estado: Database["public"]["Enums"]["estado_copia"]
           id?: string
@@ -134,6 +136,7 @@ export type Database = {
           id_tienda: string
         }
         Update: {
+          codigo_seq?: string | null
           deleted_at?: string | null
           estado?: Database["public"]["Enums"]["estado_copia"]
           id?: string

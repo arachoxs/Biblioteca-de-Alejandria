@@ -280,6 +280,30 @@ export async function getActiveTiendaById(
 }
 
 /**
+ * Obtiene una o varias tiendas activas por sus IDs.
+ */
+export async function getActiveTiendasByIds(
+  tiendaIds: string[],
+): Promise<TiendaRead[]> {
+  if (tiendaIds.length === 0) return [];
+
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("tienda")
+    .select(TIENDA_BASE_COLUMNS)
+    .in("id", tiendaIds)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[tiendaModel] Error al obtener tiendas por IDs:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((row) => normalizeTiendaRow(row as TiendaRow));
+}
+
+/**
  * Obtiene una tienda activa por nombre exacto (case-insensitive).
  */
 export async function getActiveTiendaByExactName(
