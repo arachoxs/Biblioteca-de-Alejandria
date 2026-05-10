@@ -1,6 +1,7 @@
 # AGENTS.md — Biblioteca de Alejandría
 
 ## Project
+
 Next.js 16 app (App Router, Server Actions) + Supabase (Auth + Postgres + RLS).
 
 **Root is the project root** — no subdirectory.
@@ -28,11 +29,20 @@ View (components/) → Actions (app/**/actions.ts) → Services (services/) → 
 ```
 
 Rules:
+
 - **Actions** never import from `models/` (except atomic ops like `signIn`)
 - **Models** never call other models
 - **Services** access Supabase only through a Model
 - Rollback is the Service's responsibility
 - Shared types go in `lib/types/` — never inline
+- Follow the DRY (Don't Repeat Yourself) principle across the entire codebase
+- Avoid duplicating business logic, validation, queries, or transformations
+- Extract repeated logic into shared utilities, services, hooks, or reusable components
+- Keep React components small, focused, and composable
+- Separate views into isolated UI components and compose them together
+- Prefer composition over tightly coupled components
+- Components should have a single responsibility
+- Follow the established 4-layer architecture strictly
 
 ## Styling — Tailwind v4
 
@@ -51,6 +61,7 @@ Role changes require `service_role` key.
 ## Supabase
 
 Types auto-generated: `lib/types/supabase.ts` — **do not edit manually**. Regenerate:
+
 ```bash
 supabase gen types typescript --project-id <project-id> > lib/types/supabase.ts
 ```
