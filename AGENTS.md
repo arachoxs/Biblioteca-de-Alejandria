@@ -1,65 +1,67 @@
 # AGENTS.md — Biblioteca de Alejandría
 
-## Project location
+## Project
+Next.js 16 app (App Router, Server Actions) + Supabase (Auth + Postgres + RLS).
 
-The Next.js app lives in `/` (workspace root).
+**Root is the project root** — no subdirectory.
 
-## Developer commands
+## Developer Commands
 
 ```bash
-pnpm install   # Install dependencies
-pnpm dev        # Start dev server on http://localhost:3000
-pnpm build      # Production build
-pnpm start      # Start production server
-pnpm lint       # ESLint (no --fix by default — run manually if needed)
+pnpm install          # Install deps
+pnpm dev              # Dev server localhost:3000
+pnpm build            # Production build
+pnpm start            # Start production server
+pnpm lint             # ESLint (no --fix)
 ```
 
-## Required setup order
+## Setup Required Before Dev
 
-1. `pnpm install`
-2. Create `.env.local` with the variables listed in Readme.md (Supabase URL/keys, Gmail SMTP, Google Maps key, SITE_URL)
-3. Run the contents of `supabase/seed.sql` in the Supabase SQL Editor to create the ROOT user
-4. `pnpm dev`
+1. Create `.env.local` (NOT `.env`) with vars from README
+2. Run `supabase/seed.sql` contents in Supabase SQL Editor → creates ROOT user
+3. `pnpm dev`
 
-## Architecture (Service-Repository, 4 layers)
+## Architecture (4 layers, strict)
 
 ```
-View (components/, "use client") → Actions (app/**/actions.ts, "use server")
-  → Services (services/**/) → Models (models/**/) → Supabase
+View (components/) → Actions (app/**/actions.ts) → Services (services/) → Models (models/) → Supabase
 ```
 
 Rules:
-- Actions never import directly from `models/` (except atomic ops like `signIn`)
-- Models never call other models
-- Services never access Supabase directly — always through a Model
+- **Actions** never import from `models/` (except atomic ops like `signIn`)
+- **Models** never call other models
+- **Services** access Supabase only through a Model
 - Rollback is the Service's responsibility
-- Shared types live in `lib/types/` — never inline in Models or Actions
+- Shared types go in `lib/types/` — never inline
 
 ## Styling — Tailwind v4
 
-Colors and fonts are defined as `@theme` tokens in `app/globals.css`. **Do not use hex color codes in components.** Use the token names:
-`brand-primary`, `brand-secondary`, `brand-accent`, `brand-bg`, `brand-text`.
+Colors via `@theme` tokens in `app/globals.css`. **Never use hex codes.** Tokens: `brand-primary`, `brand-secondary`, `brand-accent`, `brand-bg`, `brand-text`.
 
-Fonts are configured in `lib/fonts.ts`.
+Fonts: `lib/fonts.ts` (Geist Sans, Geist Mono, Cormorant Garamond).
 
-## Supabase types
+## RBAC
 
-`lib/types/supabase.ts` is auto-generated. **Do not edit manually.** Regenerate with:
+Roles in `auth.users.raw_app_meta_data.role` (not `usuario` table): `ROOT`, `ADMINISTRADOR`, `CLIENTE`.
 
+`proxy.ts` is the middleware (4 protection layers: guest-only, role-based, onboarding guard, session).
+
+Role changes require `service_role` key.
+
+## Supabase
+
+Types auto-generated: `lib/types/supabase.ts` — **do not edit manually**. Regenerate:
 ```bash
 supabase gen types typescript --project-id <project-id> > lib/types/supabase.ts
 ```
 
-## RBAC
-
-Roles are stored in `auth.users.raw_app_meta_data.role` (not the `usuario` table). Roles: `ROOT`, `ADMINISTRADOR`, `CLIENTE`. Role changes require the `service_role` key.
-
-Middleware (`proxy.ts`) enforces route protection with 4 layers: guest-only redirects, role-based access, onboarding guard, and session checks.
-
-## Supabase migrations
-
-Migrations live in `supabase/migrations/` and are numbered (`YYYYMMDD_*.sql`). Apply via Supabase CLI or SQL Editor. The seed for the initial ROOT user is in `supabase/seed.sql`.
+Migrations: `supabase/migrations/` (numbered `YYYYMMDD_*.sql`). Seed: `supabase/seed.sql`.
 
 ## No formatter / linter config files
 
-No `.prettierrc`, `.eslintrc`, or similar files exist in the repo. ESLint uses Next.js defaults only.
+ESLint uses Next.js defaults only. No `.prettierrc`, `.eslintrc`, etc.
+
+## CI / Deployment
+
+- Vercel: set **Root Directory to `.`** (not `biblioteca-alejandria`)
+- GitHub Actions workflows in `.github/workflows/`
