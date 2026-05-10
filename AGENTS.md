@@ -12,7 +12,6 @@ pnpm dev        # Start dev server on http://localhost:3000
 pnpm build      # Production build
 pnpm start      # Start production server
 pnpm lint       # ESLint (no --fix by default — run manually if needed)
-pnpm exec playwright test   # Run E2E tests
 ```
 
 ## Required setup order
@@ -60,12 +59,6 @@ Middleware (`proxy.ts`) enforces route protection with 4 layers: guest-only redi
 ## Supabase migrations
 
 Migrations live in `supabase/migrations/` and are numbered (`YYYYMMDD_*.sql`). Apply via Supabase CLI or SQL Editor. The seed for the initial ROOT user is in `supabase/seed.sql`.
-
-## Playwright E2E
-
-- Config: `playwright.config.ts` (tests in `./tests`)
-- CI runs: `pnpm exec playwright install --with-deps && pnpm exec playwright test`
-- Env vars for E2E (`.env`): `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`, `E2E_BASE_URL`
 
 ## No formatter / linter config files
 
