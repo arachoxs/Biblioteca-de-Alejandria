@@ -1,4 +1,4 @@
 allowBuilds:
-  sharp: set this to true or false
-  supabase: set this to true or false
-  unrs-resolver: set this to true or false
+  sharp: true
+  supabase: true
+  unrs-resolver: true
