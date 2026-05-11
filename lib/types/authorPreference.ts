@@ -14,8 +14,13 @@ export interface InsertAuthorPreferencePayload {
   id_autor: number;
 }
 
+export type AuthorPreferenceAuthorSummary = Pick<
+  AuthorRow,
+  "id" | "nombre" | "nacionalidad" | "fecha_nacimiento"
+>;
+
 export interface AuthorPreferenceWithDetails extends AuthorPreferenceRow {
-  autor: AuthorRow;
+  autor: AuthorPreferenceAuthorSummary | null;
 }
 
 export interface AuthorPreferenceActionResponse extends ActionResponse {

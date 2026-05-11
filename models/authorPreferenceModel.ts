@@ -2,8 +2,37 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { ModelResult } from "@/lib/types/common";
 import type {
   InsertAuthorPreferencePayload,
+  AuthorPreferenceAuthorSummary,
+  AuthorPreferenceRow,
   AuthorPreferenceWithDetails,
 } from "@/lib/types/authorPreference";
+
+function normalizeAuthorPreferenceAuthor(
+  value: unknown
+): AuthorPreferenceAuthorSummary | null {
+  if (!value) return null;
+
+  if (Array.isArray(value)) {
+    const first = value[0] as AuthorPreferenceAuthorSummary | undefined;
+    return first ?? null;
+  }
+
+  if (typeof value === "object") {
+    return value as AuthorPreferenceAuthorSummary;
+  }
+
+  return null;
+}
+
+function normalizeAuthorPreferenceWithDetails(
+  row: AuthorPreferenceRow & { autor?: unknown }
+): AuthorPreferenceWithDetails {
+  const { autor, ...preference } = row;
+  return {
+    ...(preference as AuthorPreferenceRow),
+    autor: normalizeAuthorPreferenceAuthor(autor),
+  };
+}
 
 export async function insertAuthorPreference(
   data: InsertAuthorPreferencePayload
@@ -103,7 +132,11 @@ export async function getAuthorPreferencesByUser(
     throw error;
   }
 
-  return (data || []) as AuthorPreferenceWithDetails[];
+  return (data ?? []).map((row) =>
+    normalizeAuthorPreferenceWithDetails(
+      row as AuthorPreferenceRow & { autor?: unknown }
+    )
+  );
 }
 
 export async function checkAuthorPreferenceExists(
