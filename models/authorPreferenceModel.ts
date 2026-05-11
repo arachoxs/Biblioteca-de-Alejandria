@@ -90,7 +90,7 @@ export async function getAuthorPreferencesByUser(
 
   const { data, error } = await adminClient
     .from("preferencia_autor")
-    .select("*, autor(id, nombre, nacionalidad, fecha_nacimiento)")
+    .select("*, autor(*)")
     .eq("id_usuario", id_usuario)
     .is("deleted_at", null)
     .order("id", { ascending: false });
