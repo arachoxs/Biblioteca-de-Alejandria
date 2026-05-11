@@ -22,6 +22,28 @@ function buildAutorPayload(data: {
   };
 }
 
+// ─── Helpers internos ────────────────────────────────────────────────
+
+async function executeAutorUpdate(
+  id: number,
+  setClause: Record<string, unknown>
+): Promise<ModelResult> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("autor")
+    .update(setClause)
+    .eq("id", id)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[authorModel] Error en operación autor:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
 // ─── Escritura ──────────────────────────────────────────────────────
 
 /**
@@ -46,48 +68,15 @@ export async function insertAuthor(
   return { success: true, id: resultData?.id };
 }
 
-/**
- * Actualiza los datos de un autor existente.
- */
 export async function updateAuthor(
   id: number,
   data: UpdateAuthorPayload
 ): Promise<ModelResult> {
-  const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("autor")
-    .update(buildAutorPayload(data))
-    .eq("id", id)
-    .is("deleted_at", null);
-
-  if (error) {
-    console.error("[authorModel] Error al actualizar autor:", error);
-    return { success: false, error: error.message };
-  }
-
-  return { success: true };
+  return executeAutorUpdate(id, buildAutorPayload(data));
 }
 
-/**
- * Borrado lógico: marca `deleted_at` con la fecha actual.
- * Nunca ejecuta `.delete()` físico.
- */
 export async function deleteAuthor(id: number): Promise<ModelResult> {
-  const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("autor")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id)
-    .is("deleted_at", null);
-
-  if (error) {
-    console.error("[authorModel] Error al eliminar autor:", error);
-    return { success: false, error: error.message };
-  }
-
-  return { success: true };
+  return executeAutorUpdate(id, { deleted_at: new Date().toISOString() });
 }
 
 // ─── Lectura ───────────────────────────────────────────────────────
