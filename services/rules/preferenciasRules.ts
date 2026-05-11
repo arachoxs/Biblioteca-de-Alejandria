@@ -6,8 +6,15 @@ export async function checkAuthorPreferenceNotDuplicate(
   id_usuario: string,
   id_autor: number
 ): Promise<AuthorPreferenceActionResponse | null> {
-  const exists = await checkAuthorPreferenceExists(id_usuario, id_autor);
-  if (exists) {
+  const result = await checkAuthorPreferenceExists(id_usuario, id_autor);
+  if (!result.success) {
+    return {
+      success: false,
+      errors: { form: result.error ?? "Error al verificar preferencia." },
+      message: result.error,
+    };
+  }
+  if (result.exists) {
     return {
       success: false,
       errors: { form: "Ya tienes este autor en tus preferencias." },

@@ -134,7 +134,7 @@ export async function deleteAuthorPreference(
 
 export async function getAuthorPreferencesByUser(
   id_usuario: string
-): Promise<AuthorPreferenceWithDetails[]> {
+): Promise<ModelResult & { data?: AuthorPreferenceWithDetails[] }> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -149,20 +149,23 @@ export async function getAuthorPreferencesByUser(
       "[authorPreferenceModel] Error al obtener preferencias de autor:",
       error
     );
-    throw error;
+    return { success: false, error: error.message };
   }
 
-  return (data ?? []).map((row) =>
-    normalizeAuthorPreferenceWithDetails(
-      row as AuthorPreferenceRow & { autor?: unknown }
-    )
-  );
+  return {
+    success: true,
+    data: (data ?? []).map((row) =>
+      normalizeAuthorPreferenceWithDetails(
+        row as AuthorPreferenceRow & { autor?: unknown }
+      )
+    ),
+  };
 }
 
 export async function checkAuthorPreferenceExists(
   id_usuario: string,
   id_autor: number
-): Promise<boolean> {
+): Promise<ModelResult & { exists?: boolean }> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -179,8 +182,8 @@ export async function checkAuthorPreferenceExists(
       "[authorPreferenceModel] Error al verificar preferencia de autor:",
       error
     );
-    throw error;
+    return { success: false, error: error.message };
   }
 
-  return !!data;
+  return { success: true, exists: !!data };
 }

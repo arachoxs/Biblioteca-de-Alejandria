@@ -26,17 +26,11 @@ export async function addAuthorPreference(
     return { success: false, errors: { form: "No hay sesión activa." }, message: "No hay sesión activa." };
   }
 
-  try {
-    const precheckDuplicate = await checkAuthorPreferenceNotDuplicate(user.id, data.id_autor);
-    if (precheckDuplicate) return precheckDuplicate;
+  const precheckDuplicate = await checkAuthorPreferenceNotDuplicate(user.id, data.id_autor);
+  if (precheckDuplicate) return precheckDuplicate;
 
-    const precheckAuthor = await checkPreferenceAuthorExists(data.id_autor);
-    if (precheckAuthor) return precheckAuthor;
-  } catch (error: unknown) {
-    console.error("Error en addAuthorPreference:", error);
-    const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return { success: false, errors: { form: errorMessage }, message: "No se pudo agregar la preferencia." };
-  }
+  const precheckAuthor = await checkPreferenceAuthorExists(data.id_autor);
+  if (precheckAuthor) return precheckAuthor;
 
   const result = await insertAuthorPreference({ id_usuario: user.id, id_autor: data.id_autor });
 
@@ -76,12 +70,9 @@ export async function getMyAuthorPreferences(): Promise<AuthorPreferenceDataResp
     return { success: false, errors: { form: "No hay sesión activa." } };
   }
 
-  try {
-    const preferences = await getAuthorPreferencesByUser(user.id);
-    return { success: true, data: preferences };
-  } catch (error: unknown) {
-    console.error("Error en getMyAuthorPreferences:", error);
-    const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return { success: false, errors: { form: errorMessage }, message: "No se pudieron cargar las preferencias." };
+  const result = await getAuthorPreferencesByUser(user.id);
+  if (!result.success) {
+    return { success: false, errors: { form: result.error ?? "Error desconocido" }, message: result.error };
   }
+  return { success: true, data: result.data };
 }
