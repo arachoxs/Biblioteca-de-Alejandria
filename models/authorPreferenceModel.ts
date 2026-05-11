@@ -109,12 +109,13 @@ export async function deleteAuthorPreference(
   }
 
   // Perform soft delete
-  const { error } = await adminClient
+  const { data: updatedRows, error } = await adminClient
     .from("preferencia_autor")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id_usuario", id_usuario)
     .eq("id_autor", id_autor)
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .select("id");
 
   if (error) {
     console.error(
@@ -122,6 +123,10 @@ export async function deleteAuthorPreference(
       error
     );
     return { success: false, error: error.message };
+  }
+
+  if (!updatedRows || updatedRows.length === 0) {
+    return { success: false, error: "La preferencia no existe o ya fue eliminada." };
   }
 
   return { success: true };
