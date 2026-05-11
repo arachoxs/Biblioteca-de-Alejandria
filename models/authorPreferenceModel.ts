@@ -24,6 +24,12 @@ export async function insertAuthorPreference(
       "[authorPreferenceModel] Error al insertar preferencia de autor:",
       error
     );
+
+    // Handle unique constraint violation (race condition fallback)
+    if (error.code === "23505") {
+      return { success: false, error: "Este autor ya está en tus preferencias." };
+    }
+
     return { success: false, error: error.message };
   }
 
@@ -36,6 +42,21 @@ export async function deleteAuthorPreference(
 ): Promise<ModelResult> {
   const adminClient = createAdminClient();
 
+  // First verify the row exists and belongs to the user
+  const { data: existing } = await adminClient
+    .from("preferencia_autor")
+    .select("id")
+    .eq("id_usuario", id_usuario)
+    .eq("id_autor", id_autor)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (!existing) {
+    return { success: false, error: "La preferencia no existe o ya fue eliminada." };
+  }
+
+  // Perform soft delete
   const { error } = await adminClient
     .from("preferencia_autor")
     .update({ deleted_at: new Date().toISOString() })

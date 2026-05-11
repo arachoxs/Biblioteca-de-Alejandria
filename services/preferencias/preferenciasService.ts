@@ -32,7 +32,7 @@ export async function addAuthorPreference(
   const precheckAuthor = await checkPreferenceAuthorExists(data.id_autor);
   if (precheckAuthor) return precheckAuthor;
 
-  const result = await insertAuthorPreference(data);
+  const result = await insertAuthorPreference({ id_usuario: user.id, id_autor: data.id_autor });
 
   if (!result.success) {
     return { success: false, errors: { form: result.error ?? "Error de base de datos." }, message: result.error };
