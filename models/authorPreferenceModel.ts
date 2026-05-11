@@ -7,21 +7,36 @@ import type {
   AuthorPreferenceWithDetails,
 } from "@/lib/types/authorPreference";
 
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function isAuthorPreferenceAuthorSummary(
+  value: unknown
+): value is AuthorPreferenceAuthorSummary {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    typeof candidate.id === "number" &&
+    typeof candidate.nombre === "string" &&
+    isNullableString(candidate.nacionalidad) &&
+    isNullableString(candidate.fecha_nacimiento)
+  );
+}
+
 function normalizeAuthorPreferenceAuthor(
   value: unknown
 ): AuthorPreferenceAuthorSummary | null {
   if (!value) return null;
 
   if (Array.isArray(value)) {
-    const first = value[0] as AuthorPreferenceAuthorSummary | undefined;
-    return first ?? null;
+    const first = value[0];
+    return isAuthorPreferenceAuthorSummary(first) ? first : null;
   }
 
-  if (typeof value === "object") {
-    return value as AuthorPreferenceAuthorSummary;
-  }
-
-  return null;
+  return isAuthorPreferenceAuthorSummary(value) ? value : null;
 }
 
 function normalizeAuthorPreferenceWithDetails(
@@ -29,7 +44,7 @@ function normalizeAuthorPreferenceWithDetails(
 ): AuthorPreferenceWithDetails {
   const { autor, ...preference } = row;
   return {
-    ...(preference as AuthorPreferenceRow),
+    ...preference,
     autor: normalizeAuthorPreferenceAuthor(autor),
   };
 }
