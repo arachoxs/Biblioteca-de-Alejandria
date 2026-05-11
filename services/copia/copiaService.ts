@@ -50,7 +50,7 @@ import {
   getTransferCopiasByQuantityModelError,
   getTransferCopiasByQuantityStockError,
   validateTransferCopiasByQuantityEntities,
-} from "@/lib/validations/copia/businessRules";
+} from "@/services/rules/copiaRules";
 import { getCurrentUser } from "@/models/authModel";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";

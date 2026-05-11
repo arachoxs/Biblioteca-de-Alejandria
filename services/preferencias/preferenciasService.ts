@@ -8,7 +8,7 @@ import {
 import {
   checkAuthorPreferenceNotDuplicate,
   checkPreferenceAuthorExists,
-} from "@/lib/validations/preferencias/businessRules";
+} from "@/services/rules/preferenciasRules";
 import type {
   AddAuthorPreferenceInput,
   AuthorPreferenceActionResponse,

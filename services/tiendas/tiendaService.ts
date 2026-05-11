@@ -32,7 +32,7 @@ import {
   getCreateTiendaPrecheckError,
   getUpdateTiendaPrecheckError,
   shouldUpdateAddress,
-} from "@/lib/validations/tienda/businessRules";
+} from "@/services/rules/tiendaRules";
 
 async function createTiendaAddress({
   direccion,
