@@ -212,3 +212,22 @@ export async function getAuthorBookCount(id: number): Promise<number> {
 
   return count ?? 0;
 }
+
+export async function checkAuthorExistsById(id: number): Promise<boolean> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("autor")
+    .select("id")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[authorModel] Error al verificar existencia de autor por ID:", error);
+    throw error;
+  }
+
+  return !!data;
+}
