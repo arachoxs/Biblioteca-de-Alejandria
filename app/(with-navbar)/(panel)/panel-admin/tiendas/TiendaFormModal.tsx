@@ -9,7 +9,7 @@ import { sanitizeText } from "@/lib/validations/rules";
 import {
   validateTienda,
   validateTiendaUpdate,
-} from "@/lib/validations/tienda/tiendaData";
+} from "@/lib/validations/tienda";
 import {
   TIENDA_DIAS,
   type CreateTiendaInput,
@@ -75,9 +75,9 @@ export default function TiendaFormModal({
           ...basePayload,
           ...(isAddressEdited(formValues)
             ? {
-                direccion: normalizedAddress,
-                direccion_place_id: normalizedPlaceId,
-              }
+              direccion: normalizedAddress,
+              direccion_place_id: normalizedPlaceId,
+            }
             : {}),
         };
 
@@ -244,19 +244,19 @@ export default function TiendaFormModal({
       const response =
         isEditing && tienda
           ? await updateTiendaAction(tienda.id, {
-              ...payloadBase,
-              ...(addressEdited
-                ? {
-                    direccion: normalizedAddress,
-                    direccion_place_id: normalizedPlaceId,
-                  }
-                : {}),
-            } satisfies UpdateTiendaInput)
+            ...payloadBase,
+            ...(addressEdited
+              ? {
+                direccion: normalizedAddress,
+                direccion_place_id: normalizedPlaceId,
+              }
+              : {}),
+          } satisfies UpdateTiendaInput)
           : await createTiendaAction({
-              ...payloadBase,
-              direccion: normalizedAddress,
-              direccion_place_id: normalizedPlaceId,
-            } satisfies CreateTiendaInput);
+            ...payloadBase,
+            direccion: normalizedAddress,
+            direccion_place_id: normalizedPlaceId,
+          } satisfies CreateTiendaInput);
 
       setAlertState(response);
       if (!response.success) {

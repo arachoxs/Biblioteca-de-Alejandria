@@ -8,9 +8,43 @@ import type {
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 import { buildOrILikeFilter, escapeLikePattern } from "@/lib/validations/db-utils";
 
-// ─── Constantes ────────────────────────────────────────────────────
+// ─── Helpers internos ────────────────────────────────────────────────
 
-// ─── Escritura ─────────────────────────────────────────────────────
+function buildAutorPayload(data: {
+  nombre: string;
+  nacionalidad: string | null;
+  fecha_nacimiento: string | null;
+}) {
+  return {
+    nombre: data.nombre,
+    nacionalidad: data.nacionalidad,
+    fecha_nacimiento: data.fecha_nacimiento,
+  };
+}
+
+// ─── Helpers internos ────────────────────────────────────────────────
+
+async function executeAutorUpdate(
+  id: number,
+  setClause: Record<string, unknown>
+): Promise<ModelResult> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("autor")
+    .update(setClause)
+    .eq("id", id)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[authorModel] Error en operación autor:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+// ─── Escritura ──────────────────────────────────────────────────────
 
 /**
  * Inserta un nuevo autor en la tabla `autor`.
@@ -20,11 +54,11 @@ export async function insertAuthor(
 ): Promise<ModelResult & { id?: number }> {
   const adminClient = createAdminClient();
 
-  const { data: resultData, error } = await adminClient.from("autor").insert({
-    nombre: data.nombre,
-    nacionalidad: data.nacionalidad,
-    fecha_nacimiento: data.fecha_nacimiento,
-  }).select("id").single();
+  const { data: resultData, error } = await adminClient
+    .from("autor")
+    .insert(buildAutorPayload(data))
+    .select("id")
+    .single();
 
   if (error) {
     console.error("[authorModel] Error al insertar autor:", error);
@@ -34,52 +68,15 @@ export async function insertAuthor(
   return { success: true, id: resultData?.id };
 }
 
-/**
- * Actualiza los datos de un autor existente.
- */
 export async function updateAuthor(
   id: number,
   data: UpdateAuthorPayload
 ): Promise<ModelResult> {
-  const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("autor")
-    .update({
-      nombre: data.nombre,
-      nacionalidad: data.nacionalidad,
-      fecha_nacimiento: data.fecha_nacimiento,
-    })
-    .eq("id", id)
-    .is("deleted_at", null);
-
-  if (error) {
-    console.error("[authorModel] Error al actualizar autor:", error);
-    return { success: false, error: error.message };
-  }
-
-  return { success: true };
+  return executeAutorUpdate(id, buildAutorPayload(data));
 }
 
-/**
- * Borrado lógico: marca `deleted_at` con la fecha actual.
- * Nunca ejecuta `.delete()` físico.
- */
 export async function deleteAuthor(id: number): Promise<ModelResult> {
-  const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("autor")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id)
-    .is("deleted_at", null);
-
-  if (error) {
-    console.error("[authorModel] Error al eliminar autor:", error);
-    return { success: false, error: error.message };
-  }
-
-  return { success: true };
+  return executeAutorUpdate(id, { deleted_at: new Date().toISOString() });
 }
 
 // ─── Lectura ───────────────────────────────────────────────────────
@@ -211,4 +208,23 @@ export async function getAuthorBookCount(id: number): Promise<number> {
   }
 
   return count ?? 0;
+}
+
+export async function checkAuthorExistsById(id: number): Promise<boolean> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("autor")
+    .select("id")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[authorModel] Error al verificar existencia de autor por ID:", error);
+    throw error;
+  }
+
+  return !!data;
 }

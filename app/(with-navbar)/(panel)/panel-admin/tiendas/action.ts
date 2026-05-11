@@ -17,7 +17,7 @@ import {
 import {
   validateTienda,
   validateTiendaUpdate,
-} from "@/lib/validations/tienda/tiendaData";
+} from "@/lib/validations/tienda";
 import { sanitizeText, toSafePositiveInt } from "@/lib/validations/rules";
 
 function sanitizeHorario(horario: TiendaHorario): TiendaHorario {

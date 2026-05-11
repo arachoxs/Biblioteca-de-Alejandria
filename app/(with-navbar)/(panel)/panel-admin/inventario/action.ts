@@ -38,7 +38,7 @@ import {
   sanitizeTransferInventarioByQuantityInput,
   sanitizeTransferInventarioCopiasInput,
   sanitizeUuidList,
-} from "@/lib/validations/copia/CopiaData";
+} from "@/lib/validations/copia";
 
 export async function getInventarioAction(
   page: number = 1,

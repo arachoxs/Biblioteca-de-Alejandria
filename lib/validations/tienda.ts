@@ -10,7 +10,7 @@ import {
   placeIdRequiredRule,
   requiredRule,
   validateFieldRules,
-} from "../rules";
+} from "@/lib/validations/rules";
 
 export interface TiendaValidationPayload {
   nombre: string;
