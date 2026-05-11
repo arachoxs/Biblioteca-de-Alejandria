@@ -43,7 +43,7 @@ export async function deleteAuthorPreference(
   const adminClient = createAdminClient();
 
   // First verify the row exists and belongs to the user
-  const { data: existing } = await adminClient
+  const { data: existing, error: selectError } = await adminClient
     .from("preferencia_autor")
     .select("id")
     .eq("id_usuario", id_usuario)
@@ -51,6 +51,14 @@ export async function deleteAuthorPreference(
     .is("deleted_at", null)
     .limit(1)
     .maybeSingle();
+
+  if (selectError) {
+    console.error(
+      "[authorPreferenceModel] Error al verificar preferencia:",
+      selectError
+    );
+    return { success: false, error: selectError.message };
+  }
 
   if (!existing) {
     return { success: false, error: "La preferencia no existe o ya fue eliminada." };

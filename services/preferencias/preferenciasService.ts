@@ -10,13 +10,13 @@ import {
   checkPreferenceAuthorExists,
 } from "@/lib/validations/preferencias/businessRules";
 import type {
-  InsertAuthorPreferencePayload,
+  AddAuthorPreferenceInput,
   AuthorPreferenceActionResponse,
   AuthorPreferenceDataResponse,
 } from "@/lib/types/authorPreference";
 
 export async function addAuthorPreference(
-  data: InsertAuthorPreferencePayload
+  data: AddAuthorPreferenceInput
 ): Promise<AuthorPreferenceActionResponse> {
   const roleCheck = await requireClientRole();
   if (!roleCheck.success) return roleCheck;
@@ -26,11 +26,17 @@ export async function addAuthorPreference(
     return { success: false, errors: { form: "No hay sesión activa." }, message: "No hay sesión activa." };
   }
 
-  const precheckDuplicate = await checkAuthorPreferenceNotDuplicate(user.id, data.id_autor);
-  if (precheckDuplicate) return precheckDuplicate;
+  try {
+    const precheckDuplicate = await checkAuthorPreferenceNotDuplicate(user.id, data.id_autor);
+    if (precheckDuplicate) return precheckDuplicate;
 
-  const precheckAuthor = await checkPreferenceAuthorExists(data.id_autor);
-  if (precheckAuthor) return precheckAuthor;
+    const precheckAuthor = await checkPreferenceAuthorExists(data.id_autor);
+    if (precheckAuthor) return precheckAuthor;
+  } catch (error: unknown) {
+    console.error("Error en addAuthorPreference:", error);
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+    return { success: false, errors: { form: errorMessage }, message: "No se pudo agregar la preferencia." };
+  }
 
   const result = await insertAuthorPreference({ id_usuario: user.id, id_autor: data.id_autor });
 
@@ -70,7 +76,12 @@ export async function getMyAuthorPreferences(): Promise<AuthorPreferenceDataResp
     return { success: false, errors: { form: "No hay sesión activa." } };
   }
 
-  const preferences = await getAuthorPreferencesByUser(user.id);
-
-  return { success: true, data: preferences };
+  try {
+    const preferences = await getAuthorPreferencesByUser(user.id);
+    return { success: true, data: preferences };
+  } catch (error: unknown) {
+    console.error("Error en getMyAuthorPreferences:", error);
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+    return { success: false, errors: { form: errorMessage }, message: "No se pudieron cargar las preferencias." };
+  }
 }

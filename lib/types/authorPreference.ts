@@ -5,6 +5,10 @@ import type { ActionResponse, DataResponse } from "@/lib/types/common";
 export type AuthorPreferenceRow =
   Database["public"]["Tables"]["preferencia_autor"]["Row"];
 
+export interface AddAuthorPreferenceInput {
+  id_autor: number;
+}
+
 export interface InsertAuthorPreferencePayload {
   id_usuario: string;
   id_autor: number;
