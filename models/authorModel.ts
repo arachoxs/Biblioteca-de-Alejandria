@@ -8,9 +8,21 @@ import type {
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 import { buildOrILikeFilter, escapeLikePattern } from "@/lib/validations/db-utils";
 
-// ─── Constantes ────────────────────────────────────────────────────
+// ─── Helpers internos ────────────────────────────────────────────────
 
-// ─── Escritura ─────────────────────────────────────────────────────
+function buildAutorPayload(data: {
+  nombre: string;
+  nacionalidad: string | null;
+  fecha_nacimiento: string | null;
+}) {
+  return {
+    nombre: data.nombre,
+    nacionalidad: data.nacionalidad,
+    fecha_nacimiento: data.fecha_nacimiento,
+  };
+}
+
+// ─── Escritura ──────────────────────────────────────────────────────
 
 /**
  * Inserta un nuevo autor en la tabla `autor`.
@@ -20,11 +32,11 @@ export async function insertAuthor(
 ): Promise<ModelResult & { id?: number }> {
   const adminClient = createAdminClient();
 
-  const { data: resultData, error } = await adminClient.from("autor").insert({
-    nombre: data.nombre,
-    nacionalidad: data.nacionalidad,
-    fecha_nacimiento: data.fecha_nacimiento,
-  }).select("id").single();
+  const { data: resultData, error } = await adminClient
+    .from("autor")
+    .insert(buildAutorPayload(data))
+    .select("id")
+    .single();
 
   if (error) {
     console.error("[authorModel] Error al insertar autor:", error);
@@ -45,11 +57,7 @@ export async function updateAuthor(
 
   const { error } = await adminClient
     .from("autor")
-    .update({
-      nombre: data.nombre,
-      nacionalidad: data.nacionalidad,
-      fecha_nacimiento: data.fecha_nacimiento,
-    })
+    .update(buildAutorPayload(data))
     .eq("id", id)
     .is("deleted_at", null);
 
