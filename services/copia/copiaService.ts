@@ -42,6 +42,7 @@ import type {
   InventarioOptionsResponse,
   VistaInventarioRow,
 } from "@/lib/types/inventario";
+import type { TiendaRead } from "@/lib/types/tienda";
 import type { EstadoHistorico } from "@/lib/types/historico";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
@@ -420,84 +421,63 @@ export async function transferCopiasByQuantity(
 
   const safeQuantity = Math.max(1, input.cantidad);
 
+  const entityValidation = await validateTransferEntities(input);
+  if (!entityValidation.success && entityValidation.response) {
+    return entityValidation.response;
+  }
+
+  const availableCopies = await getAvailableCopiasByLibroAndStore(
+    input.id_libro,
+    input.id_tienda_origen,
+  );
+
+  if (availableCopies === null) {
+    return {
+      success: false,
+      errors: {
+        form: "No se pudo verificar el stock disponible en la tienda de origen.",
+      },
+      message:
+        "No se pudo verificar el stock disponible en la tienda de origen.",
+    };
+  }
+
+  const stockError = checkStockSufficiency(availableCopies ?? 0, safeQuantity);
+  if (stockError) return stockError;
+
+  let transferredIds: string[];
   try {
-    const originStore = await getActiveTiendaById(input.id_tienda_origen);
-    const destinationStore = await getActiveTiendaById(input.id_tienda_destino);
-    const libro = await getActiveLibroById(input.id_libro);
-    const entityValidation = validateTransferCopiasByQuantityEntities({
-      originStore,
-      destinationStore,
-      libroExists: Boolean(libro),
+    transferredIds = await transferCopiasByQuantityAtomic({
+      id_tienda_origen: input.id_tienda_origen,
+      id_tienda_destino: input.id_tienda_destino,
+      id_libro: input.id_libro,
+      cantidad: safeQuantity,
     });
-    if (!entityValidation.success) return entityValidation.response;
-
-    const availableCopies = await getAvailableCopiasByLibroAndStore(
-      input.id_libro,
-      input.id_tienda_origen,
-    );
-
-    if (availableCopies === null) {
-      return {
-        success: false,
-        errors: {
-          form: "No se pudo verificar el stock disponible en la tienda de origen.",
-        },
-        message:
-          "No se pudo verificar el stock disponible en la tienda de origen.",
-      };
-    }
-
-    const stockValidationError = getTransferCopiasByQuantityStockError({
-      availableCount: availableCopies ?? 0,
-      requestedQuantity: safeQuantity,
-    });
-
-    if (stockValidationError) return stockValidationError;
-
-    let transferredIds: string[];
-    try {
-      transferredIds = await transferCopiasByQuantityAtomic({
-        id_tienda_origen: input.id_tienda_origen,
-        id_tienda_destino: input.id_tienda_destino,
-        id_libro: input.id_libro,
-        cantidad: safeQuantity,
-      });
-    } catch (error) {
-      if (error instanceof InsufficientStockError) {
-        return {
-          success: false,
-          errors: { form: getErrorMessage(error) },
-          transferredIds: error.transferredIds,
-          errorCode: error.errorCode,
-        } as CopiaActionResponse;
-      }
+  } catch (error) {
+    if (error instanceof InsufficientStockError) {
       return {
         success: false,
         errors: { form: getErrorMessage(error) },
-        message: "No se pudo trasladar el inventario por cantidad.",
-      };
+        transferredIds: error.transferredIds,
+        errorCode: error.errorCode,
+      } as CopiaActionResponse;
     }
-
-    await logTransferCopiasAudit(
-      transferredIds,
-      entityValidation.destinationStore,
-    );
-
-    return {
-      success: true,
-      message: buildTransferCopiasByQuantitySuccessMessage(safeQuantity),
-    };
-  } catch (error: unknown) {
-    console.error(
-      "[copiaServices] Error inesperado al trasladar inventario por cantidad:",
-      error,
-    );
     return {
       success: false,
       errors: { form: getErrorMessage(error) },
       message: "No se pudo trasladar el inventario por cantidad.",
     };
   }
+
+  await logTransferCopiasAudit(
+    transferredIds,
+    entityValidation.destinationStore!,
+  );
+
+  return {
+    success: true,
+    message: buildTransferCopiasByQuantitySuccessMessage(safeQuantity),
+  };
 }
 
 /**
@@ -839,4 +819,38 @@ async function getInfos(copiaIds: string[]): Promise<CopiaRow[]> {
 
 function getTiendasSet(copiasInfo: CopiaRow[]): Set<string> {
   return new Set(copiasInfo.map((copy) => copy.id_tienda));
+}
+
+interface TransferEntitiesValidation {
+  success: boolean;
+  response?: CopiaActionResponse;
+  destinationStore?: TiendaRead | null;
+}
+
+async function validateTransferEntities(
+  input: TransferCopiasByQuantityInput,
+): Promise<TransferEntitiesValidation> {
+  const originStore = await getActiveTiendaById(input.id_tienda_origen);
+  const destinationStore = await getActiveTiendaById(input.id_tienda_destino);
+  const libro = await getActiveLibroById(input.id_libro);
+  const entityValidation = validateTransferCopiasByQuantityEntities({
+    originStore,
+    destinationStore,
+    libroExists: Boolean(libro),
+  });
+  if (!entityValidation.success) {
+    return { success: false, response: entityValidation.response };
+  }
+  return { success: true, destinationStore };
+}
+
+function checkStockSufficiency(
+  availableCount: number,
+  safeQuantity: number,
+): CopiaActionResponse | null {
+  const stockValidationError = getTransferCopiasByQuantityStockError({
+    availableCount,
+    requestedQuantity: safeQuantity,
+  });
+  return stockValidationError;
 }

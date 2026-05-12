@@ -55,19 +55,25 @@ export async function getActiveModeloRAById(
   return data;
 }
 
+function buildModeloRAUpdatePayload(
+  input: UpdateModeloRAPayload,
+): Partial<UpdateModeloRAPayload> {
+  const payload: Partial<UpdateModeloRAPayload> = {};
+  if (input.dimensiones !== undefined) payload.dimensiones = input.dimensiones;
+  if (input.texturas !== undefined) payload.texturas = input.texturas;
+  return payload;
+}
+
 /**
  * Actualiza un modelo RA activo por su ID.
  */
 export async function updateModeloRAById(
   modeloRAId: number,
-  input: UpdateModeloRAPayload
+  input: UpdateModeloRAPayload,
 ): Promise<void> {
   const adminClient = createAdminClient();
 
-  const payload: UpdateModeloRAPayload = {
-    ...(input.dimensiones !== undefined ? { dimensiones: input.dimensiones } : {}),
-    ...(input.texturas !== undefined ? { texturas: input.texturas } : {}),
-  };
+  const payload: UpdateModeloRAPayload = buildModeloRAUpdatePayload(input);
 
   if (Object.keys(payload).length === 0) {
     throw new Error("Debes enviar al menos un campo para actualizar.");

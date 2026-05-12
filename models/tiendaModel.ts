@@ -174,6 +174,21 @@ export async function getDefaultTienda(): Promise<TiendaGlobal | null> {
 }
 
 /**
+ * Construye el payload para actualizar una tienda.
+ */
+function buildTiendaUpdatePayload(
+  input: UpdateTiendaPayload,
+): Database["public"]["Tables"]["tienda"]["Update"] {
+  const payload: Partial<Database["public"]["Tables"]["tienda"]["Update"]> = {};
+  if (input.nombre !== undefined) payload.nombre = input.nombre;
+  if (input.horario !== undefined) {
+    payload.horario = input.horario as unknown as Database["public"]["Tables"]["tienda"]["Update"]["horario"];
+  }
+  if (input.id_direccion !== undefined) payload.id_direccion = input.id_direccion;
+  return payload;
+}
+
+/**
  * Actualiza una tienda activa por su ID.
  */
 export async function updateTiendaById(
@@ -182,18 +197,7 @@ export async function updateTiendaById(
 ): Promise<void> {
   const adminClient = createAdminClient();
 
-  const payload: Database["public"]["Tables"]["tienda"]["Update"] = {
-    ...(input.nombre !== undefined ? { nombre: input.nombre } : {}),
-    ...(input.horario !== undefined
-      ? {
-          horario:
-            input.horario as unknown as Database["public"]["Tables"]["tienda"]["Update"]["horario"],
-        }
-      : {}),
-    ...(input.id_direccion !== undefined
-      ? { id_direccion: input.id_direccion }
-      : {}),
-  };
+  const payload = buildTiendaUpdatePayload(input);
 
   if (Object.keys(payload).length === 0) {
     throw new Error("Debes enviar al menos un campo para actualizar.");

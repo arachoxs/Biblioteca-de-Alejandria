@@ -14,6 +14,7 @@ import type {
   CategoryListResponse,
   CategoryActionResponse,
 } from "@/lib/types/category";
+import type { ActionResponse } from "@/lib/types/common";
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { getCurrentUser } from "@/models/authModel";
 import { logAdminAction } from "@/services/admin/auditService";
@@ -36,6 +37,35 @@ function isSameName(left: string, right: string): boolean {
     normalizeCategoryName(left).toLocaleLowerCase() ===
     normalizeCategoryName(right).toLocaleLowerCase()
   );
+}
+
+async function validateAndBuildNameUpdate(
+  newName: string | undefined,
+  currentName: string,
+  categoryId: number,
+  payload: CategoryUpdateInput,
+): Promise<ActionResponse | null> {
+  if (newName === undefined) return null;
+
+  const normalizedName = normalizeCategoryName(newName);
+
+  if (isSameName(normalizedName, currentName)) return null;
+
+  const duplicatedCategory = await getActiveCategoryByExactNameExcludingId(
+    normalizedName,
+    categoryId,
+  );
+
+  if (duplicatedCategory) {
+    return {
+      success: false,
+      errors: { nombre: "Ya existe una categoría con ese nombre." },
+      message: "Ya existe una categoría con ese nombre.",
+    };
+  }
+
+  payload.nombre = normalizedName;
+  return null;
 }
 
 /**
@@ -165,25 +195,15 @@ export async function updateCategory(
     const payload: CategoryUpdateInput = {};
 
     if (hasName) {
-      const normalizedName = normalizeCategoryName(input.nombre ?? "");
-
-      if (!isSameName(normalizedName, currentCategory.nombre)) {
-        const duplicatedCategory =
-          await getActiveCategoryByExactNameExcludingId(
-            normalizedName,
-            categoryId,
-          );
-
-        if (duplicatedCategory) {
-          return {
-            success: false,
-            errors: { nombre: "Ya existe una categoría con ese nombre." },
-            message: "Ya existe una categoría con ese nombre.",
-          };
-        }
+      const nameValidationResult = await validateAndBuildNameUpdate(
+        input.nombre,
+        currentCategory.nombre,
+        categoryId,
+        payload,
+      );
+      if (nameValidationResult !== null && !nameValidationResult.success) {
+        return nameValidationResult;
       }
-
-      payload.nombre = normalizedName;
     }
 
     if (hasDescription) {

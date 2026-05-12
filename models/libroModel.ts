@@ -17,6 +17,26 @@ import type { CondicionLibro } from "@/lib/types/libro";
 
 type LibroUpdateRow = Database["public"]["Tables"]["libro"]["Update"];
 
+function buildLibroUpdatePayload(
+  input: UpdateLibroPayload,
+): Partial<LibroUpdateRow> {
+  const payload: Partial<LibroUpdateRow> = {};
+  if (input.titulo !== undefined) payload.titulo = input.titulo;
+  if (input.isbn !== undefined) payload.isbn = input.isbn;
+  if (input.idioma !== undefined) payload.idioma = input.idioma;
+  if (input.sinopsis !== undefined) payload.sipnosis = input.sinopsis;
+  if (input.paginas !== undefined) payload.paginas = input.paginas;
+  if (input.precio !== undefined) payload.precio = input.precio;
+  if (input.estado !== undefined) payload.estado = input.estado;
+  if (input.id_autor !== undefined) payload.id_autor = input.id_autor;
+  if (input.id_categoria !== undefined) payload.id_categoria = input.id_categoria;
+  if (input.fecha_publicacion !== undefined)
+    payload.fecha_publicacion = input.fecha_publicacion;
+  if (input.editorial !== undefined) payload.editorial = input.editorial;
+  if (input.id_modeloRA !== undefined) payload.id_modeloRA = input.id_modeloRA;
+  return payload;
+}
+
 function extractRelationName(value: unknown): string | null {
   if (!value) return null;
 
@@ -290,22 +310,7 @@ export async function updateLibroById(
 ): Promise<void> {
   const adminClient = createAdminClient();
 
-  const payload: LibroUpdateRow = {
-    ...(input.titulo !== undefined ? { titulo: input.titulo } : {}),
-    ...(input.isbn !== undefined ? { isbn: input.isbn } : {}),
-    ...(input.idioma !== undefined ? { idioma: input.idioma } : {}),
-    ...(input.sinopsis !== undefined ? { sipnosis: input.sinopsis } : {}),
-    ...(input.paginas !== undefined ? { paginas: input.paginas } : {}),
-    ...(input.precio !== undefined ? { precio: input.precio } : {}),
-    ...(input.estado !== undefined ? { estado: input.estado } : {}),
-    ...(input.id_autor !== undefined ? { id_autor: input.id_autor } : {}),
-    ...(input.id_categoria !== undefined ? { id_categoria: input.id_categoria } : {}),
-    ...(input.fecha_publicacion !== undefined
-      ? { fecha_publicacion: input.fecha_publicacion }
-      : {}),
-    ...(input.editorial !== undefined ? { editorial: input.editorial } : {}),
-    ...(input.id_modeloRA !== undefined ? { id_modeloRA: input.id_modeloRA } : {}),
-  };
+  const payload = buildLibroUpdatePayload(input);
 
   if (Object.keys(payload).length === 0) {
     throw new Error("Debes enviar al menos un campo para actualizar.");

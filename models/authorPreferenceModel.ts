@@ -78,13 +78,13 @@ export async function insertAuthorPreference(
   return resultData!.id;
 }
 
-export async function deleteAuthorPreference(
+async function ensureAuthorPreferenceExists(
   id_usuario: string,
-  id_autor: number
-): Promise<void> {
+  id_autor: number,
+): Promise<number> {
   const adminClient = createAdminClient();
 
-  const { data: existing, error: selectError } = await adminClient
+  const { data, error } = await adminClient
     .from("preferencia_autor")
     .select("id")
     .eq("id_usuario", id_usuario)
@@ -93,30 +93,40 @@ export async function deleteAuthorPreference(
     .limit(1)
     .maybeSingle();
 
-  if (selectError) {
+  if (error) {
     console.error(
       "[authorPreferenceModel] Error al verificar preferencia:",
-      selectError
+      error,
     );
-    throw selectError;
+    throw error;
   }
 
-  if (!existing) {
+  if (!data) {
     throw new Error("La preferencia no existe o ya fue eliminada.");
   }
+
+  return data.id;
+}
+
+export async function deleteAuthorPreference(
+  id_usuario: string,
+  id_autor: number,
+): Promise<void> {
+  const adminClient = createAdminClient();
+
+  const existingId = await ensureAuthorPreferenceExists(id_usuario, id_autor);
 
   const { data: updatedRows, error } = await adminClient
     .from("preferencia_autor")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id_usuario", id_usuario)
-    .eq("id_autor", id_autor)
+    .eq("id", existingId)
     .is("deleted_at", null)
     .select("id");
 
   if (error) {
     console.error(
       "[authorPreferenceModel] Error al eliminar preferencia de autor:",
-      error
+      error,
     );
     throw error;
   }

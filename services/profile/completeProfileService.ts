@@ -11,6 +11,57 @@ import { getErrorMessage } from "@/lib/services/errors";
 import type { PersonalData, Genero } from "@/lib/types/auth";
 import type { ProfileUpdateResponse, FullProfilePayload } from "@/lib/types/profile";
 
+// ─── Helpers ─────────────────────────────────────────────────────────
+
+interface UserMetadata {
+  appMeta: Record<string, unknown>;
+  userMeta: Record<string, unknown>;
+}
+
+async function rollbackProfileCreation(
+  userId: string | null,
+  addressId: number | null,
+  profileCreated: boolean,
+): Promise<void> {
+  if (profileCreated && userId) {
+    await deleteUserProfile(userId).catch((e) =>
+      console.error("Rollback profile error:", e),
+    );
+  }
+  if (addressId) {
+    await deleteAddress(addressId).catch((e) =>
+      console.error("Rollback address error:", e),
+    );
+  }
+}
+
+async function getUserMetadataSafe(
+  userId: string,
+  adminClient: ReturnType<typeof createAdminClient>,
+): Promise<UserMetadata> {
+  const { data, error } = await adminClient.auth.admin.getUserById(userId);
+  if (error) return { appMeta: {}, userMeta: {} };
+  return {
+    appMeta:
+      data?.user?.app_metadata && typeof data.user.app_metadata === "object"
+        ? data.user.app_metadata
+        : {},
+    userMeta:
+      data?.user?.user_metadata && typeof data.user.user_metadata === "object"
+        ? data.user.user_metadata
+        : {},
+  };
+}
+
+async function updateUserPassword(
+  userId: string,
+  password: string,
+): Promise<string | null> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  return error ? error.message : null;
+}
+
 // ─── Tipos ─────────────────────────────────────────────────────────
 
 interface CompleteAdminProfileInput extends FullProfilePayload {
@@ -45,16 +96,7 @@ export async function completeAdminProfile(
     }
     userId = user.id;
 
-    // 1. Validar unicidad de DNI
-    let dniExists: boolean;
-    try {
-      dniExists = await checkDniExists(input.dni);
-    } catch (error) {
-      return {
-        success: false,
-        errors: { form: `Error verificando DNI: ${getErrorMessage(error)}` },
-      };
-    }
+    const dniExists = await checkDniExists(input.dni);
     if (dniExists) {
       return {
         success: false,
@@ -62,16 +104,7 @@ export async function completeAdminProfile(
       };
     }
 
-    // 2. Validar unicidad de username
-    let usernameExists: boolean;
-    try {
-      usernameExists = await checkUsernameExists(input.usuario);
-    } catch (error) {
-      return {
-        success: false,
-        errors: { form: `Error verificando usuario: ${getErrorMessage(error)}` },
-      };
-    }
+    const usernameExists = await checkUsernameExists(input.usuario);
     if (usernameExists) {
       return {
         success: false,
@@ -79,9 +112,6 @@ export async function completeAdminProfile(
       };
     }
 
-    // 3. (Movido al final) La contraseña se actualiza de último para asegurar rollback completo.
-
-    // 4. Crear dirección
     let addressId: number;
     try {
       addressId = await createAddress({
@@ -97,7 +127,6 @@ export async function completeAdminProfile(
     }
     createdAddressId = addressId;
 
-    // 5. Crear perfil de usuario
     const personalData: PersonalData = {
       dni: input.dni,
       nombres: input.nombres,
@@ -115,64 +144,28 @@ export async function completeAdminProfile(
       await createUserProfile(userId, personalData, addressId);
       profileCreated = true;
     } catch (error) {
-      if (createdAddressId) await deleteAddress(createdAddressId);
+      await rollbackProfileCreation(userId, createdAddressId, profileCreated);
       return {
         success: false,
         errors: { form: `Error al crear perfil: ${getErrorMessage(error)}` },
       };
     }
 
-    // 6. Marcar profile_complete en app_metadata + actualizar username
     const adminClient = createAdminClient();
+    const { appMeta: existingAppMetadata, userMeta: existingUserMetadata } =
+      await getUserMetadataSafe(userId, adminClient);
 
-    // Obtener metadata actual para no perder claves críticas (p.ej. role)
-    const { data: userData, error: fetchUserError } =
-      await adminClient.auth.admin.getUserById(userId);
-
-    if (fetchUserError) {
-      console.error("Error al obtener app_metadata actual:", fetchUserError);
-    }
-
-    const existingAppMetadata =
-      userData?.user?.app_metadata && typeof userData.user.app_metadata === "object"
-        ? userData.user.app_metadata
-        : {};
-
-    const existingUserMetadata =
-      userData?.user?.user_metadata && typeof userData.user.user_metadata === "object"
-        ? userData.user.user_metadata
-        : {};
-
-    const updatedAppMetadata = {
-      ...existingAppMetadata,
-      profile_complete: true,
-    };
-
-    const updatedUserMetadata = {
-      ...existingUserMetadata,
-      username: input.usuario,
-    };
+    const updatedAppMetadata = { ...existingAppMetadata, profile_complete: true };
+    const updatedUserMetadata = { ...existingUserMetadata, username: input.usuario };
 
     const { error: metaError } = await adminClient.auth.admin.updateUserById(
       userId,
-      {
-        app_metadata: updatedAppMetadata,
-        user_metadata: updatedUserMetadata,
-      }
+      { app_metadata: updatedAppMetadata, user_metadata: updatedUserMetadata }
     );
+
     if (metaError) {
       console.error("Error al marcar profile_complete:", metaError);
-      
-      // Rollback: deshacer perfil y dirección
-      if (profileCreated && userId) {
-        await deleteUserProfile(userId);
-      }
-      if (createdAddressId) {
-        await deleteAddress(createdAddressId);
-      }
-
-      // Este paso es crítico para que el middleware permita el acceso.
-      // Si falla, consideramos que el flujo no se completó correctamente.
+      await rollbackProfileCreation(userId, createdAddressId, profileCreated);
       const metaErrorMessage =
         metaError instanceof Error ? metaError.message : "Error al actualizar metadatos de usuario.";
       return {
@@ -183,16 +176,10 @@ export async function completeAdminProfile(
       };
     }
 
-    // 7. Actualizar contraseña (paso final, asegura que se mantiene la anterior si hay fallo)
-    const supabase = await createClient();
-    const { error: pwdError } = await supabase.auth.updateUser({
-      password: input.nueva_contrasena,
-    });
+    const pwdError = await updateUserPassword(userId, input.nueva_contrasena);
 
     if (pwdError) {
       console.error("Error al actualizar contraseña:", pwdError);
-      
-      // Rollback: revertir app_metadata y user_metadata a su estado original
       try {
         await adminClient.auth.admin.updateUserById(userId, {
           app_metadata: existingAppMetadata,
@@ -201,42 +188,18 @@ export async function completeAdminProfile(
       } catch (err) {
         console.error("Error crítico al revertir metadatos:", err);
       }
-
-      // Rollback: deshacer perfil y dirección
-      if (profileCreated && userId) {
-        await deleteUserProfile(userId);
-      }
-      if (createdAddressId) {
-        await deleteAddress(createdAddressId);
-      }
-
+      await rollbackProfileCreation(userId, createdAddressId, profileCreated);
       return {
         success: false,
         errors: { form: "No se pudo actualizar la contraseña. Revisa que sea segura e intenta de nuevo." },
       };
     }
 
-    return {
-      success: true,
-      message: "Perfil configurado exitosamente.",
-    };
+    return { success: true, message: "Perfil configurado exitosamente." };
   } catch (error: unknown) {
     console.error("Error inesperado en completeAdminProfile:", error);
-
-    // Rollback genérico si ocurre una excepción
-    try {
-      if (profileCreated && userId) {
-        await deleteUserProfile(userId);
-      }
-      if (createdAddressId) {
-        await deleteAddress(createdAddressId);
-      }
-    } catch (rollbackError) {
-      console.error("Error durante rollback en el catch:", rollbackError);
-    }
-
-    const errorMessage =
-      error instanceof Error ? error.message : "Desconocido";
+    await rollbackProfileCreation(userId, createdAddressId, profileCreated);
+    const errorMessage = error instanceof Error ? error.message : "Desconocido";
     return {
       success: false,
       errors: { form: `Error inesperado: ${errorMessage}` },
