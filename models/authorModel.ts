@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import type { ModelResult, Paginated } from "@/lib/types/common";
+import type { Paginated } from "@/lib/types/common";
 import type {
   AuthorWithBookCount,
   InsertAuthorPayload,
@@ -27,7 +27,7 @@ function buildAutorPayload(data: {
 async function executeAutorUpdate(
   id: number,
   setClause: Record<string, unknown>
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -38,10 +38,8 @@ async function executeAutorUpdate(
 
   if (error) {
     console.error("[authorModel] Error en operación autor:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 // ─── Escritura ──────────────────────────────────────────────────────
@@ -51,7 +49,7 @@ async function executeAutorUpdate(
  */
 export async function insertAuthor(
   data: InsertAuthorPayload
-): Promise<ModelResult & { id?: number }> {
+): Promise<number> {
   const adminClient = createAdminClient();
 
   const { data: resultData, error } = await adminClient
@@ -62,20 +60,20 @@ export async function insertAuthor(
 
   if (error) {
     console.error("[authorModel] Error al insertar autor:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return { success: true, id: resultData?.id };
+  return resultData!.id;
 }
 
 export async function updateAuthor(
   id: number,
   data: UpdateAuthorPayload
-): Promise<ModelResult> {
+): Promise<void> {
   return executeAutorUpdate(id, buildAutorPayload(data));
 }
 
-export async function deleteAuthor(id: number): Promise<ModelResult> {
+export async function deleteAuthor(id: number): Promise<void> {
   return executeAutorUpdate(id, { deleted_at: new Date().toISOString() });
 }
 

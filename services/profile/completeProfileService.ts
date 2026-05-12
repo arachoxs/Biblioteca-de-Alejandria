@@ -7,6 +7,7 @@ import {
 } from "@/models/userModel";
 import { createAddress, deleteAddress } from "@/models/addressModel";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { getErrorMessage } from "@/lib/services/errors";
 import type { PersonalData, Genero } from "@/lib/types/auth";
 import type { ProfileUpdateResponse, FullProfilePayload } from "@/lib/types/profile";
 
@@ -45,7 +46,15 @@ export async function completeAdminProfile(
     userId = user.id;
 
     // 1. Validar unicidad de DNI
-    const dniExists = await checkDniExists(input.dni);
+    let dniExists: boolean;
+    try {
+      dniExists = await checkDniExists(input.dni);
+    } catch (error) {
+      return {
+        success: false,
+        errors: { form: `Error verificando DNI: ${getErrorMessage(error)}` },
+      };
+    }
     if (dniExists) {
       return {
         success: false,
@@ -54,14 +63,16 @@ export async function completeAdminProfile(
     }
 
     // 2. Validar unicidad de username
-    const usernameCheck = await checkUsernameExists(input.usuario);
-    if (usernameCheck.error) {
+    let usernameExists: boolean;
+    try {
+      usernameExists = await checkUsernameExists(input.usuario);
+    } catch (error) {
       return {
         success: false,
-        errors: { form: `Error verificando usuario: ${usernameCheck.error}` },
+        errors: { form: `Error verificando usuario: ${getErrorMessage(error)}` },
       };
     }
-    if (usernameCheck.exists) {
+    if (usernameExists) {
       return {
         success: false,
         errors: { usuario: "El usuario o documento de identidad ya ha sido registrado en otra cuenta. Por favor pruebe con otro." },
@@ -71,19 +82,20 @@ export async function completeAdminProfile(
     // 3. (Movido al final) La contraseña se actualiza de último para asegurar rollback completo.
 
     // 4. Crear dirección
-    const addressResult = await createAddress({
-      direccion: input.direccion,
-      placeId: input.direccion_place_id,
-      detalle: input.direccion_detalle ?? undefined,
-    });
-
-    if (!addressResult.success || !addressResult.id) {
+    let addressId: number;
+    try {
+      addressId = await createAddress({
+        direccion: input.direccion,
+        placeId: input.direccion_place_id,
+        detalle: input.direccion_detalle ?? undefined,
+      });
+    } catch (error) {
       return {
         success: false,
-        errors: { direccion: `Error al registrar dirección: ${addressResult.error}` },
+        errors: { direccion: `Error al registrar dirección: ${getErrorMessage(error)}` },
       };
     }
-    createdAddressId = addressResult.id;
+    createdAddressId = addressId;
 
     // 5. Crear perfil de usuario
     const personalData: PersonalData = {
@@ -99,21 +111,16 @@ export async function completeAdminProfile(
       usuario: input.usuario,
     };
 
-    const profileResult = await createUserProfile(
-      userId,
-      personalData,
-      addressResult.id
-    );
-
-    if (!profileResult.success) {
-      // Rollback: eliminar dirección creada
+    try {
+      await createUserProfile(userId, personalData, addressId);
+      profileCreated = true;
+    } catch (error) {
       if (createdAddressId) await deleteAddress(createdAddressId);
       return {
         success: false,
-        errors: { form: `Error al crear perfil: ${profileResult.error}` },
+        errors: { form: `Error al crear perfil: ${getErrorMessage(error)}` },
       };
     }
-    profileCreated = true;
 
     // 6. Marcar profile_complete en app_metadata + actualizar username
     const adminClient = createAdminClient();

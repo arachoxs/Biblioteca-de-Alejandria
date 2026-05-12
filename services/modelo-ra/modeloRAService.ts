@@ -12,6 +12,7 @@ import type {
 } from "@/lib/types/modelo_ra";
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { isValidPositiveInteger } from "@/lib/validations/rules";
+import { getErrorMessage } from "@/lib/services/errors";
 import {
   validateModeloRACreate,
   validateModeloRAUpdate,
@@ -74,11 +75,12 @@ export async function createModeloRA(
     return { success: false, errors };
   }
 
-  const result = await createModeloRAModel(input);
-  if (!result.success) {
+  try {
+    await createModeloRAModel(input);
+  } catch (error) {
     return {
       success: false,
-      errors: { form: result.error ?? "No se pudo crear el modelo RA." },
+      errors: { form: getErrorMessage(error) },
       message: "No se pudo crear el modelo RA.",
     };
   }
@@ -108,11 +110,12 @@ export async function updateModeloRA(
     return { success: false, errors };
   }
 
-  const result = await updateModeloRAById(modeloRAId, input);
-  if (!result.success) {
+  try {
+    await updateModeloRAById(modeloRAId, input);
+  } catch (error) {
     return {
       success: false,
-      errors: { form: result.error ?? "No se pudo actualizar el modelo RA." },
+      errors: { form: getErrorMessage(error) },
       message: "No se pudo actualizar el modelo RA.",
     };
   }
@@ -136,11 +139,12 @@ export async function deleteModeloRA(
     return getInvalidIdResponse();
   }
 
-  const result = await softDeleteModeloRAById(modeloRAId);
-  if (!result.success) {
+  try {
+    await softDeleteModeloRAById(modeloRAId);
+  } catch (error) {
     return {
       success: false,
-      errors: { form: result.error ?? "No se pudo eliminar el modelo RA." },
+      errors: { form: getErrorMessage(error) },
       message: "No se pudo eliminar el modelo RA.",
     };
   }

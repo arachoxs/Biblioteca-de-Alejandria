@@ -14,6 +14,7 @@ import type {
   ProfileUpdatePayload,
   ProfileUpdateResponse,
 } from "@/lib/types/profile";
+import { getErrorMessage } from "@/lib/services/errors";
 
 // ─── Lectura del perfil ────────────────────────────────────────────
 
@@ -81,16 +82,18 @@ export async function updateProfile(
 
     // 1. Verificar unicidad del username si cambió
     if (payload.usuario !== currentUsername) {
-      const usernameCheck = await checkUsernameExists(payload.usuario);
-      if (usernameCheck.error) {
+      let usernameExists: boolean;
+      try {
+        usernameExists = await checkUsernameExists(payload.usuario);
+      } catch (error) {
         return {
           success: false,
           errors: {
-            form: `Error verificando usuario: ${usernameCheck.error}`,
+            form: `Error verificando usuario: ${getErrorMessage(error)}`,
           },
         };
       }
-      if (usernameCheck.exists) {
+      if (usernameExists) {
         return {
           success: false,
           errors: { usuario: "El nombre de usuario ya está en uso." },
@@ -100,38 +103,38 @@ export async function updateProfile(
 
     // 2. Crear nueva dirección (Inmutabilidad: siempre se crea nueva)
     // No editamos la anterior para mantener integridad histórica de entregas/tiendas.
-    const createResult = await createAddress({
-      direccion: payload.direccion,
-      placeId: payload.direccion_place_id,
-      detalle: payload.direccion_detalle ?? undefined,
-    });
-
-    if (!createResult.success) {
+    let newAddressId: number;
+    try {
+      newAddressId = await createAddress({
+        direccion: payload.direccion,
+        placeId: payload.direccion_place_id,
+        detalle: payload.direccion_detalle ?? undefined,
+      });
+    } catch (error) {
       return {
         success: false,
         errors: {
-          direccion: `Error al crear nueva dirección: ${createResult.error}`,
+          direccion: `Error al crear nueva dirección: ${getErrorMessage(error)}`,
         },
       };
     }
-    const newAddressId = createResult.id!;
 
     // 3. Actualizar perfil de usuario con la nueva dirección
-    const profileResult = await updateUserProfile(userId, {
-      nombres: payload.nombres,
-      apellidos: payload.apellidos,
-      genero: payload.genero,
-      id_direccion: newAddressId,
-    });
-
-    if (!profileResult.success) {
+    try {
+      await updateUserProfile(userId, {
+        nombres: payload.nombres,
+        apellidos: payload.apellidos,
+        genero: payload.genero,
+        id_direccion: newAddressId,
+      });
+    } catch (error) {
       // ROLLBACK: Eliminar la nueva dirección creada
       await deleteAddress(newAddressId);
 
       return {
         success: false,
         errors: {
-          form: `Error al actualizar perfil: ${profileResult.error}`,
+          form: `Error al actualizar perfil: ${getErrorMessage(error)}`,
         },
       };
     }
@@ -147,7 +150,7 @@ export async function updateProfile(
 
       if (error) {
         console.error("Error al actualizar username en auth:", error);
-        
+
         // ROLLBACK: Restaurar perfil y dirección
         await updateUserProfile(userId, {
           nombres: currentProfile.nombres,
@@ -174,11 +177,9 @@ export async function updateProfile(
     };
   } catch (error: unknown) {
     console.error("Error inesperado en updateProfile:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Desconocido";
     return {
       success: false,
-      errors: { form: `Error inesperado: ${errorMessage}` },
+      errors: { form: `Error inesperado: ${getErrorMessage(error)}` },
     };
   }
 }

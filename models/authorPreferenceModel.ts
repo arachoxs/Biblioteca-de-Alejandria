@@ -1,5 +1,4 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import type { ModelResult } from "@/lib/types/common";
 import type {
   InsertAuthorPreferencePayload,
   AuthorPreferenceAuthorSummary,
@@ -51,7 +50,7 @@ function normalizeAuthorPreferenceWithDetails(
 
 export async function insertAuthorPreference(
   data: InsertAuthorPreferencePayload
-): Promise<ModelResult & { id?: number }> {
+): Promise<number> {
   const adminClient = createAdminClient();
 
   const { data: resultData, error } = await adminClient
@@ -69,24 +68,22 @@ export async function insertAuthorPreference(
       error
     );
 
-    // Handle unique constraint violation (race condition fallback)
     if (error.code === "23505") {
-      return { success: false, error: "Este autor ya está en tus preferencias." };
+      throw new Error("Este autor ya está en tus preferencias.");
     }
 
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return { success: true, id: resultData?.id };
+  return resultData!.id;
 }
 
 export async function deleteAuthorPreference(
   id_usuario: string,
   id_autor: number
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
-  // First verify the row exists and belongs to the user
   const { data: existing, error: selectError } = await adminClient
     .from("preferencia_autor")
     .select("id")
@@ -101,14 +98,13 @@ export async function deleteAuthorPreference(
       "[authorPreferenceModel] Error al verificar preferencia:",
       selectError
     );
-    return { success: false, error: selectError.message };
+    throw selectError;
   }
 
   if (!existing) {
-    return { success: false, error: "La preferencia no existe o ya fue eliminada." };
+    throw new Error("La preferencia no existe o ya fue eliminada.");
   }
 
-  // Perform soft delete
   const { data: updatedRows, error } = await adminClient
     .from("preferencia_autor")
     .update({ deleted_at: new Date().toISOString() })
@@ -122,19 +118,17 @@ export async function deleteAuthorPreference(
       "[authorPreferenceModel] Error al eliminar preferencia de autor:",
       error
     );
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!updatedRows || updatedRows.length === 0) {
-    return { success: false, error: "La preferencia no existe o ya fue eliminada." };
+    throw new Error("La preferencia no existe o ya fue eliminada.");
   }
-
-  return { success: true };
 }
 
 export async function getAuthorPreferencesByUser(
   id_usuario: string
-): Promise<ModelResult & { data?: AuthorPreferenceWithDetails[] }> {
+): Promise<AuthorPreferenceWithDetails[]> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -149,23 +143,20 @@ export async function getAuthorPreferencesByUser(
       "[authorPreferenceModel] Error al obtener preferencias de autor:",
       error
     );
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return {
-    success: true,
-    data: (data ?? []).map((row) =>
-      normalizeAuthorPreferenceWithDetails(
-        row as AuthorPreferenceRow & { autor?: unknown }
-      )
-    ),
-  };
+  return (data ?? []).map((row) =>
+    normalizeAuthorPreferenceWithDetails(
+      row as AuthorPreferenceRow & { autor?: unknown }
+    )
+  );
 }
 
 export async function checkAuthorPreferenceExists(
   id_usuario: string,
   id_autor: number
-): Promise<ModelResult & { exists?: boolean }> {
+): Promise<boolean> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -182,8 +173,8 @@ export async function checkAuthorPreferenceExists(
       "[authorPreferenceModel] Error al verificar preferencia de autor:",
       error
     );
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return { success: true, exists: !!data };
+  return !!data;
 }

@@ -19,6 +19,7 @@ import { getCurrentUser } from "@/models/authModel";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
 import { sanitizeNullableText, sanitizeText } from "@/lib/validations/rules";
+import { getErrorMessage } from "@/lib/services/errors";
 
 function normalizeCategoryName(name: string): string {
   return sanitizeText(name);
@@ -93,15 +94,16 @@ export async function createCategory(
       };
     }
 
-    const result = await createCategoryModel({
-      nombre: normalizedName,
-      descripcion: normalizeDescription(input.descripcion),
-    });
-
-    if (!result.success) {
+    let createdId: number;
+    try {
+      createdId = await createCategoryModel({
+        nombre: normalizedName,
+        descripcion: normalizeDescription(input.descripcion),
+      });
+    } catch (error) {
       return {
         success: false,
-        errors: { form: result.error ?? "No se pudo crear la categoría." },
+        errors: { form: getErrorMessage(error) },
         message: "No se pudo crear la categoría.",
       };
     }
@@ -113,7 +115,7 @@ export async function createCategory(
         action: AccionAdministrador.CREAR,
         description: `Se creó la categoría "${normalizedName}".`,
         entity: {
-          id: String(result.id),
+          id: String(createdId),
           entity_type: "categoría",
           display_name: normalizedName,
         },
@@ -123,7 +125,7 @@ export async function createCategory(
     return {
       success: true,
       message: "Categoría creada exitosamente.",
-      id: result.id,
+      id: createdId,
     };
   } catch (error: unknown) {
     console.error("Error inesperado al crear categoría:", error);
@@ -188,11 +190,12 @@ export async function updateCategory(
       payload.descripcion = normalizeDescription(input.descripcion);
     }
 
-    const result = await updateCategoryById(categoryId, payload);
-    if (!result.success) {
+    try {
+      await updateCategoryById(categoryId, payload);
+    } catch (error) {
       return {
         success: false,
-        errors: { form: result.error ?? "No se pudo actualizar la categoría." },
+        errors: { form: getErrorMessage(error) },
         message: "No se pudo actualizar la categoría.",
       };
     }
@@ -258,11 +261,12 @@ export async function deleteCategory(
       };
     }
 
-    const result = await softDeleteCategoryById(categoryId);
-    if (!result.success) {
+    try {
+      await softDeleteCategoryById(categoryId);
+    } catch (error) {
       return {
         success: false,
-        errors: { form: result.error ?? "No se pudo eliminar la categoría." },
+        errors: { form: getErrorMessage(error) },
         message: "No se pudo eliminar la categoría.",
       };
     }

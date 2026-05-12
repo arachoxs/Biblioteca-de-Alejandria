@@ -8,6 +8,7 @@ import {
   softDeleteCopias,
   transferCopias as transferCopiasModel,
   transferCopiasByQuantityAtomic,
+  InsufficientStockError,
 } from "@/models/copiaModel";
 import {
   getHistoricoSyncSnapshotsByLibros,
@@ -44,10 +45,9 @@ import type {
 import type { EstadoHistorico } from "@/lib/types/historico";
 
 import { requireAdminRole } from "@/lib/validations/server-auth";
-import { isValidUUID, MAX_PAGE_SIZE } from "@/lib/validations/rules";
+import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 import {
   buildTransferCopiasByQuantitySuccessMessage,
-  getTransferCopiasByQuantityModelError,
   getTransferCopiasByQuantityStockError,
   validateTransferCopiasByQuantityEntities,
 } from "@/services/rules/copiaRules";
@@ -62,14 +62,6 @@ function toUniqueIds(ids: OneOrManyCopyIds): string[] {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Error desconocido";
-}
-
-function getMissingCopyIds(
-  requestedIds: string[],
-  foundCopies: CopiaRow[],
-): string[] {
-  const foundIds = new Set(foundCopies.map((copy) => copy.id));
-  return requestedIds.filter((copyId) => !foundIds.has(copyId));
 }
 
 function aggregateInventarioRows(
@@ -182,10 +174,11 @@ async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
 
   if (historicoRows.length === 0) return;
 
-  const historicoResult = await insertHistoricoBatch(historicoRows);
-  if (!historicoResult.success) {
+  try {
+    await insertHistoricoBatch(historicoRows);
+  } catch (error) {
     console.error(
-      historicoResult.error ??
+      getErrorMessage(error) ??
         "No se pudo registrar la sincronización del histórico de stock para los libros indicados.",
       {
         libroIds: historicoRows.map((row) => row.id_libro),
@@ -301,14 +294,15 @@ export async function createCopias(
       estado: input.estado,
     }));
 
-    const result = await insertCopias(copiesToInsert);
-    if (!result.success) {
+    try {
+      await insertCopias(copiesToInsert);
+    } catch (error) {
       return {
         success: false,
         errors: {
-          form: result.error ?? "No se pudieron crear las copias.",
+          form: getErrorMessage(error),
         },
-        message: result.error ?? "No se pudieron crear las copias.",
+        message: getErrorMessage(error),
       };
     }
 
@@ -382,14 +376,15 @@ export async function transferCopias(
       };
     }
 
-    const result = await transferCopiasModel(copyIds, input.id_tienda);
-    if (!result.success) {
+    try {
+      await transferCopiasModel(copyIds, input.id_tienda);
+    } catch (error) {
       return {
         success: false,
         errors: {
-          form: result.error ?? "No se pudieron trasladar las copias.",
+          form: getErrorMessage(error),
         },
-        message: result.error ?? "No se pudieron trasladar las copias.",
+        message: getErrorMessage(error),
       };
     }
 
@@ -459,18 +454,30 @@ export async function transferCopiasByQuantity(
 
     if (stockValidationError) return stockValidationError;
 
-    const transferResult = await transferCopiasByQuantityAtomic({
-      id_tienda_origen: input.id_tienda_origen,
-      id_tienda_destino: input.id_tienda_destino,
-      id_libro: input.id_libro,
-      cantidad: safeQuantity,
-    });
+    let transferredIds: string[];
+    try {
+      transferredIds = await transferCopiasByQuantityAtomic({
+        id_tienda_origen: input.id_tienda_origen,
+        id_tienda_destino: input.id_tienda_destino,
+        id_libro: input.id_libro,
+        cantidad: safeQuantity,
+      });
+    } catch (error) {
+      if (error instanceof InsufficientStockError) {
+        return {
+          success: false,
+          errors: { form: getErrorMessage(error) },
+          transferredIds: error.transferredIds,
+          errorCode: error.errorCode,
+        } as CopiaActionResponse;
+      }
+      return {
+        success: false,
+        errors: { form: getErrorMessage(error) },
+        message: "No se pudo trasladar el inventario por cantidad.",
+      };
+    }
 
-    const transferError = getTransferCopiasByQuantityModelError(transferResult);
-
-    if (transferError) return transferError;
-
-    const transferredIds = transferResult.transferredIds ?? [];
     await logTransferCopiasAudit(
       transferredIds,
       entityValidation.destinationStore,
@@ -539,13 +546,13 @@ export async function deleteCopias(
     }
 
     // c. eliminación lógica en una operación de modelo
-    const result = await softDeleteCopias(copyIds);
-
-    if (!result.success) {
+    try {
+      await softDeleteCopias(copyIds);
+    } catch (error) {
       return {
         success: false,
-        errors: { form: result.error ?? "No se pudieron eliminar las copias." },
-        message: result.error ?? "No se pudieron eliminar las copias.",
+        errors: { form: getErrorMessage(error) },
+        message: getErrorMessage(error),
       };
     }
 

@@ -1,20 +1,23 @@
 import { checkAuthorPreferenceExists } from "@/models/authorPreferenceModel";
 import { checkAuthorExistsById } from "@/models/authorModel";
+import { getErrorMessage } from "@/lib/services/errors";
 import type { AuthorPreferenceActionResponse } from "@/lib/types/authorPreference";
 
 export async function checkAuthorPreferenceNotDuplicate(
   id_usuario: string,
   id_autor: number
 ): Promise<AuthorPreferenceActionResponse | null> {
-  const result = await checkAuthorPreferenceExists(id_usuario, id_autor);
-  if (!result.success) {
+  let exists: boolean;
+  try {
+    exists = await checkAuthorPreferenceExists(id_usuario, id_autor);
+  } catch (error) {
     return {
       success: false,
-      errors: { form: result.error ?? "Error al verificar preferencia." },
-      message: result.error,
+      errors: { form: getErrorMessage(error) },
+      message: getErrorMessage(error),
     };
   }
-  if (result.exists) {
+  if (exists) {
     return {
       success: false,
       errors: { form: "Ya tienes este autor en tus preferencias." },
@@ -27,7 +30,16 @@ export async function checkAuthorPreferenceNotDuplicate(
 export async function checkPreferenceAuthorExists(
   id_autor: number
 ): Promise<AuthorPreferenceActionResponse | null> {
-  const exists = await checkAuthorExistsById(id_autor);
+  let exists: boolean;
+  try {
+    exists = await checkAuthorExistsById(id_autor);
+  } catch (error) {
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: getErrorMessage(error),
+    };
+  }
   if (!exists) {
     return {
       success: false,

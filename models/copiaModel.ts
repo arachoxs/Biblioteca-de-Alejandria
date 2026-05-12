@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import type { ModelResult, Paginated } from "@/lib/types/common";
+import type { Paginated } from "@/lib/types/common";
 import type {
   CopiaRow,
   InsertCopiaPayload,
@@ -7,7 +7,6 @@ import type {
   UpdateCopiaPayload,
 } from "@/lib/types/copia";
 import type {
-  InventarioCopiaDetalle,
   VistaInventarioRow,
 } from "@/lib/types/inventario";
 import { buildOrILikeFilter } from "@/lib/validations/db-utils";
@@ -19,14 +18,25 @@ export type TransferCopiasByQuantityErrorCode =
   | "INSUFFICIENT_STOCK"
   | "ROLLBACK_FAILED";
 
-export interface TransferCopiasByQuantityModelResult extends ModelResult {
-  transferredIds?: string[];
-  errorCode?: TransferCopiasByQuantityErrorCode;
+export class InsufficientStockError extends Error {
+  readonly errorCode: TransferCopiasByQuantityErrorCode;
+  readonly transferredIds: string[];
+
+  constructor(
+    message: string,
+    errorCode: TransferCopiasByQuantityErrorCode,
+    transferredIds: string[] = []
+  ) {
+    super(message);
+    this.name = "InsufficientStockError";
+    this.errorCode = errorCode;
+    this.transferredIds = transferredIds;
+  }
 }
 
 export async function insertCopias(
   data: InsertCopiaPayload[],
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const payload = data.map((copy) => ({
@@ -42,16 +52,14 @@ export async function insertCopias(
 
   if (error) {
     console.error("[copiaModel] Error insertando copias:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 export async function updateCopia(
   id: string,
   data: UpdateCopiaPayload,
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -65,16 +73,14 @@ export async function updateCopia(
 
   if (error) {
     console.error("[copiaModel] Error actualizando copia:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 export async function transferCopias(
   ids: string[],
   id_tienda: string,
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { data: updatedRows, error } = await adminClient
@@ -86,17 +92,12 @@ export async function transferCopias(
 
   if (error) {
     console.error("[copiaModel] Error trasladando copias:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if ((updatedRows ?? []).length !== ids.length) {
-    return {
-      success: false,
-      error: "No se pudieron trasladar todas las copias solicitadas.",
-    };
+    throw new Error("No se pudieron trasladar todas las copias solicitadas.");
   }
-
-  return { success: true };
 }
 
 async function getCopiasForTransferByQuantity(
@@ -150,7 +151,7 @@ async function rollbackTransferByQuantity(
 
 export async function transferCopiasByQuantityAtomic(
   input: TransferCopiasByQuantityInput,
-): Promise<TransferCopiasByQuantityModelResult> {
+): Promise<string[]> {
   const adminClient = createAdminClient();
   const safeQuantity = Math.max(1, input.cantidad);
 
@@ -161,26 +162,23 @@ export async function transferCopiasByQuantityAtomic(
   );
 
   if (copiasForTransfer.length === 0) {
-    return {
-      success: false,
-      errorCode: "INSUFFICIENT_STOCK",
-      error:
-        "No hay copias disponibles en la tienda origen para el libro especificado.",
-    };
+    throw new InsufficientStockError(
+      "No hay copias disponibles en la tienda origen para el libro especificado.",
+      "INSUFFICIENT_STOCK"
+    );
   }
 
-  // PASO 2: Actualizar solo esos IDs específicos
   const { data: updatedRows, error: updateError } = await adminClient
     .from("copia")
     .update({ id_tienda: input.id_tienda_destino })
-    .in("id", copiasForTransfer) // Usamos .in() para afectar solo a los que encontramos
+    .in("id", copiasForTransfer)
     .select("id");
 
   if (updateError) throw updateError;
 
   const transferredIds = (updatedRows ?? []).map((row) => row.id);
   if (transferredIds.length === safeQuantity) {
-    return { success: true, transferredIds };
+    return transferredIds;
   }
 
   if (transferredIds.length > 0) {
@@ -194,47 +192,35 @@ export async function transferCopiasByQuantityAtomic(
     );
   }
 
-  return {
-    success: false,
-    errorCode: "INSUFFICIENT_STOCK",
-    error:
-      "No hay suficientes copias disponibles en la tienda origen para completar el traslado.",
-  };
+  throw new InsufficientStockError(
+    "No hay suficientes copias disponibles en la tienda origen para completar el traslado.",
+    "INSUFFICIENT_STOCK",
+    transferredIds
+  );
 }
 
-export async function softDeleteCopias(ids: string[]): Promise<ModelResult> {
-  // Usamos el Admin Client para asegurar permisos de escritura
+export async function softDeleteCopias(ids: string[]): Promise<void> {
   const adminClient = createAdminClient();
 
   const { data: updatedRows, error } = await adminClient
-    .from("copia") // Asegúrate de que sea "copia" (singular) como en tu otra función
+    .from("copia")
     .update({ deleted_at: new Date().toISOString() })
     .in("id", ids)
     .is("deleted_at", null)
-    .select("id"); // Solo actualiza las que no estén ya borradas
+    .select("id");
 
   if (error) {
     console.error("[copiaModel] Error en softDeleteManyCopiasModel:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if ((updatedRows ?? []).length !== ids.length) {
-    return {
-      success: false,
-      error: "No se pudieron eliminar todas las copias solicitadas.",
-    };
+    throw new Error("No se pudieron eliminar todas las copias solicitadas.");
   }
-  return { success: true };
 }
 // ─── Lectura ───────────────────────────────────────────────────────
 
-function getRelationName(
-  value: { nombre?: string } | { nombre?: string }[] | null,
-): string {
-  if (!value) return "Sin tienda asociada";
-  if (Array.isArray(value)) return value[0]?.nombre ?? "Sin tienda asociada";
-  return value.nombre ?? "Sin tienda asociada";
-}
+// ─── Escritura ─────────────────────────────────────────────────────
 
 export async function getCopiaById(id: string): Promise<CopiaRow | null> {
   const adminClient = createAdminClient();

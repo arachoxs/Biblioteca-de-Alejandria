@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/services/errors";
 import {
   insertAuthor,
   updateAuthor,
@@ -48,13 +49,11 @@ export async function createAuthor(
     };
   }
 
-  const result = await insertAuthor(data);
-
-  if (!result.success) {
-    return {
-      success: false,
-      message: result.error || "Error al crear el autor.",
-    };
+  let insertedId: number;
+  try {
+    insertedId = await insertAuthor(data);
+  } catch (error) {
+    return { success: false, message: getErrorMessage(error) };
   }
 
   const actor = await getCurrentUser();
@@ -67,7 +66,7 @@ export async function createAuthor(
     });
   }
 
-  return { success: true, message: "Autor creado exitosamente.", id: result.id };
+  return { success: true, message: "Autor creado exitosamente.", id: insertedId };
 }
 
 /**
@@ -100,13 +99,10 @@ export async function editAuthor(
     };
   }
 
-  const result = await updateAuthor(id, data);
-
-  if (!result.success) {
-    return {
-      success: false,
-      message: result.error || "Error al actualizar el autor.",
-    };
+  try {
+    await updateAuthor(id, data);
+  } catch (error) {
+    return { success: false, message: getErrorMessage(error) };
   }
 
   const actor = await getCurrentUser();
@@ -152,13 +148,10 @@ export async function removeAuthor(
     };
   }
 
-  const result = await deleteAuthor(id);
-
-  if (!result.success) {
-    return {
-      success: false,
-      message: result.error || "Error al eliminar el autor.",
-    };
+  try {
+    await deleteAuthor(id);
+  } catch (error) {
+    return { success: false, message: getErrorMessage(error) };
   }
 
   const actor = await getCurrentUser();

@@ -242,5 +242,5 @@ export async function eliminarLibroAction(
     return { success: false, message: "ID de libro no válido." };
   }
 
-  return await removeBook(cleanId, sanitizeText(titulo), sanitizeText(estado));
+  return await removeBook(cleanId, sanitizeText(titulo));
 }

@@ -5,7 +5,7 @@ import type {
   CategoryWithBookCount,
   CategoryUpdateInput,
 } from "@/lib/types/category";
-import type { ModelResult, ModelResultWithId, Paginated } from "@/lib/types/common";
+import type { Paginated } from "@/lib/types/common";
 import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
 
 function normalizeCategoryWithBookCount(
@@ -29,7 +29,7 @@ function normalizeCategoryWithBookCount(
  */
 export async function createCategory(
   input: CategoryCreateInput
-): Promise<ModelResultWithId> {
+): Promise<number> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -43,10 +43,10 @@ export async function createCategory(
 
   if (error) {
     console.error("Error al crear categoría:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return { success: true, id: data.id };
+  return data.id;
 }
 
 /**
@@ -104,7 +104,7 @@ export async function getCategories(
 export async function updateCategoryById(
   categoryId: number,
   input: CategoryUpdateInput
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const payload: CategoryUpdateInput = {
@@ -122,14 +122,12 @@ export async function updateCategoryById(
 
   if (error) {
     console.error("Error al actualizar categoría:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Categoría no encontrada." };
+    throw new Error("Categoría no encontrada.");
   }
-
-  return { success: true };
 }
 
 /**
@@ -137,7 +135,7 @@ export async function updateCategoryById(
  */
 export async function softDeleteCategoryById(
   categoryId: number
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -150,14 +148,12 @@ export async function softDeleteCategoryById(
 
   if (error) {
     console.error("Error al eliminar lógicamente categoría:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Categoría no encontrada." };
+    throw new Error("Categoría no encontrada.");
   }
-
-  return { success: true };
 }
 
 // ─── Helpers para validaciones en services/categoria ────────────────

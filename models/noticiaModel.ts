@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import type { ModelResult, Paginated } from "@/lib/types/common";
+import type { Paginated } from "@/lib/types/common";
 import type {
   NoticiaId,
   LibroId,
@@ -62,7 +62,7 @@ function mapNoticiaConPrecio(row: NoticiaConLibroPrecio): NoticiaWithPrecio {
 
 export async function insertNoticia(
   data: InsertNoticiaPayload
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient.from("noticias").insert({
@@ -75,16 +75,14 @@ export async function insertNoticia(
 
   if (error) {
     console.error("[noticiaModel] Error insertando noticia:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 export async function updateNoticia(
   id: NoticiaId,
   data: UpdateNoticiaPayload
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -100,13 +98,11 @@ export async function updateNoticia(
 
   if (error) {
     console.error("[noticiaModel] Error actualizando noticia:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
-export async function softDeleteNoticia(id: NoticiaId): Promise<ModelResult> {
+export async function softDeleteNoticia(id: NoticiaId): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -117,13 +113,11 @@ export async function softDeleteNoticia(id: NoticiaId): Promise<ModelResult> {
 
   if (error) {
     console.error("[noticiaModel] Error eliminando noticia:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
-export async function softDeleteNoticiaByLibroId(id_libro: LibroId): Promise<ModelResult> {
+export async function softDeleteNoticiaByLibroId(id_libro: LibroId): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -134,10 +128,8 @@ export async function softDeleteNoticiaByLibroId(id_libro: LibroId): Promise<Mod
 
   if (error) {
     console.error("[noticiaModel] Error eliminando noticia por id_libro:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 export async function getNoticiaById(

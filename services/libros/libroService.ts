@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/services/errors";
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import {
   checkLibroDuplicateInfo,
@@ -42,55 +43,53 @@ export async function createBook(
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 
+  let isDuplicate: boolean;
   try {
-    const isDuplicate = await checkLibroDuplicateInfo(
+    isDuplicate = await checkLibroDuplicateInfo(
       data.titulo,
       data.isbn,
       data.estado
     );
-    if (isDuplicate) {
-      return {
-        success: false,
-        errors: { form: "Ya existe un libro con este título, ISBN y estado." },
-        message: "El libro ya está registrado.",
-      };
-    }
-  } catch (_) {
+  } catch (error) {
     return {
       success: false,
-      message: "Error al verificar la existencia del libro.",
+      message: `Error al verificar la existencia del libro: ${getErrorMessage(error)}`,
+    };
+  }
+  if (isDuplicate) {
+    return {
+      success: false,
+      errors: { form: "Ya existe un libro con este título, ISBN y estado." },
+      message: "El libro ya está registrado.",
     };
   }
 
-  const resultLibro = await createLibro(data);
-  if (!resultLibro.success || !resultLibro.id) {
+  let libroId: string;
+  try {
+    libroId = await createLibro(data);
+  } catch (error) {
     return {
       success: false,
-      message: resultLibro.error || "Error al crear el libro principal.",
+      message: getErrorMessage(error),
     };
   }
-
-  const libroId = String(resultLibro.id);
 
   try {
-    // Calcular fechas
     const now = new Date();
     const expiracion = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
 
-    const noticiaResult = await insertNoticia({
+    await insertNoticia({
       id_libro: libroId,
       fecha_publicacion: now.toISOString(),
       fecha_expiracion: expiracion.toISOString(),
       es_visible: true,
     });
-    if (!noticiaResult.success) throw new Error(noticiaResult.error);
 
-    const historicoResult = await insertHistorico({
+    await insertHistorico({
       id_libro: libroId,
       estado: "agotado",
       fecha: now.toISOString(),
     });
-    if (!historicoResult.success) throw new Error(historicoResult.error);
 
     const actor = await getCurrentUser();
     if (actor) {
@@ -108,7 +107,7 @@ export async function createBook(
     await rollbackLibro(libroId);
     return {
       success: false,
-      message: "Ocurrió un error al registrar las dependencias del libro. Se ha cancelado la operación.",
+      message: `Ocurrió un error al registrar las dependencias del libro: ${getErrorMessage(err)}. Se ha cancelado la operación.`,
     };
   }
 }
@@ -124,38 +123,38 @@ export async function createBookWithInventory(
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 
+  let isDuplicate: boolean;
   try {
-    const isDuplicate = await checkLibroDuplicateInfo(
+    isDuplicate = await checkLibroDuplicateInfo(
       data.titulo,
       data.isbn,
       data.estado
     );
-    if (isDuplicate) {
-      return {
-        success: false,
-        errors: { form: "Ya existe un libro con este título, ISBN y estado." },
-        message: "El libro ya está registrado.",
-      };
-    }
-  } catch (_) {
+  } catch (error) {
     return {
       success: false,
-      message: "Error al verificar la existencia del libro.",
+      message: `Error al verificar la existencia del libro: ${getErrorMessage(error)}`,
+    };
+  }
+  if (isDuplicate) {
+    return {
+      success: false,
+      errors: { form: "Ya existe un libro con este título, ISBN y estado." },
+      message: "El libro ya está registrado.",
     };
   }
 
-  const resultLibro = await createLibro(data);
-  if (!resultLibro.success || !resultLibro.id) {
+  let libroId: string;
+  try {
+    libroId = await createLibro(data);
+  } catch (error) {
     return {
       success: false,
-      message: resultLibro.error || "Error al crear el libro principal.",
+      message: getErrorMessage(error),
     };
   }
-
-  const libroId = String(resultLibro.id);
 
   try {
-    // 1. Insertar copias
     const copiasResult = await createCopias({
       id_libro: libroId,
       estado: "disponible",
@@ -164,17 +163,15 @@ export async function createBookWithInventory(
     });
     if (!copiasResult.success) throw new Error(copiasResult.message || "Error insertando copias");
 
-    // 2. Fechas para noticia e histórico
     const now = new Date();
     const expiracion = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
 
-    const noticiaResult = await insertNoticia({
+    await insertNoticia({
       id_libro: libroId,
       fecha_publicacion: now.toISOString(),
       fecha_expiracion: expiracion.toISOString(),
       es_visible: true,
     });
-    if (!noticiaResult.success) throw new Error(noticiaResult.error);
 
     const actor = await getCurrentUser();
     if (actor) {
@@ -192,7 +189,7 @@ export async function createBookWithInventory(
     await rollbackLibro(libroId);
     return {
       success: false,
-      message: "Ocurrió un error al registrar las dependencias o el inventario del libro. Se ha cancelado la operación.",
+      message: `Ocurrió un error al registrar las dependencias o el inventario del libro: ${getErrorMessage(err)}. Se ha cancelado la operación.`,
     };
   }
 }
@@ -233,16 +230,16 @@ export async function editBook(
   } catch (error) {
     return {
       success: false,
-      message: "Error al verificar la existencia del libro.",
+      message: `Error al verificar la existencia del libro: ${getErrorMessage(error)}`,
     };
   }
 
-  const result = await updateLibroById(id, data);
-
-  if (!result.success) {
+  try {
+    await updateLibroById(id, data);
+  } catch (error) {
     return {
       success: false,
-      message: result.error || "Error al actualizar el libro.",
+      message: getErrorMessage(error),
     };
   }
 
@@ -264,8 +261,7 @@ export async function editBook(
  */
 export async function removeBook(
   id: string,
-  titulo: string,
-  _estado: string
+  titulo: string
 ): Promise<LibroActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
@@ -278,23 +274,22 @@ export async function removeBook(
         message: `No se puede eliminar el libro porque tiene ${copiasCount} copia(s) asociada(s).`,
       };
     }
-  } catch (_) {
+  } catch {
     return {
       success: false,
       message: "Error al verificar las copias asociadas al libro.",
     };
   }
 
-  const result = await softDeleteLibroById(id);
-
-  if (!result.success) {
+  try {
+    await softDeleteLibroById(id);
+  } catch (error) {
     return {
       success: false,
-      message: result.error || "Error al eliminar el libro.",
+      message: getErrorMessage(error),
     };
   }
 
-  // Borrado en cascada orquestado por el servicio
   await softDeleteNoticiaByLibroId(id);
   await deleteHistoricoByLibroId(id);
 

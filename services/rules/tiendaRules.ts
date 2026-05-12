@@ -4,11 +4,13 @@ import {
   getActiveTiendaById,
 } from "@/models/tiendaModel";
 import { isTiendaAddressUsed } from "@/models/addressModel";
+import { getErrorMessage } from "@/lib/services/errors";
 import type {
   AddressErrorOptions,
   CreateTiendaInput,
   NameComparison,
   TiendaActionResponse,
+  TiendaRead,
   UpdateAddressDecisionParams,
   UpdateTiendaPrecheckParams,
 } from "@/lib/types/tienda";
@@ -50,7 +52,12 @@ export async function getCreateTiendaPrecheckError(
   const duplicatedTienda = await getActiveTiendaByExactName(input.nombre);
   if (duplicatedTienda) return buildDuplicatedNameResponse();
 
-  const isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
+  let isAddressUsed: boolean;
+  try {
+    isAddressUsed = await isTiendaAddressUsed(input.direccion_place_id);
+  } catch (error) {
+    return buildAddressCreateErrorResponse({ error: getErrorMessage(error) });
+  }
   if (isAddressUsed) return buildAddressInUseResponse();
 
   return null;
@@ -102,7 +109,12 @@ async function validateAddressAvailability(
 ) {
   if (!newPlaceId || newPlaceId === currentPlaceId) return null;
 
-  const isUsed = await isTiendaAddressUsed(newPlaceId);
+  let isUsed: boolean;
+  try {
+    isUsed = await isTiendaAddressUsed(newPlaceId);
+  } catch (error) {
+    return buildAddressCreateErrorResponse({ error: getErrorMessage(error) });
+  }
   return isUsed ? buildAddressInUseResponse() : null;
 }
 export function shouldUpdateAddress({
@@ -136,7 +148,19 @@ export async function getActiveTiendaOrError(tiendaId: string): Promise<
     }
   | { success: false; response: TiendaActionResponse }
 > {
-  const tienda = await getActiveTiendaById(tiendaId);
+  let tienda: TiendaRead | null;
+  try {
+    tienda = await getActiveTiendaById(tiendaId);
+  } catch (error) {
+    return {
+      success: false,
+      response: {
+        success: false,
+        errors: { form: getErrorMessage(error) },
+        message: getErrorMessage(error),
+      },
+    };
+  }
   if (!tienda) {
     return { success: false, response: buildTiendaNotFoundResponse() };
   }
