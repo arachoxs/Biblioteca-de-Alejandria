@@ -1,12 +1,16 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type {
   CategoryCreateInput,
+  CategoryId,
+  CategoryName,
   CategoryRow,
   CategoryWithBookCount,
   CategoryUpdateInput,
+  PaginationParams,
 } from "@/lib/types/category";
 import type { Paginated } from "@/lib/types/common";
 import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
+import { asCategoryId, asCategoryName } from "@/lib/types/category";
 
 function buildCategoryQueryOptions(page: number, pageSize: number) {
   const safePage = Math.max(1, page);
@@ -82,16 +86,11 @@ export async function createCategory(
 
 /**
  * Obtiene categorías activas paginadas para el panel.
- *
- * @param page - Número de página (comienza en 1)
- * @param pageSize - Cantidad de resultados por página (por defecto 10)
- * @returns Listado paginado de categorías activas
  */
 export async function getCategories(
-  page: number = 1,
-  pageSize: number = 10,
-  searchTerm?: string
+  params: PaginationParams,
 ): Promise<Paginated<CategoryWithBookCount>> {
+  const { page, pageSize, searchTerm } = params;
   const adminClient = createAdminClient();
 
   const { safePage, safePageSize, from, to } = buildCategoryQueryOptions(page, pageSize);
@@ -128,8 +127,8 @@ export async function getCategories(
  * Actualiza una categoría activa por su ID.
  */
 export async function updateCategoryById(
-  categoryId: number,
-  input: CategoryUpdateInput
+  categoryId: CategoryId,
+  input: CategoryUpdateInput,
 ): Promise<void> {
   const adminClient = createAdminClient();
 
@@ -157,7 +156,7 @@ export async function updateCategoryById(
  * Realiza eliminación lógica de una categoría activa por su ID.
  */
 export async function softDeleteCategoryById(
-  categoryId: number
+  categoryId: CategoryId,
 ): Promise<void> {
   const adminClient = createAdminClient();
 
@@ -186,7 +185,7 @@ export async function softDeleteCategoryById(
  * Helper para validar existencia antes de editar/eliminar.
  */
 export async function getActiveCategoryById(
-  categoryId: number
+  categoryId: CategoryId,
 ): Promise<CategoryRow | null> {
   const adminClient = createAdminClient();
 
@@ -210,7 +209,7 @@ export async function getActiveCategoryById(
  * Helper para validar duplicados al crear.
  */
 export async function getActiveCategoryByExactName(
-  categoryName: string
+  categoryName: CategoryName,
 ): Promise<CategoryRow | null> {
   const adminClient = createAdminClient();
   const exactNamePattern = escapeLikePattern(categoryName);
@@ -236,8 +235,8 @@ export async function getActiveCategoryByExactName(
  * Helper para validar duplicados al editar. no detecta la categoria propia
  */
 export async function getActiveCategoryByExactNameExcludingId(
-  categoryName: string,
-  excludedCategoryId: number //el id propio
+  categoryName: CategoryName,
+  excludedCategoryId: CategoryId,
 ): Promise<CategoryRow | null> {
   const adminClient = createAdminClient();
   const exactNamePattern = escapeLikePattern(categoryName);
@@ -264,7 +263,7 @@ export async function getActiveCategoryByExactNameExcludingId(
  * Helper para validar regla de eliminación lógica.
  */
 export async function hasActiveBooksForCategory(
-  categoryId: number
+  categoryId: CategoryId,
 ): Promise<boolean> {
   const adminClient = createAdminClient();
 

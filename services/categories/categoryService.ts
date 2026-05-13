@@ -10,9 +10,12 @@ import {
 } from "@/models/categoryModel";
 import type {
   CategoryCreateInput,
+  CategoryId,
+  CategoryName,
   CategoryUpdateInput,
   CategoryListResponse,
   CategoryActionResponse,
+  PaginationParams,
 } from "@/lib/types/category";
 import type { ActionResponse } from "@/lib/types/common";
 import { requireAdminRole } from "@/lib/validations/server-auth";
@@ -21,6 +24,7 @@ import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
 import { sanitizeNullableText, sanitizeText } from "@/lib/validations/rules";
 import { getErrorMessage } from "@/lib/services/errors";
+import { asCategoryId, asCategoryName } from "@/lib/types/category";
 
 function normalizeCategoryName(name: string): string {
   return sanitizeText(name);
@@ -43,6 +47,10 @@ type AuditDescriptionBuilder = (
 type CategoryMutationContext = {
   preMutationValidator: PreMutationValidator | null;
   mutation: MutationFn;
+  messages: {
+    errorMessageOnFailure: string;
+    successMessage: string;
+  };
 };
 
 type CategoryAuditContext = {
@@ -51,11 +59,9 @@ type CategoryAuditContext = {
 };
 
 async function executeAdminCategoryMutation(
-  categoryId: number,
+  categoryId: CategoryId,
   context: CategoryMutationContext,
   audit: CategoryAuditContext,
-  errorMessageOnFailure: string,
-  successMessage: string,
 ): Promise<CategoryActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
@@ -95,7 +101,7 @@ async function executeAdminCategoryMutation(
     });
   }
 
-  return { success: true, message: successMessage };
+  return { success: true, message: context.messages.successMessage };
 }
 
 function isSameName(left: string, right: string): boolean {
@@ -108,7 +114,7 @@ function isSameName(left: string, right: string): boolean {
 async function validateAndBuildNameUpdate(
   newName: string | undefined,
   currentName: string,
-  categoryId: number,
+  categoryId: CategoryId,
   payload: CategoryUpdateInput,
 ): Promise<ActionResponse | null> {
   if (newName === undefined) return null;
@@ -118,7 +124,7 @@ async function validateAndBuildNameUpdate(
   if (isSameName(normalizedName, currentName)) return null;
 
   const duplicatedCategory = await getActiveCategoryByExactNameExcludingId(
-    normalizedName,
+    asCategoryName(normalizedName),
     categoryId,
   );
 
@@ -138,20 +144,17 @@ async function validateAndBuildNameUpdate(
  * Obtiene categorías activas paginadas para el panel administrativo.
  */
 export async function fetchCategories(
-  page: number = 1,
-  pageSize: number = 10,
-  searchTerm?: string,
+  params: PaginationParams,
 ): Promise<CategoryListResponse> {
   try {
     const roleCheck = await requireAdminRole();
     if (!roleCheck.success) return roleCheck;
 
-    const normalizedSearch = searchTerm ? normalizeCategoryName(searchTerm) : "";
-    const data = await getCategoriesModel(
-      page,
-      pageSize,
-      normalizedSearch || undefined,
-    );
+    const data = await getCategoriesModel({
+      page: params.page,
+      pageSize: params.pageSize,
+      searchTerm: params.searchTerm ? normalizeCategoryName(params.searchTerm) : undefined,
+    });
     return {
       success: true,
       data,
@@ -180,7 +183,7 @@ export async function createCategory(
     const normalizedName = normalizeCategoryName(input.nombre ?? "");
 
     const duplicatedCategory =
-      await getActiveCategoryByExactName(normalizedName);
+      await getActiveCategoryByExactName(asCategoryName(normalizedName));
     if (duplicatedCategory) {
       return {
         success: false,
@@ -237,7 +240,7 @@ export async function createCategory(
  * Edita una categoría activa y valida nombre duplicado cuando cambia.
  */
 export async function updateCategory(
-  categoryId: number,
+  categoryId: CategoryId,
   input: CategoryUpdateInput,
 ): Promise<CategoryActionResponse> {
   const hasName = input.nombre !== undefined;
@@ -270,10 +273,15 @@ export async function updateCategory(
 
   return executeAdminCategoryMutation(
     categoryId,
-    { preMutationValidator: null, mutation },
+    {
+      preMutationValidator: null,
+      mutation,
+      messages: {
+        errorMessageOnFailure: "No se pudo actualizar la categoría.",
+        successMessage: "Categoría actualizada exitosamente.",
+      },
+    },
     { buildAuditDescription, auditAction: AccionAdministrador.MODIFICAR },
-    "No se pudo actualizar la categoría.",
-    "Categoría actualizada exitosamente.",
   );
 }
 
@@ -281,7 +289,7 @@ export async function updateCategory(
  * Elimina lógicamente una categoría activa si no tiene libros asociados.
  */
 export async function deleteCategory(
-  categoryId: number,
+  categoryId: CategoryId,
 ): Promise<CategoryActionResponse> {
   const preMutationValidator: PreMutationValidator = async () => {
     const hasLinkedBooks = await hasActiveBooksForCategory(categoryId);
@@ -307,9 +315,14 @@ export async function deleteCategory(
 
   return executeAdminCategoryMutation(
     categoryId,
-    { preMutationValidator, mutation },
+    {
+      preMutationValidator,
+      mutation,
+      messages: {
+        errorMessageOnFailure: "No se pudo eliminar la categoría.",
+        successMessage: "Categoría eliminada exitosamente.",
+      },
+    },
     { buildAuditDescription, auditAction: AccionAdministrador.ELIMINAR },
-    "No se pudo eliminar la categoría.",
-    "Categoría eliminada exitosamente.",
   );
 }

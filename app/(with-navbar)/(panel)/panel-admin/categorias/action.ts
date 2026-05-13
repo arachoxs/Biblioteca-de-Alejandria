@@ -18,20 +18,20 @@ import type {
   CategoryUpdateInput,
   CategoryListResponse,
   CategoryActionResponse,
+  PaginationParams,
 } from "@/lib/types/category";
+import { asCategoryId } from "@/lib/types/category";
 
 /**
  * Server Action: obtiene categorías activas paginadas.
  */
 export async function getCategoriesAction(
-  page: number = 1,
-  pageSize: number = 10,
-  searchTerm?: string,
+  params: PaginationParams,
 ): Promise<CategoryListResponse> {
-  const safePage = toSafePositiveInt(page, 1);
-  const safePageSize = toSafePositiveInt(pageSize, 10);
-  const cleanTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
-  return await fetchCategories(safePage, safePageSize, cleanTerm);
+  const safePage = toSafePositiveInt(params.page, 1);
+  const safePageSize = toSafePositiveInt(params.pageSize, 10);
+  const cleanTerm = params.searchTerm ? sanitizeText(params.searchTerm) : undefined;
+  return await fetchCategories({ page: safePage, pageSize: safePageSize, searchTerm: cleanTerm });
 }
 
 /**
@@ -99,7 +99,7 @@ export async function updateCategoryAction(
     };
   }
 
-  return await updateCategory(categoryId, sanitized);
+  return await updateCategory(asCategoryId(categoryId), sanitized);
 }
 
 /**
@@ -115,5 +115,5 @@ export async function deleteCategoryAction(
     };
   }
 
-  return await deleteCategory(categoryId);
+  return await deleteCategory(asCategoryId(categoryId));
 }

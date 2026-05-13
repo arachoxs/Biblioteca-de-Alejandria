@@ -71,7 +71,7 @@ export async function getCategoryOptionsAction(
   searchTerm?: string,
 ): Promise<ActionResponse & { data?: { value: string; label: string }[] }> {
   const cleanTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
-  const result = await fetchCategories(1, 100, cleanTerm || undefined);
+  const result = await fetchCategories({ page: 1, pageSize: 100, searchTerm: cleanTerm || undefined });
 
   if (!result.success || !result.data) {
     return { success: false, message: result.message || "Error cargando categorías." };
