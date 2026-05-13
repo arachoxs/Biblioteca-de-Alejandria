@@ -299,26 +299,67 @@ export async function getAvailableCopiasByLibroAndStore(
   );
 }
 
+type CopiasFilters = {
+  searchTerm?: string;
+  id_tienda?: string;
+  id_libro?: string;
+};
+
+type PaginationBounds = {
+  safePage: number;
+  safePageSize: number;
+  from: number;
+  to: number;
+};
+
+function buildPaginationBounds(page: number, pageSize: number): PaginationBounds {
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+  return { safePage, safePageSize, from, to };
+}
+
+function applyCopiasFilters(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  filters: CopiasFilters,
+) {
+  if (filters.id_tienda) query = query.eq("id_tienda", filters.id_tienda);
+  if (filters.id_libro) query = query.eq("id_libro", filters.id_libro);
+  if (filters.searchTerm?.trim()) {
+    query = query.ilike("codigo_seq", `%${filters.searchTerm.trim()}%`);
+  }
+  return query;
+}
+
+function applyInventarioFilters(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  searchTerm?: string,
+  id_tienda?: string,
+) {
+  if (id_tienda) query = query.eq("tienda_id", id_tienda);
+  if (searchTerm?.trim()) {
+    query = query.or(buildOrILikeFilter(["titulo", "autor_libro", "isbn"], searchTerm));
+  }
+  return query;
+}
+
 export async function getInventarioRows(
   searchTerm?: string,
   id_tienda?: string,
 ): Promise<VistaInventarioRow[]> {
   const adminClient = createAdminClient();
 
-  let query = adminClient
-    .from("vista_inventario")
-    .select("*")
-    .order("titulo", { ascending: true, nullsFirst: false });
-
-  if (id_tienda) {
-    query = query.eq("tienda_id", id_tienda);
-  }
-
-  if (searchTerm && searchTerm.trim() !== "") {
-    query = query.or(
-      buildOrILikeFilter(["titulo", "autor_libro", "isbn"], searchTerm),
-    );
-  }
+  const query = applyInventarioFilters(
+    adminClient
+      .from("vista_inventario")
+      .select("*")
+      .order("titulo", { ascending: true, nullsFirst: false }),
+    searchTerm,
+    id_tienda,
+  );
 
   const { data, error } = await query;
 
@@ -339,29 +380,18 @@ export async function getCopias(
 ): Promise<Paginated<CopiaRow>> {
   const adminClient = createAdminClient();
 
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
+  const { safePage, safePageSize, from, to } = buildPaginationBounds(page, pageSize);
 
-  let query = adminClient
-    .from("copia")
-    .select("*", { count: "exact" })
-    .is("deleted_at", null)
-    .range(from, to)
-    .order("id", { ascending: false });
-
-  if (id_tienda) {
-    query = query.eq("id_tienda", id_tienda);
-  }
-
-  if (id_libro) {
-    query = query.eq("id_libro", id_libro);
-  }
-
-  if (searchTerm && searchTerm.trim() !== "") {
-    query = query.ilike("codigo_seq", `%${searchTerm.trim()}%`);
-  }
+  const filters: CopiasFilters = { searchTerm, id_tienda, id_libro };
+  const query = applyCopiasFilters(
+    adminClient
+      .from("copia")
+      .select("*", { count: "exact" })
+      .is("deleted_at", null)
+      .range(from, to)
+      .order("id", { ascending: false }),
+    filters,
+  );
 
   const { data, error, count } = await query;
 

@@ -40,12 +40,20 @@ type AuditDescriptionBuilder = (
   category: NonNullable<Awaited<ReturnType<typeof getActiveCategoryById>>>
 ) => string;
 
+type CategoryMutationContext = {
+  preMutationValidator: PreMutationValidator | null;
+  mutation: MutationFn;
+};
+
+type CategoryAuditContext = {
+  buildAuditDescription: AuditDescriptionBuilder;
+  auditAction: AccionAdministrador;
+};
+
 async function executeAdminCategoryMutation(
   categoryId: number,
-  preMutationValidator: PreMutationValidator | null,
-  mutation: MutationFn,
-  buildAuditDescription: AuditDescriptionBuilder,
-  auditAction: AccionAdministrador,
+  context: CategoryMutationContext,
+  audit: CategoryAuditContext,
   errorMessageOnFailure: string,
   successMessage: string,
 ): Promise<CategoryActionResponse> {
@@ -61,14 +69,14 @@ async function executeAdminCategoryMutation(
     };
   }
 
-  if (preMutationValidator) {
-    const validationResult = await preMutationValidator();
+  if (context.preMutationValidator) {
+    const validationResult = await context.preMutationValidator();
     if (validationResult !== null && !validationResult.success) {
       return validationResult;
     }
   }
 
-  const mutationResult = await mutation(currentCategory);
+  const mutationResult = await context.mutation(currentCategory);
   if (mutationResult !== undefined) {
     return mutationResult as ActionResponse;
   }
@@ -77,8 +85,8 @@ async function executeAdminCategoryMutation(
   if (actor) {
     await logAdminAction({
       actorId: actor.id,
-      action: auditAction,
-      description: buildAuditDescription(currentCategory),
+      action: audit.auditAction,
+      description: audit.buildAuditDescription(currentCategory),
       entity: {
         id: String(categoryId),
         entity_type: "categoría",
@@ -262,10 +270,8 @@ export async function updateCategory(
 
   return executeAdminCategoryMutation(
     categoryId,
-    null,
-    mutation,
-    buildAuditDescription,
-    AccionAdministrador.MODIFICAR,
+    { preMutationValidator: null, mutation },
+    { buildAuditDescription, auditAction: AccionAdministrador.MODIFICAR },
     "No se pudo actualizar la categoría.",
     "Categoría actualizada exitosamente.",
   );
@@ -301,10 +307,8 @@ export async function deleteCategory(
 
   return executeAdminCategoryMutation(
     categoryId,
-    preMutationValidator,
-    mutation,
-    buildAuditDescription,
-    AccionAdministrador.ELIMINAR,
+    { preMutationValidator, mutation },
+    { buildAuditDescription, auditAction: AccionAdministrador.ELIMINAR },
     "No se pudo eliminar la categoría.",
     "Categoría eliminada exitosamente.",
   );
