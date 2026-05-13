@@ -8,6 +8,37 @@ import type {
 import type { Paginated } from "@/lib/types/common";
 import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
 
+function buildCategoryQueryOptions(page: number, pageSize: number) {
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.max(1, pageSize);
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+  return { safePage, safePageSize, from, to };
+}
+
+function applyCategorySearchFilter(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  searchTerm?: string
+): typeof query {
+  if (!searchTerm || searchTerm.trim() === "") return query;
+  const normalizedSearch = formatILIKE(searchTerm);
+  return query.ilike("nombre", normalizedSearch);
+}
+
+function buildCategoryUpdatePayload(
+  input: CategoryUpdateInput
+): Partial<Pick<CategoryRow, "nombre" | "descripcion">> {
+  const payload: Partial<Pick<CategoryRow, "nombre" | "descripcion">> = {};
+  if (input.nombre !== undefined) payload.nombre = input.nombre;
+  if (input.descripcion !== undefined) payload.descripcion = input.descripcion;
+  return payload;
+}
+
+function hasActiveBooks(data: { id: unknown }[] | null): boolean {
+  return (data?.length ?? 0) > 0;
+}
+
 function normalizeCategoryWithBookCount(
   row: CategoryRow & Record<string, unknown>
 ): CategoryWithBookCount {
@@ -63,30 +94,25 @@ export async function getCategories(
 ): Promise<Paginated<CategoryWithBookCount>> {
   const adminClient = createAdminClient();
 
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.max(1, pageSize);
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
+  const { safePage, safePageSize, from, to } = buildCategoryQueryOptions(page, pageSize);
 
-  let query = adminClient
-    .from("categoria")
-    .select("*, libro(count)", { count: "exact" })
-    .is("deleted_at", null)
-    .is("libro.deleted_at", null)
-    .range(from, to)
-    .order("id", { ascending: false });
-
-  if (searchTerm && searchTerm.trim() !== "") {
-    const normalizedSearch = formatILIKE(searchTerm);
-    query = query.ilike("nombre", normalizedSearch);
-  }
+  const query = applyCategorySearchFilter(
+    adminClient
+      .from("categoria")
+      .select("*, libro(count)", { count: "exact" })
+      .is("deleted_at", null)
+      .is("libro.deleted_at", null)
+      .range(from, to)
+      .order("id", { ascending: false }),
+    searchTerm
+  );
 
   const { data, error, count } = await query;
 
   if (error) throw error;
 
-  const normalized = (data ?? []).map((row) =>
-    normalizeCategoryWithBookCount(row as CategoryRow & Record<string, unknown>)
+  const normalized = (data ?? []).map((row: CategoryRow & Record<string, unknown>) =>
+    normalizeCategoryWithBookCount(row)
   );
 
   return {
@@ -107,10 +133,7 @@ export async function updateCategoryById(
 ): Promise<void> {
   const adminClient = createAdminClient();
 
-  const payload: CategoryUpdateInput = {
-    ...(input.nombre !== undefined ? { nombre: input.nombre } : {}),
-    ...(input.descripcion !== undefined ? { descripcion: input.descripcion } : {}),
-  };
+  const payload = buildCategoryUpdatePayload(input);
 
   const { data, error } = await adminClient
     .from("categoria")
@@ -257,5 +280,5 @@ export async function hasActiveBooksForCategory(
     throw error;
   }
 
-  return (data?.length ?? 0) > 0;
+  return hasActiveBooks(data);
 }

@@ -8,6 +8,12 @@ import type {
 } from "@/lib/types/historico";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 
+function normalizePagination(page: number, pageSize: number) {
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  return { safePage, safePageSize };
+}
+
 // ─── Escritura ─────────────────────────────────────────────────────
 
 export async function insertHistorico(
@@ -73,8 +79,7 @@ export async function getHistoricoByLibro(
 ): Promise<Paginated<HistoricoRow>> {
   const adminClient = createAdminClient();
 
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  const { safePage, safePageSize } = normalizePagination(page, pageSize);
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
@@ -131,6 +136,16 @@ type LibroHistoricoSyncRow = {
     | null;
 };
 
+function countAvailableCopies(
+  copias: Pick<CopiaRow, "estado" | "deleted_at">[] | null,
+): number {
+  return (
+    copias?.filter(
+      (copy) => copy.deleted_at === null && copy.estado === "disponible",
+    ).length ?? 0
+  );
+}
+
 export async function getHistoricoSyncSnapshotsByLibros(
   libroIds: string[],
 ): Promise<HistoricoSyncBookSnapshot[]> {
@@ -164,10 +179,7 @@ export async function getHistoricoSyncSnapshotsByLibros(
 
   return rows.map((row) => ({
     id_libro: row.id,
-    available_count:
-      row.copia?.filter(
-        (copy) => copy.deleted_at === null && copy.estado === "disponible",
-      ).length ?? 0,
+    available_count: countAvailableCopies(row.copia),
     latest_estado: row.historico?.[0]?.estado ?? null,
   }));
 }

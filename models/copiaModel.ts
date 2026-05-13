@@ -153,16 +153,15 @@ async function handlePartialTransferRollback(
   transferredIds: string[],
   id_tienda_origen: string,
 ): Promise<never> {
-  if (transferredIds.length > 0) {
-    rollbackTransferByQuantity(transferredIds, id_tienda_origen).catch(
-      (rollbackError) => {
-        console.error(
-          "[copiaModel] Error durante el rollback de traslado por cantidad después de una actualización parcial:",
-          rollbackError,
-        );
-      },
+  if (transferredIds.length === 0) {
+    throw new InsufficientStockError(
+      "No hay suficientes copias disponibles en la tienda origen para completar el traslado.",
+      "INSUFFICIENT_STOCK",
+      transferredIds,
     );
   }
+
+  await rollbackTransferByQuantity(transferredIds, id_tienda_origen);
 
   throw new InsufficientStockError(
     "No hay suficientes copias disponibles en la tienda origen para completar el traslado.",

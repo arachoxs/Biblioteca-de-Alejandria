@@ -48,6 +48,32 @@ function normalizeAuthorPreferenceWithDetails(
   };
 }
 
+async function findAuthorPreferenceId(
+  id_usuario: string,
+  id_autor: number
+): Promise<number | null> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("preferencia_autor")
+    .select("id")
+    .eq("id_usuario", id_usuario)
+    .eq("id_autor", id_autor)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "[authorPreferenceModel] Error al verificar preferencia:",
+      error
+    );
+    throw error;
+  }
+
+  return data?.id ?? null;
+}
+
 export async function insertAuthorPreference(
   data: InsertAuthorPreferencePayload
 ): Promise<number> {
@@ -82,30 +108,13 @@ async function ensureAuthorPreferenceExists(
   id_usuario: string,
   id_autor: number,
 ): Promise<number> {
-  const adminClient = createAdminClient();
+  const id = await findAuthorPreferenceId(id_usuario, id_autor);
 
-  const { data, error } = await adminClient
-    .from("preferencia_autor")
-    .select("id")
-    .eq("id_usuario", id_usuario)
-    .eq("id_autor", id_autor)
-    .is("deleted_at", null)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error(
-      "[authorPreferenceModel] Error al verificar preferencia:",
-      error,
-    );
-    throw error;
-  }
-
-  if (!data) {
+  if (id === null) {
     throw new Error("La preferencia no existe o ya fue eliminada.");
   }
 
-  return data.id;
+  return id;
 }
 
 export async function deleteAuthorPreference(
@@ -167,24 +176,6 @@ export async function checkAuthorPreferenceExists(
   id_usuario: string,
   id_autor: number
 ): Promise<boolean> {
-  const adminClient = createAdminClient();
-
-  const { data, error } = await adminClient
-    .from("preferencia_autor")
-    .select("id")
-    .eq("id_usuario", id_usuario)
-    .eq("id_autor", id_autor)
-    .is("deleted_at", null)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error(
-      "[authorPreferenceModel] Error al verificar preferencia de autor:",
-      error
-    );
-    throw error;
-  }
-
-  return !!data;
+  const id = await findAuthorPreferenceId(id_usuario, id_autor);
+  return id !== null;
 }
