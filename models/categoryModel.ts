@@ -281,3 +281,26 @@ export async function hasActiveBooksForCategory(
 
   return hasActiveBooks(data);
 }
+
+/**
+ * Verifica si existe una categoría activa por su ID.
+ * Helper para validaciones en services/rules.
+ */
+export async function checkCategoryExistsById(id: number): Promise<boolean> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("categoria")
+    .select("id")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[categoryModel] Error al verificar existencia de categoría por ID:", error);
+    throw error;
+  }
+
+  return !!data;
+}

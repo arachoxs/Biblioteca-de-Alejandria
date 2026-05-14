@@ -74,10 +74,59 @@ async function findAuthorPreferenceId(
   return data?.id ?? null;
 }
 
-export async function insertAuthorPreference(
+async function findAuthorPreferenceIdIncludingDeleted(
+  id_usuario: string,
+  id_autor: number
+): Promise<number | null> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("preferencia_autor")
+    .select("id")
+    .eq("id_usuario", id_usuario)
+    .eq("id_autor", id_autor)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "[authorPreferenceModel] Error al verificar preferencia (incluyendo eliminadas):",
+      error
+    );
+    throw error;
+  }
+
+  return data?.id ?? null;
+}
+
+export async function insertOrRestoreAuthorPreference(
   data: InsertAuthorPreferencePayload
 ): Promise<number> {
   const adminClient = createAdminClient();
+
+  const existingId = await findAuthorPreferenceIdIncludingDeleted(
+    data.id_usuario,
+    data.id_autor
+  );
+
+  if (existingId !== null) {
+    const { data: updatedRows, error } = await adminClient
+      .from("preferencia_autor")
+      .update({ deleted_at: null })
+      .eq("id", existingId)
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error(
+        "[authorPreferenceModel] Error al restaurar preferencia de autor:",
+        error
+      );
+      throw error;
+    }
+
+    return updatedRows!.id;
+  }
 
   const { data: resultData, error } = await adminClient
     .from("preferencia_autor")
