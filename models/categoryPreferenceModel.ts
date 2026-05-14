@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { findPreferenceId } from "@/lib/preferencias/preferenceQueryBuilder";
 import type {
   InsertCategoryPreferencePayload,
   CategoryPreferenceCategorySummary,
@@ -43,92 +44,47 @@ async function findCategoryPreferenceId(
   id_usuario: string,
   id_categoria: number
 ): Promise<number | null> {
-  const adminClient = createAdminClient();
-
-  const { data, error } = await adminClient
-    .from("preferencia_categoria")
-    .select("id")
-    .eq("id_usuario", id_usuario)
-    .eq("id_categoria", id_categoria)
-    .is("deleted_at", null)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error(
-      "[categoryPreferenceModel] Error al verificar preferencia:",
-      error
-    );
-    throw error;
-  }
-
-  return data?.id ?? null;
+  return findPreferenceId("categoria", id_usuario, id_categoria, "active");
 }
 
 async function findCategoryPreferenceIdIncludingDeleted(
   id_usuario: string,
   id_categoria: number
 ): Promise<number | null> {
-  const adminClient = createAdminClient();
+  return findPreferenceId("categoria", id_usuario, id_categoria, "all");
+}
 
-  const { data, error } = await adminClient
+async function restoreCategoryPreference(existingId: number): Promise<number> {
+  const adminClient = createAdminClient();
+  const { data: updatedRows, error } = await adminClient
     .from("preferencia_categoria")
-    .select("id")
-    .eq("id_usuario", id_usuario)
-    .eq("id_categoria", id_categoria)
-    .limit(1)
-    .maybeSingle();
+    .update({ deleted_at: null })
+    .eq("id", existingId)
+    .select("id");
 
   if (error) {
     console.error(
-      "[categoryPreferenceModel] Error al verificar preferencia (incluyendo eliminados):",
+      "[categoryPreferenceModel] Error al restaurar preferencia de categoría:",
       error
     );
     throw error;
   }
 
-  return data?.id ?? null;
-}
-
-export async function insertOrRestoreCategoryPreference(
-  data: InsertCategoryPreferencePayload
-): Promise<number> {
-  const adminClient = createAdminClient();
-
-  const existingId = await findCategoryPreferenceIdIncludingDeleted(
-    data.id_usuario,
-    data.id_categoria
-  );
-
-  if (existingId !== null) {
-    const { data: updatedRows, error } = await adminClient
-      .from("preferencia_categoria")
-      .update({ deleted_at: null })
-      .eq("id", existingId)
-      .is("deleted_at", null)
-      .select("id");
-
-    if (error) {
-      console.error(
-        "[categoryPreferenceModel] Error al restaurar preferencia de categoría:",
-        error
-      );
-      throw error;
-    }
-
-    if (!updatedRows || updatedRows.length === 0) {
-      throw new Error("La preferencia no existe o ya fue eliminada.");
-    }
-
-    return existingId;
+  if (!updatedRows || updatedRows.length === 0) {
+    throw new Error("La preferencia no existe o ya fue eliminada.");
   }
 
+  return existingId;
+}
+
+async function insertCategoryPreference(
+  id_usuario: string,
+  id_categoria: number
+): Promise<number> {
+  const adminClient = createAdminClient();
   const { data: insertData, error } = await adminClient
     .from("preferencia_categoria")
-    .insert({
-      id_usuario: data.id_usuario,
-      id_categoria: data.id_categoria,
-    })
+    .insert({ id_usuario, id_categoria })
     .select("id")
     .single();
 
@@ -137,15 +93,28 @@ export async function insertOrRestoreCategoryPreference(
       "[categoryPreferenceModel] Error al insertar preferencia de categoría:",
       error
     );
-
     if (error.code === "23505") {
       throw new Error("Esta categoría ya está en tus preferencias.");
     }
-
     throw error;
   }
 
   return insertData!.id;
+}
+
+export async function insertOrRestoreCategoryPreference(
+  data: InsertCategoryPreferencePayload
+): Promise<number> {
+  const existingId = await findCategoryPreferenceIdIncludingDeleted(
+    data.id_usuario,
+    data.id_categoria
+  );
+
+  if (existingId !== null) {
+    return restoreCategoryPreference(existingId);
+  }
+
+  return insertCategoryPreference(data.id_usuario, data.id_categoria);
 }
 
 async function ensureCategoryPreferenceExists(

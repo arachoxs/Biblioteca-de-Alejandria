@@ -1,5 +1,4 @@
-import { requireClientRole } from "@/lib/validations/server-auth";
-import { getCurrentUser } from "@/models/authModel";
+import { getAuthenticatedUser } from "@/lib/preferencias/preferenciaServiceUtils";
 import { getErrorMessage } from "@/lib/services/errors";
 import {
   insertOrRestoreAuthorPreference,
@@ -29,17 +28,15 @@ import type {
   CategoryPreferenceDataResponse,
   CategoryPreferenceWithDetails,
 } from "@/lib/types/categoryPreference";
+import type { User } from "@supabase/supabase-js";
 
 export async function addAuthorPreference(
   data: AddAuthorPreferenceInput
 ): Promise<AuthorPreferenceActionResponse> {
-  const roleCheck = await requireClientRole();
-  if (!roleCheck.success) return roleCheck;
+  const auth = await getAuthenticatedUser();
+  if (!auth.success) return auth;
 
-  const user = await getCurrentUser();
-  if (!user) {
-    return { success: false, errors: { form: "No hay sesión activa." }, message: "No hay sesión activa." };
-  }
+  const user = (auth as { success: true; user: User }).user;
 
   const precheckDuplicate = await checkAuthorPreferenceNotDuplicate(user.id, data.id_autor);
   if (precheckDuplicate) return precheckDuplicate;
@@ -60,13 +57,10 @@ export async function addAuthorPreference(
 export async function addCategoryPreference(
   data: AddCategoryPreferenceInput
 ): Promise<CategoryPreferenceActionResponse> {
-  const roleCheck = await requireClientRole();
-  if (!roleCheck.success) return roleCheck;
+  const auth = await getAuthenticatedUser();
+  if (!auth.success) return auth;
 
-  const user = await getCurrentUser();
-  if (!user) {
-    return { success: false, errors: { form: "No hay sesión activa." }, message: "No hay sesión activa." };
-  }
+  const user = (auth as { success: true; user: User }).user;
 
   const precheckDuplicate = await checkCategoryPreferenceNotDuplicate(user.id, data.id_categoria);
   if (precheckDuplicate) return precheckDuplicate;
@@ -87,13 +81,10 @@ export async function addCategoryPreference(
 export async function removeAuthorPreference(
   id_autor: number
 ): Promise<AuthorPreferenceActionResponse> {
-  const roleCheck = await requireClientRole();
-  if (!roleCheck.success) return roleCheck;
+  const auth = await getAuthenticatedUser();
+  if (!auth.success) return auth;
 
-  const user = await getCurrentUser();
-  if (!user) {
-    return { success: false, errors: { form: "No hay sesión activa." }, message: "No hay sesión activa." };
-  }
+  const user = (auth as { success: true; user: User }).user;
 
   try {
     await deleteAuthorPreference(user.id, id_autor);
@@ -107,13 +98,10 @@ export async function removeAuthorPreference(
 export async function removeCategoryPreference(
   id_categoria: number
 ): Promise<CategoryPreferenceActionResponse> {
-  const roleCheck = await requireClientRole();
-  if (!roleCheck.success) return roleCheck;
+  const auth = await getAuthenticatedUser();
+  if (!auth.success) return auth;
 
-  const user = await getCurrentUser();
-  if (!user) {
-    return { success: false, errors: { form: "No hay sesión activa." }, message: "No hay sesión activa." };
-  }
+  const user = (auth as { success: true; user: User }).user;
 
   try {
     await deleteCategoryPreference(user.id, id_categoria);
@@ -125,13 +113,10 @@ export async function removeCategoryPreference(
 }
 
 export async function getMyAuthorPreferences(): Promise<AuthorPreferenceDataResponse> {
-  const roleCheck = await requireClientRole();
-  if (!roleCheck.success) return { success: false, errors: { form: roleCheck.message ?? "No tienes permisos." }, message: roleCheck.message };
+  const auth = await getAuthenticatedUser();
+  if (!auth.success) return { success: false, errors: { form: auth.message ?? "No tienes permisos." }, message: auth.message };
 
-  const user = await getCurrentUser();
-  if (!user) {
-    return { success: false, errors: { form: "No hay sesión activa." } };
-  }
+  const user = (auth as { success: true; user: User }).user;
 
   let preferences: AuthorPreferenceWithDetails[];
   try {
@@ -144,13 +129,10 @@ export async function getMyAuthorPreferences(): Promise<AuthorPreferenceDataResp
 }
 
 export async function getMyCategoryPreferences(): Promise<CategoryPreferenceDataResponse> {
-  const roleCheck = await requireClientRole();
-  if (!roleCheck.success) return { success: false, errors: { form: roleCheck.message ?? "No tienes permisos." }, message: roleCheck.message };
+  const auth = await getAuthenticatedUser();
+  if (!auth.success) return { success: false, errors: { form: auth.message ?? "No tienes permisos." }, message: auth.message };
 
-  const user = await getCurrentUser();
-  if (!user) {
-    return { success: false, errors: { form: "No hay sesión activa." } };
-  }
+  const user = (auth as { success: true; user: User }).user;
 
   let preferences: CategoryPreferenceWithDetails[];
   try {
