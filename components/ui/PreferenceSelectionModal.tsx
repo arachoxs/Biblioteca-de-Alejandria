@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
-import { TagChip } from "@/components/ui/TagChip";
+import PreferenceItemsList from "@/components/ui/PreferenceItemsList";
 import Modal from "@/components/ui/Modal";
 
 export interface PreferenceSelectionModalProps {
@@ -94,29 +94,14 @@ export default function PreferenceSelectionModal({
             </div>
           )}
           <div className="flex flex-wrap gap-2 max-h-72 overflow-y-auto py-1">
-            {isLoading ? (
-              <div className="p-4 flex items-center justify-center w-full">
-                <div className="w-5 h-5 border-2 border-brand-accent/30 border-t-brand-primary rounded-full animate-spin" />
-                <span className="ml-2 text-sm text-brand-secondary">Cargando...</span>
-              </div>
-            ) : items.length === 0 ? (
-              <p className="p-4 text-center text-brand-secondary text-sm w-full">
-                No hay elementos disponibles
-              </p>
-            ) : filteredItems.length === 0 ? (
-              <p className="p-4 text-center text-brand-secondary text-sm w-full">
-                No se encontraron resultados
-              </p>
-            ) : (
-              filteredItems.map((item) => (
-                <TagChip
-                  key={`${title}-${item.id}`}
-                  label={item.nombre}
-                  isSelected={selectedIds.includes(item.id)}
-                  onClick={() => handleToggle(item.id)}
-                />
-              ))
-            )}
+            <PreferenceItemsList
+              isLoading={isLoading}
+              items={items}
+              filteredItems={filteredItems}
+              selectedIds={selectedIds}
+              titleKey={title}
+              onToggle={handleToggle}
+            />
           </div>
         </div>
 

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import PreferenceSelectionModal from "@/components/ui/PreferenceSelectionModal";
+import PreferenciasCard from "@/components/profile/PreferenciasCard";
+import PreferenceTabSwitcher from "@/components/profile/PreferenceTabSwitcher";
 import Alert from "@/components/ui/Alert";
 import { 
   getPreferenceDataAction, 
@@ -12,6 +14,14 @@ import {
 interface PreferenceItem {
   id: number;
   nombre: string;
+}
+
+function extractSaveError(
+  authorResult: { success: boolean; errors?: Record<string, string>; message?: string },
+  categoryResult: { success: boolean; errors?: Record<string, string>; message?: string }
+): string {
+  const failed = !authorResult.success ? authorResult : categoryResult;
+  return failed.errors?.form ?? failed.message ?? "Error al guardar";
 }
 
 export default function PreferenciasLiterariasSection() {
@@ -73,10 +83,7 @@ export default function PreferenciasLiterariasSection() {
         showNotification("success", "Preferencias guardadas correctamente");
         setModalOpen(false);
       } else {
-        const errorMsg = !authorResult.success 
-          ? authorResult.errors?.form ?? authorResult.message
-          : categoryResult.errors?.form ?? categoryResult.message;
-        showNotification("error", errorMsg ?? "Error al guardar");
+        showNotification("error", extractSaveError(authorResult, categoryResult));
       }
     } catch {
       showNotification("error", "Error inesperado al guardar");
@@ -99,36 +106,11 @@ export default function PreferenciasLiterariasSection() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setModalOpen(true)}
-        className="text-left bg-white border border-brand-accent/25 rounded-lg p-6 shadow-[0_1px_3px_rgba(10,9,8,0.04)] transition-all hover:border-brand-primary hover:shadow-lg hover:-translate-y-0.5 cursor-pointer group w-full"
-      >
-        <div className="w-12 h-12 rounded-full bg-brand-accent/12 grid place-items-center mb-3">
-          <svg className="w-6 h-6 text-brand-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-          </svg>
-        </div>
-        <h3 className="font-display text-lg font-semibold text-brand-primary mb-1.5 tracking-wide group-hover:underline underline-offset-2">
-          Preferencias Literarias
-        </h3>
-        <p className="text-sm text-brand-secondary font-light leading-relaxed">
-          Administra tus géneros favoritos y recibe recomendaciones personalizadas de libros.
-        </p>
-        <div className="mt-3 flex gap-2">
-          {selectedAuthorIds.length > 0 && (
-            <span className="text-xs bg-brand-accent/15 text-brand-secondary px-2 py-0.5 rounded-full">
-              {selectedAuthorIds.length} autores
-            </span>
-          )}
-          {selectedCategoryIds.length > 0 && (
-            <span className="text-xs bg-brand-accent/15 text-brand-secondary px-2 py-0.5 rounded-full">
-              {selectedCategoryIds.length} categorías
-            </span>
-          )}
-        </div>
-      </button>
+      <PreferenciasCard
+        authorCount={selectedAuthorIds.length}
+        categoryCount={selectedCategoryIds.length}
+        onOpen={() => setModalOpen(true)}
+      />
 
       <PreferenceSelectionModal
         isOpen={modalOpen}
@@ -143,30 +125,10 @@ export default function PreferenciasLiterariasSection() {
         isSaving={isSaving}
         isLoading={isLoading}
         tabSwitcher={
-          <div className="flex gap-1 mb-3">
-            <button
-              type="button"
-              onClick={() => setActiveTab("autores")}
-              className={`px-4 py-1.5 text-sm rounded-full transition-all cursor-pointer ${
-                activeTab === "autores"
-                  ? "bg-brand-primary text-brand-bg font-medium"
-                  : "bg-brand-accent/10 text-brand-secondary hover:bg-brand-accent/20"
-              }`}
-            >
-              Autores
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("categorias")}
-              className={`px-4 py-1.5 text-sm rounded-full transition-all cursor-pointer ${
-                activeTab === "categorias"
-                  ? "bg-brand-primary text-brand-bg font-medium"
-                  : "bg-brand-accent/10 text-brand-secondary hover:bg-brand-accent/20"
-              }`}
-            >
-              Categorías
-            </button>
-          </div>
+          <PreferenceTabSwitcher
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
         }
       />
 
