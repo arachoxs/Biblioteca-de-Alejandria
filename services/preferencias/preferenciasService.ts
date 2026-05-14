@@ -1,5 +1,6 @@
 import { requireClientRole } from "@/lib/validations/server-auth";
 import { getCurrentUser } from "@/models/authModel";
+import { getErrorMessage } from "@/lib/services/errors";
 import {
   insertAuthorPreference,
   deleteAuthorPreference,
@@ -13,6 +14,7 @@ import type {
   AddAuthorPreferenceInput,
   AuthorPreferenceActionResponse,
   AuthorPreferenceDataResponse,
+  AuthorPreferenceWithDetails,
 } from "@/lib/types/authorPreference";
 
 export async function addAuthorPreference(
@@ -32,13 +34,14 @@ export async function addAuthorPreference(
   const precheckAuthor = await checkPreferenceAuthorExists(data.id_autor);
   if (precheckAuthor) return precheckAuthor;
 
-  const result = await insertAuthorPreference({ id_usuario: user.id, id_autor: data.id_autor });
-
-  if (!result.success) {
-    return { success: false, errors: { form: result.error ?? "Error de base de datos." }, message: result.error };
+  let insertedId: number;
+  try {
+    insertedId = await insertAuthorPreference({ id_usuario: user.id, id_autor: data.id_autor });
+  } catch (error) {
+    return { success: false, errors: { form: getErrorMessage(error) }, message: getErrorMessage(error) };
   }
 
-  return { success: true, id: result.id };
+  return { success: true, id: insertedId };
 }
 
 export async function removeAuthorPreference(
@@ -52,10 +55,10 @@ export async function removeAuthorPreference(
     return { success: false, errors: { form: "No hay sesión activa." }, message: "No hay sesión activa." };
   }
 
-  const result = await deleteAuthorPreference(user.id, id_autor);
-
-  if (!result.success) {
-    return { success: false, errors: { form: result.error ?? "Error de base de datos." }, message: result.error };
+  try {
+    await deleteAuthorPreference(user.id, id_autor);
+  } catch (error) {
+    return { success: false, errors: { form: getErrorMessage(error) }, message: getErrorMessage(error) };
   }
 
   return { success: true };
@@ -70,9 +73,12 @@ export async function getMyAuthorPreferences(): Promise<AuthorPreferenceDataResp
     return { success: false, errors: { form: "No hay sesión activa." } };
   }
 
-  const result = await getAuthorPreferencesByUser(user.id);
-  if (!result.success) {
-    return { success: false, errors: { form: result.error ?? "Error desconocido" }, message: result.error };
+  let preferences: AuthorPreferenceWithDetails[];
+  try {
+    preferences = await getAuthorPreferencesByUser(user.id);
+  } catch (error) {
+    return { success: false, errors: { form: getErrorMessage(error) }, message: getErrorMessage(error) };
   }
-  return { success: true, data: result.data };
+
+  return { success: true, data: preferences };
 }

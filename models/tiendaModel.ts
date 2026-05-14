@@ -1,8 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type {
-  ModelResult,
   Paginated,
-  DataResponse,
   DataResponseArray,
 } from "@/lib/types/common";
 import type { Database } from "@/lib/types/supabase";
@@ -16,10 +14,6 @@ import type {
 } from "@/lib/types/tienda";
 import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
-
-interface ModelResultWithStringId extends ModelResult {
-  id?: string;
-}
 
 type TiendaListRow = TiendaRow & {
   direccion: Pick<
@@ -55,7 +49,7 @@ function normalizeTiendaWithDireccion(row: TiendaListRow): TiendaWithDireccion {
  */
 export async function createTienda(
   input: InsertTiendaPayload,
-): Promise<ModelResultWithStringId> {
+): Promise<string> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -71,10 +65,10 @@ export async function createTienda(
 
   if (error) {
     console.error("[tiendaModel] Error al crear tienda:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return { success: true, id: data.id };
+  return data.id;
 }
 
 /**
@@ -180,32 +174,33 @@ export async function getDefaultTienda(): Promise<TiendaGlobal | null> {
 }
 
 /**
+ * Construye el payload para actualizar una tienda.
+ */
+function buildTiendaUpdatePayload(
+  input: UpdateTiendaPayload,
+): Database["public"]["Tables"]["tienda"]["Update"] {
+  const payload: Partial<Database["public"]["Tables"]["tienda"]["Update"]> = {};
+  if (input.nombre !== undefined) payload.nombre = input.nombre;
+  if (input.horario !== undefined) {
+    payload.horario = input.horario as unknown as Database["public"]["Tables"]["tienda"]["Update"]["horario"];
+  }
+  if (input.id_direccion !== undefined) payload.id_direccion = input.id_direccion;
+  return payload;
+}
+
+/**
  * Actualiza una tienda activa por su ID.
  */
 export async function updateTiendaById(
   tiendaId: string,
   input: UpdateTiendaPayload,
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
-  const payload: Database["public"]["Tables"]["tienda"]["Update"] = {
-    ...(input.nombre !== undefined ? { nombre: input.nombre } : {}),
-    ...(input.horario !== undefined
-      ? {
-          horario:
-            input.horario as unknown as Database["public"]["Tables"]["tienda"]["Update"]["horario"],
-        }
-      : {}),
-    ...(input.id_direccion !== undefined
-      ? { id_direccion: input.id_direccion }
-      : {}),
-  };
+  const payload = buildTiendaUpdatePayload(input);
 
   if (Object.keys(payload).length === 0) {
-    return {
-      success: false,
-      error: "Debes enviar al menos un campo para actualizar.",
-    };
+    throw new Error("Debes enviar al menos un campo para actualizar.");
   }
 
   const { data, error } = await adminClient
@@ -218,14 +213,12 @@ export async function updateTiendaById(
 
   if (error) {
     console.error("[tiendaModel] Error al actualizar tienda:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Tienda no encontrada." };
+    throw new Error("Tienda no encontrada.");
   }
-
-  return { success: true };
 }
 
 /**
@@ -233,7 +226,7 @@ export async function updateTiendaById(
  */
 export async function softDeleteTiendaById(
   tiendaId: string,
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -246,14 +239,12 @@ export async function softDeleteTiendaById(
 
   if (error) {
     console.error("[tiendaModel] Error al eliminar tienda:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Tienda no encontrada." };
+    throw new Error("Tienda no encontrada.");
   }
-
-  return { success: true };
 }
 
 /**

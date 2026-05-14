@@ -1,5 +1,4 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import type { ModelResult, ModelResultWithId } from "@/lib/types/common";
 
 // ─── Tipos internos ────────────────────────────────────────────────
 
@@ -9,24 +8,15 @@ interface AddressInput {
   detalle?: string;
 }
 
-interface TiendaAddressInfo {
-  tienda_id: string;
-  tienda_nombre: string;
-  direccion_id: number;
-  direccion_formateada: string;
-  place_id: string;
-  detalle_direccion: string | null;
-}
-
 // ─── Operaciones CRUD ──────────────────────────────────────────────
 
 /**
  * Inserta una nueva dirección en la tabla `direccion`.
- * Retorna el `id` generado o un error descriptivo.
+ * Retorna el `id` generado o lanza error.
  */
 export async function createAddress(
   input: AddressInput,
-): Promise<ModelResultWithId> {
+): Promise<number> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -41,10 +31,10 @@ export async function createAddress(
 
   if (error) {
     console.error("Error al registrar la dirección:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return { success: true, id: data.id };
+  return data.id;
 }
 
 /**
@@ -66,7 +56,7 @@ export async function deleteAddress(id: number): Promise<void> {
 export async function updateAddress(
   id: number,
   input: AddressInput,
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -82,16 +72,15 @@ export async function updateAddress(
 
   if (error) {
     console.error("Error al actualizar dirección:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
     console.error(
       `Error al actualizar dirección: no se encontró registro con id=${id}`,
     );
-    return { success: false, error: "Dirección no encontrada" };
+    throw new Error("Dirección no encontrada");
   }
-  return { success: true };
 }
 
 export async function isTiendaAddressUsed(placeId: string): Promise<boolean> {

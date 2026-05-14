@@ -4,14 +4,13 @@ import type {
   ModeloRARow,
   UpdateModeloRAPayload,
 } from "@/lib/types/modelo_ra";
-import type { ModelResult, ModelResultWithId } from "@/lib/types/common";
 
 /**
  * Inserta un nuevo modelo RA en la tabla `modelo_ra`.
  */
 export async function createModeloRA(
   input: InsertModeloRAPayload
-): Promise<ModelResultWithId> {
+): Promise<number> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -25,10 +24,10 @@ export async function createModeloRA(
 
   if (error) {
     console.error("[modeloRAModel] Error al crear modelo RA:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return { success: true, id: data.id };
+  return data.id;
 }
 
 /**
@@ -56,25 +55,28 @@ export async function getActiveModeloRAById(
   return data;
 }
 
+function buildModeloRAUpdatePayload(
+  input: UpdateModeloRAPayload,
+): Partial<UpdateModeloRAPayload> {
+  const payload: Partial<UpdateModeloRAPayload> = {};
+  if (input.dimensiones !== undefined) payload.dimensiones = input.dimensiones;
+  if (input.texturas !== undefined) payload.texturas = input.texturas;
+  return payload;
+}
+
 /**
  * Actualiza un modelo RA activo por su ID.
  */
 export async function updateModeloRAById(
   modeloRAId: number,
-  input: UpdateModeloRAPayload
-): Promise<ModelResult> {
+  input: UpdateModeloRAPayload,
+): Promise<void> {
   const adminClient = createAdminClient();
 
-  const payload: UpdateModeloRAPayload = {
-    ...(input.dimensiones !== undefined ? { dimensiones: input.dimensiones } : {}),
-    ...(input.texturas !== undefined ? { texturas: input.texturas } : {}),
-  };
+  const payload: UpdateModeloRAPayload = buildModeloRAUpdatePayload(input);
 
   if (Object.keys(payload).length === 0) {
-    return {
-      success: false,
-      error: "Debes enviar al menos un campo para actualizar.",
-    };
+    throw new Error("Debes enviar al menos un campo para actualizar.");
   }
 
   const { data, error } = await adminClient
@@ -87,14 +89,12 @@ export async function updateModeloRAById(
 
   if (error) {
     console.error("[modeloRAModel] Error al actualizar modelo RA:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Modelo RA no encontrado." };
+    throw new Error("Modelo RA no encontrado.");
   }
-
-  return { success: true };
 }
 
 /**
@@ -102,7 +102,7 @@ export async function updateModeloRAById(
  */
 export async function softDeleteModeloRAById(
   modeloRAId: number
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -115,12 +115,10 @@ export async function softDeleteModeloRAById(
 
   if (error) {
     console.error("[modeloRAModel] Error al eliminar modelo RA:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Modelo RA no encontrado." };
+    throw new Error("Modelo RA no encontrado.");
   }
-
-  return { success: true };
 }

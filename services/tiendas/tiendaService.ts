@@ -18,7 +18,6 @@ import type {
   FetchTiendasParams,
   TiendaActionResponse,
   TiendasListResponse,
-  UpdateTiendaInput,
   UpdateTiendaParams,
   UpdateTiendaPayload,
 } from "@/lib/types/tienda";
@@ -26,6 +25,7 @@ import { requireAdminRole } from "@/lib/validations/server-auth";
 import { getCurrentUser } from "@/models/authModel";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
+import { getErrorMessage } from "@/lib/services/errors";
 import {
   buildAddressCreateErrorResponse,
   getActiveTiendaOrError,
@@ -41,16 +41,18 @@ async function createTiendaAddress({
   id?: number;
   errorResponse?: TiendaActionResponse;
 }> {
-  const addressResult = await createAddress({ direccion, placeId });
-  if (!addressResult.success || !addressResult.id) {
+  let addressId: number;
+  try {
+    addressId = await createAddress({ direccion, placeId });
+  } catch (error) {
     return {
       errorResponse: buildAddressCreateErrorResponse({
-        error: addressResult.error,
+        error: getErrorMessage(error),
       }),
     };
   }
 
-  return { id: addressResult.id };
+  return { id: addressId };
 }
 
 async function deleteAddressIfCreated({
@@ -132,17 +134,18 @@ export async function createTienda(
 
     createdAddressId = addressResult.id ?? null;
 
-    const result = await createTiendaModel({
-      nombre: input.nombre,
-      horario: input.horario,
-      id_direccion: addressResult.id as number,
-    });
-
-    if (!result.success) {
+    let newTiendaId: string;
+    try {
+      newTiendaId = await createTiendaModel({
+        nombre: input.nombre,
+        horario: input.horario,
+        id_direccion: addressResult.id as number,
+      });
+    } catch (error) {
       await deleteAddressIfCreated({ addressId: createdAddressId });
       return {
         success: false,
-        errors: { form: result.error ?? "No se pudo crear la tienda." },
+        errors: { form: getErrorMessage(error) },
         message: "No se pudo crear la tienda.",
       };
     }
@@ -151,7 +154,7 @@ export async function createTienda(
       action: AccionAdministrador.CREAR,
       description: `Se creó la tienda "${input.nombre}".`,
       entity: {
-        id: String(result.id),
+        id: String(newTiendaId),
         entity_type: "tienda",
         display_name: input.nombre,
       },
@@ -220,12 +223,13 @@ export async function updateTienda({
       payload.id_direccion = addressResult.id as number;
     }
 
-    const result = await updateTiendaById(tiendaId, payload);
-    if (!result.success) {
+    try {
+      await updateTiendaById(tiendaId, payload);
+    } catch (error) {
       await deleteAddressIfCreated({ addressId: createdAddressId });
       return {
         success: false,
-        errors: { form: result.error ?? "No se pudo actualizar la tienda." },
+        errors: { form: getErrorMessage(error) },
         message: "No se pudo actualizar la tienda.",
       };
     }
@@ -285,11 +289,12 @@ export async function deleteTienda({
       };
     }
 
-    const result = await softDeleteTiendaById(tiendaId);
-    if (!result.success) {
+    try {
+      await softDeleteTiendaById(tiendaId);
+    } catch (error) {
       return {
         success: false,
-        errors: { form: result.error ?? "No se pudo eliminar la tienda." },
+        errors: { form: getErrorMessage(error) },
         message: "No se pudo eliminar la tienda.",
       };
     }

@@ -23,6 +23,7 @@ import {
 
 import { sendEmail } from "@/lib/services/email";
 import { newAdminHtmlTemplate } from "@/lib/templates/email-templates";
+import { getErrorMessage } from "@/lib/services/errors";
 /**
  * Orquesta el flujo completo de registro de usuario:
  *
@@ -53,6 +54,77 @@ export async function notifyNewAdmin(email: string, password: string): Promise<M
   }
 }
 
+async function validateAdminRegistration(rol: Rol): Promise<AuthSignUpResult> {
+  if (rol === Rol.CLIENTE) return { success: true, data: undefined };
+  const isRoot = await isCurrentUserRoot();
+  if (!isRoot) {
+    return {
+      success: false,
+      errors: { form: "No tienes permisos para registrar nuevos usuarios." },
+      message: "Permisos insuficientes para registrar usuarios.",
+    };
+  }
+  return { success: true, data: undefined };
+}
+
+async function validateUsernameAvailability(
+  username: string | null,
+): Promise<AuthSignUpResult> {
+  if (!username) return { success: true, data: undefined };
+  try {
+    const usernameExists = await checkUsernameExists(username);
+    if (usernameExists) {
+      return {
+        success: false,
+        errors: { usuario: "El nombre de usuario ya está en uso." },
+        message: "El nombre de usuario ya está en uso.",
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      errors: { form: `Error verificando usuario: ${getErrorMessage(error)}` },
+      message: `Error al verificar el nombre de usuario: ${getErrorMessage(error)}`,
+    };
+  }
+  return { success: true, data: undefined };
+}
+
+async function assignRoleIfNeeded(
+  userId: string,
+  rol: Rol,
+  correo: string,
+  contrasena: string,
+): Promise<AuthSignUpResult> {
+  if (rol === Rol.CLIENTE) return { success: true, data: undefined };
+
+  try {
+    await setUserRole(userId, rol);
+  } catch (error) {
+    await deleteAuthUser(userId);
+    return {
+      success: false,
+      errors: { form: `Error al asignar rol: ${getErrorMessage(error)}` },
+      message: `Error al asignar rol: ${getErrorMessage(error)}`,
+    };
+  }
+
+  if (rol === Rol.ADMINISTRADOR) {
+    const emailResult = await notifyNewAdmin(correo, contrasena);
+    if (!emailResult.success) {
+      await deleteAuthUser(userId);
+      return {
+        success: false,
+        errors: {
+          form: `Error al enviar correo de credenciales: ${emailResult.message}`,
+        },
+        message: `Error al enviar correo de credenciales: ${emailResult.message}`,
+      };
+    }
+  }
+  return { success: true, data: undefined };
+}
+
 export async function registerAuthUser(
   credentialData: CredentialData,
   rol: Rol,
@@ -61,48 +133,31 @@ export async function registerAuthUser(
   if (process.env.NODE_ENV !== "production") {
     console.debug("Iniciando registro de usuario en entorno no productivo");
   }
-  if (rol !== Rol.CLIENTE) {
-    const isRoot = await isCurrentUserRoot();
-    if (!isRoot) {
-      return {
-        success: false,
-        errors: { form: "No tienes permisos para registrar nuevos usuarios." },
-        message: "Permisos insuficientes para registrar usuarios.",
-      };
-    }
-  }
 
-  if (username) {
-    const usernameCheck = await checkUsernameExists(username);
-    if (usernameCheck.error) {
-      return {
-        success: false,
-        errors: { form: `Error verificando usuario. ${usernameCheck.error}` },
-        message: `Error al verificar el nombre de usuario. ${usernameCheck.error}`,
-      };
-    }
-    if (usernameCheck.exists) {
-      return {
-        success: false,
-        errors: { usuario: "El nombre de usuario ya está en uso." },
-        message: "El nombre de usuario ya está en uso.",
-      };
-    }
-  }
+  const permCheck = await validateAdminRegistration(rol);
+  if (!permCheck.success) return permCheck;
 
-  const authModelResult = rol !== Rol.CLIENTE 
-    ? await adminSignUp(credentialData.correo, credentialData.contrasena, username)
-    : await signUp(credentialData.correo, credentialData.contrasena, username);
+  const usernameCheck = await validateUsernameAvailability(username);
+  if (!usernameCheck.success) return usernameCheck;
 
-  if (!authModelResult.success) {
+  const authResult =
+    rol !== Rol.CLIENTE
+      ? await adminSignUp(
+          credentialData.correo,
+          credentialData.contrasena,
+          username,
+        )
+      : await signUp(credentialData.correo, credentialData.contrasena, username);
+
+  if (!authResult.success) {
     return {
       success: false,
-      errors: authModelResult.errors,
-      message: authModelResult.message,
+      errors: authResult.errors,
+      message: authResult.message,
     };
   }
 
-  const userId = authModelResult.data?.user?.id;
+  const userId = authResult.data?.user?.id;
   if (!userId) {
     return {
       success: false,
@@ -111,34 +166,15 @@ export async function registerAuthUser(
     };
   }
 
-  if (rol !== Rol.CLIENTE) {
-    const roleResult = await setUserRole(userId, rol);
-    if (!roleResult.success) {
-      // Rollback: eliminar usuario Auth
-      await deleteAuthUser(userId);
-      return {
-        success: false,
-        errors: { form: `Error al asignar rol: ${roleResult.error}` },
-        message: `Error al asignar rol: ${roleResult.error}`,
-      };
-    }
-  }
+  const roleResult = await assignRoleIfNeeded(
+    userId,
+    rol,
+    credentialData.correo,
+    credentialData.contrasena,
+  );
+  if (!roleResult.success) return roleResult;
 
-  if (rol === Rol.ADMINISTRADOR) {
-    console.log("Enviando correo de credenciales al nuevo administrador");
-    const emailResult = await notifyNewAdmin(credentialData.correo, credentialData.contrasena);
-    if (!emailResult.success) {
-      //rollback
-      await deleteAuthUser(userId);
-      return {
-        success: false,
-        errors: { form: `Error al enviar correo de credenciales: ${emailResult.message}` },
-        message: `Error al enviar correo de credenciales: ${emailResult.message}`,
-      };
-    }
-  }
-
-  return authModelResult;
+  return authResult;
 }
 export async function register(
   credentialData: CredentialData,
@@ -148,7 +184,15 @@ export async function register(
   try {
 
     // ── Paso 1: Validar unicidad ────────────────────────────────
-    const dniExists = await checkDniExists(personalData.dni);
+    let dniExists: boolean;
+    try {
+      dniExists = await checkDniExists(personalData.dni);
+    } catch (error) {
+      return {
+        success: false,
+        errors: { form: `Error verificando DNI: ${getErrorMessage(error)}` },
+      };
+    }
     if (dniExists) {
       return {
         success: false,
@@ -177,35 +221,34 @@ export async function register(
     }
 
     // ── Paso 4: Crear dirección ─────────────────────────────────
-    const addressResult = await createAddress({
-      direccion: personalData.direccion,
-      placeId: personalData.direccion_place_id,
-      detalle: personalData.direccion_detalle,
-    });
-
-    if (!addressResult.success || !addressResult.id) {
-      // Rollback: eliminar usuario Auth
+    let addressId: number;
+    try {
+      addressId = await createAddress({
+        direccion: personalData.direccion,
+        placeId: personalData.direccion_place_id,
+        detalle: personalData.direccion_detalle,
+      });
+    } catch (error) {
       await deleteAuthUser(userId);
       return {
         success: false,
-        errors: { direccion: `Error al registrar dirección: ${addressResult.error}` },
+        errors: { direccion: `Error al registrar dirección: ${getErrorMessage(error)}` },
       };
     }
 
     // ── Paso 5: Crear perfil de usuario ─────────────────────────
-    const profileResult = await createUserProfile(
-      userId,
-      personalData,
-      addressResult.id
-    );
-
-    if (!profileResult.success) {
-      // Rollback completo: eliminar usuario Auth y dirección
+    try {
+      await createUserProfile(
+        userId,
+        personalData,
+        addressId
+      );
+    } catch (error) {
       await deleteAuthUser(userId);
-      await deleteAddress(addressResult.id);
+      await deleteAddress(addressId);
       return {
         success: false,
-        errors: { form: `Error al crear perfil: ${profileResult.error}` },
+        errors: { form: `Error al crear perfil: ${getErrorMessage(error)}` },
       };
     }
 

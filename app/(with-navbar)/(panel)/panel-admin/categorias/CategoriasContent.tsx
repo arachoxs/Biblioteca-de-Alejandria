@@ -43,7 +43,7 @@ export default function CategoriasContent() {
     setErrorLoadingCategorias(null);
 
     try {
-      const response = await getCategoriesAction(page, itemsPerPage, term);
+      const response = await getCategoriesAction({ page, pageSize: itemsPerPage, searchTerm: term });
 
       if (response.success && response.data) {
         setCategoriasData(response.data.data);

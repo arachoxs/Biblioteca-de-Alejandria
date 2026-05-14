@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import type { ModelResult, Paginated } from "@/lib/types/common";
+import type { Paginated } from "@/lib/types/common";
 import type { CopiaRow } from "@/lib/types/copia";
 import type {
   HistoricoSyncBookSnapshot,
@@ -8,11 +8,17 @@ import type {
 } from "@/lib/types/historico";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 
+function normalizePagination(page: number, pageSize: number) {
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  return { safePage, safePageSize };
+}
+
 // ─── Escritura ─────────────────────────────────────────────────────
 
 export async function insertHistorico(
   data: InsertHistoricoPayload
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient.from("historico").insert({
@@ -23,17 +29,15 @@ export async function insertHistorico(
 
   if (error) {
     console.error("[historicoModel] Error insertando histórico:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 export async function insertHistoricoBatch(
   data: InsertHistoricoPayload[],
-): Promise<ModelResult> {
+): Promise<void> {
   if (data.length === 0) {
-    return { success: true };
+    return;
   }
 
   const adminClient = createAdminClient();
@@ -48,13 +52,11 @@ export async function insertHistoricoBatch(
 
   if (error) {
     console.error("[historicoModel] Error insertando históricos en lote:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
-export async function deleteHistoricoByLibroId(id_libro: string): Promise<ModelResult> {
+export async function deleteHistoricoByLibroId(id_libro: string): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -64,10 +66,8 @@ export async function deleteHistoricoByLibroId(id_libro: string): Promise<ModelR
 
   if (error) {
     console.error("[historicoModel] Error eliminando histórico por id_libro:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 // ─── Lectura ───────────────────────────────────────────────────────
@@ -79,8 +79,7 @@ export async function getHistoricoByLibro(
 ): Promise<Paginated<HistoricoRow>> {
   const adminClient = createAdminClient();
 
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  const { safePage, safePageSize } = normalizePagination(page, pageSize);
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
@@ -137,6 +136,16 @@ type LibroHistoricoSyncRow = {
     | null;
 };
 
+function countAvailableCopies(
+  copias: Pick<CopiaRow, "estado" | "deleted_at">[] | null,
+): number {
+  return (
+    copias?.filter(
+      (copy) => copy.deleted_at === null && copy.estado === "disponible",
+    ).length ?? 0
+  );
+}
+
 export async function getHistoricoSyncSnapshotsByLibros(
   libroIds: string[],
 ): Promise<HistoricoSyncBookSnapshot[]> {
@@ -170,10 +179,7 @@ export async function getHistoricoSyncSnapshotsByLibros(
 
   return rows.map((row) => ({
     id_libro: row.id,
-    available_count:
-      row.copia?.filter(
-        (copy) => copy.deleted_at === null && copy.estado === "disponible",
-      ).length ?? 0,
+    available_count: countAvailableCopies(row.copia),
     latest_estado: row.historico?.[0]?.estado ?? null,
   }));
 }

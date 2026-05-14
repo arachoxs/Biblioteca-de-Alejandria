@@ -10,15 +10,21 @@ import {
 } from "@/models/categoryModel";
 import type {
   CategoryCreateInput,
+  CategoryId,
+  CategoryName,
   CategoryUpdateInput,
   CategoryListResponse,
   CategoryActionResponse,
+  PaginationParams,
 } from "@/lib/types/category";
+import type { ActionResponse } from "@/lib/types/common";
 import { requireAdminRole } from "@/lib/validations/server-auth";
 import { getCurrentUser } from "@/models/authModel";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
 import { sanitizeNullableText, sanitizeText } from "@/lib/validations/rules";
+import { getErrorMessage } from "@/lib/services/errors";
+import { asCategoryId, asCategoryName } from "@/lib/types/category";
 
 function normalizeCategoryName(name: string): string {
   return sanitizeText(name);
@@ -30,6 +36,74 @@ function normalizeDescription(
   return sanitizeNullableText(description);
 }
 
+type PreMutationValidator = () => Promise<ActionResponse | null>;
+type MutationFn = (
+  currentCategory: NonNullable<Awaited<ReturnType<typeof getActiveCategoryById>>>
+) => Promise<ActionResponse | void>;
+type AuditDescriptionBuilder = (
+  category: NonNullable<Awaited<ReturnType<typeof getActiveCategoryById>>>
+) => string;
+
+type CategoryMutationContext = {
+  preMutationValidator: PreMutationValidator | null;
+  mutation: MutationFn;
+  messages: {
+    errorMessageOnFailure: string;
+    successMessage: string;
+  };
+};
+
+type CategoryAuditContext = {
+  buildAuditDescription: AuditDescriptionBuilder;
+  auditAction: AccionAdministrador;
+};
+
+async function executeAdminCategoryMutation(
+  categoryId: CategoryId,
+  context: CategoryMutationContext,
+  audit: CategoryAuditContext,
+): Promise<CategoryActionResponse> {
+  const roleCheck = await requireAdminRole();
+  if (!roleCheck.success) return roleCheck;
+
+  const currentCategory = await getActiveCategoryById(categoryId);
+  if (!currentCategory) {
+    return {
+      success: false,
+      errors: { form: "La categoría no existe o ya fue eliminada." },
+      message: "La categoría no existe o ya fue eliminada.",
+    };
+  }
+
+  if (context.preMutationValidator) {
+    const validationResult = await context.preMutationValidator();
+    if (validationResult !== null && !validationResult.success) {
+      return validationResult;
+    }
+  }
+
+  const mutationResult = await context.mutation(currentCategory);
+  if (mutationResult !== undefined) {
+    return mutationResult as ActionResponse;
+  }
+
+  const actor = await getCurrentUser();
+  if (actor) {
+    await logAdminAction({
+      actorId: actor.id,
+      action: audit.auditAction,
+      description: audit.buildAuditDescription(currentCategory),
+      entity: {
+        id: String(categoryId),
+        entity_type: "categoría",
+        display_name: currentCategory.nombre,
+      },
+    });
+  }
+
+  return { success: true, message: context.messages.successMessage };
+}
+
 function isSameName(left: string, right: string): boolean {
   return (
     normalizeCategoryName(left).toLocaleLowerCase() ===
@@ -37,32 +111,57 @@ function isSameName(left: string, right: string): boolean {
   );
 }
 
+async function validateAndBuildNameUpdate(
+  newName: string | undefined,
+  currentName: string,
+  categoryId: CategoryId,
+  payload: CategoryUpdateInput,
+): Promise<ActionResponse | null> {
+  if (newName === undefined) return null;
+
+  const normalizedName = normalizeCategoryName(newName);
+
+  if (isSameName(normalizedName, currentName)) return null;
+
+  const duplicatedCategory = await getActiveCategoryByExactNameExcludingId(
+    asCategoryName(normalizedName),
+    categoryId,
+  );
+
+  if (duplicatedCategory) {
+    return {
+      success: false,
+      errors: { nombre: "Ya existe una categoría con ese nombre." },
+      message: "Ya existe una categoría con ese nombre.",
+    };
+  }
+
+  payload.nombre = normalizedName;
+  return null;
+}
+
 /**
  * Obtiene categorías activas paginadas para el panel administrativo.
  */
 export async function fetchCategories(
-  page: number = 1,
-  pageSize: number = 10,
-  searchTerm?: string,
+  params: PaginationParams,
 ): Promise<CategoryListResponse> {
   try {
     const roleCheck = await requireAdminRole();
     if (!roleCheck.success) return roleCheck;
 
-    const normalizedSearch = searchTerm ? normalizeCategoryName(searchTerm) : "";
-    const data = await getCategoriesModel(
-      page,
-      pageSize,
-      normalizedSearch || undefined,
-    );
+    const data = await getCategoriesModel({
+      page: params.page,
+      pageSize: params.pageSize,
+      searchTerm: params.searchTerm ? normalizeCategoryName(params.searchTerm) : undefined,
+    });
     return {
       success: true,
       data,
     };
   } catch (error: unknown) {
     console.error("Error inesperado al obtener categorías:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Error desconocido";
+    const errorMessage = getErrorMessage(error);
     return {
       success: false,
       errors: { form: errorMessage },
@@ -84,7 +183,7 @@ export async function createCategory(
     const normalizedName = normalizeCategoryName(input.nombre ?? "");
 
     const duplicatedCategory =
-      await getActiveCategoryByExactName(normalizedName);
+      await getActiveCategoryByExactName(asCategoryName(normalizedName));
     if (duplicatedCategory) {
       return {
         success: false,
@@ -93,15 +192,16 @@ export async function createCategory(
       };
     }
 
-    const result = await createCategoryModel({
-      nombre: normalizedName,
-      descripcion: normalizeDescription(input.descripcion),
-    });
-
-    if (!result.success) {
+    let createdId: number;
+    try {
+      createdId = await createCategoryModel({
+        nombre: normalizedName,
+        descripcion: normalizeDescription(input.descripcion),
+      });
+    } catch (error) {
       return {
         success: false,
-        errors: { form: result.error ?? "No se pudo crear la categoría." },
+        errors: { form: getErrorMessage(error) },
         message: "No se pudo crear la categoría.",
       };
     }
@@ -113,7 +213,7 @@ export async function createCategory(
         action: AccionAdministrador.CREAR,
         description: `Se creó la categoría "${normalizedName}".`,
         entity: {
-          id: String(result.id),
+          id: String(createdId),
           entity_type: "categoría",
           display_name: normalizedName,
         },
@@ -123,12 +223,11 @@ export async function createCategory(
     return {
       success: true,
       message: "Categoría creada exitosamente.",
-      id: result.id,
+      id: createdId,
     };
   } catch (error: unknown) {
     console.error("Error inesperado al crear categoría:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Error desconocido";
+    const errorMessage = getErrorMessage(error);
     return {
       success: false,
       errors: { form: errorMessage },
@@ -141,111 +240,58 @@ export async function createCategory(
  * Edita una categoría activa y valida nombre duplicado cuando cambia.
  */
 export async function updateCategory(
-  categoryId: number,
+  categoryId: CategoryId,
   input: CategoryUpdateInput,
 ): Promise<CategoryActionResponse> {
-  const roleCheck = await requireAdminRole();
-  if (!roleCheck.success) return roleCheck;
+  const hasName = input.nombre !== undefined;
+  const hasDescription = input.descripcion !== undefined;
 
-  try {
-    const currentCategory = await getActiveCategoryById(categoryId);
-    if (!currentCategory) {
-      return {
-        success: false,
-        errors: { form: "La categoría no existe o ya fue eliminada." },
-        message: "La categoría no existe o ya fue eliminada.",
-      };
-    }
+  const payload: CategoryUpdateInput = {};
 
-    const hasName = input.nombre !== undefined;
-    const hasDescription = input.descripcion !== undefined;
-
-    const payload: CategoryUpdateInput = {};
-
+  const mutation: MutationFn = async (currentCategory) => {
     if (hasName) {
-      const normalizedName = normalizeCategoryName(input.nombre ?? "");
-
-      if (!isSameName(normalizedName, currentCategory.nombre)) {
-        const duplicatedCategory =
-          await getActiveCategoryByExactNameExcludingId(
-            normalizedName,
-            categoryId,
-          );
-
-        if (duplicatedCategory) {
-          return {
-            success: false,
-            errors: { nombre: "Ya existe una categoría con ese nombre." },
-            message: "Ya existe una categoría con ese nombre.",
-          };
-        }
+      const nameValidationResult = await validateAndBuildNameUpdate(
+        input.nombre,
+        currentCategory.nombre,
+        categoryId,
+        payload,
+      );
+      if (nameValidationResult !== null && !nameValidationResult.success) {
+        return nameValidationResult;
       }
-
-      payload.nombre = normalizedName;
     }
 
     if (hasDescription) {
       payload.descripcion = normalizeDescription(input.descripcion);
     }
 
-    const result = await updateCategoryById(categoryId, payload);
-    if (!result.success) {
-      return {
-        success: false,
-        errors: { form: result.error ?? "No se pudo actualizar la categoría." },
-        message: "No se pudo actualizar la categoría.",
-      };
-    }
+    await updateCategoryById(categoryId, payload);
+  };
 
-    const actor = await getCurrentUser();
-    if (actor) {
-      await logAdminAction({
-        actorId: actor.id,
-        action: AccionAdministrador.MODIFICAR,
-        description: `Se actualizó la categoría "${payload.nombre ?? currentCategory.nombre}".`,
-        entity: {
-          id: String(categoryId),
-          entity_type: "categoría",
-          display_name: payload.nombre ?? currentCategory.nombre,
-        },
-      });
-    }
+  const buildAuditDescription: AuditDescriptionBuilder = (category) =>
+    `Se actualizó la categoría "${payload.nombre ?? category.nombre}".`;
 
-    return {
-      success: true,
-      message: "Categoría actualizada exitosamente.",
-    };
-  } catch (error: unknown) {
-    console.error("Error inesperado al actualizar categoría:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Error desconocido";
-    return {
-      success: false,
-      errors: { form: errorMessage },
-      message: "No se pudo actualizar la categoría.",
-    };
-  }
+  return executeAdminCategoryMutation(
+    categoryId,
+    {
+      preMutationValidator: null,
+      mutation,
+      messages: {
+        errorMessageOnFailure: "No se pudo actualizar la categoría.",
+        successMessage: "Categoría actualizada exitosamente.",
+      },
+    },
+    { buildAuditDescription, auditAction: AccionAdministrador.MODIFICAR },
+  );
 }
 
 /**
  * Elimina lógicamente una categoría activa si no tiene libros asociados.
  */
 export async function deleteCategory(
-  categoryId: number,
+  categoryId: CategoryId,
 ): Promise<CategoryActionResponse> {
-  const roleCheck = await requireAdminRole();
-  if (!roleCheck.success) return roleCheck;
-
-  try {
-    const currentCategory = await getActiveCategoryById(categoryId);
-    if (!currentCategory) {
-      return {
-        success: false,
-        errors: { form: "La categoría no existe o ya fue eliminada." },
-        message: "La categoría no existe o ya fue eliminada.",
-      };
-    }
-
+  const preMutationValidator: PreMutationValidator = async () => {
     const hasLinkedBooks = await hasActiveBooksForCategory(categoryId);
     if (hasLinkedBooks) {
       return {
@@ -257,42 +303,26 @@ export async function deleteCategory(
           "No se puede eliminar la categoría porque tiene libros asociados.",
       };
     }
+    return null;
+  };
 
-    const result = await softDeleteCategoryById(categoryId);
-    if (!result.success) {
-      return {
-        success: false,
-        errors: { form: result.error ?? "No se pudo eliminar la categoría." },
-        message: "No se pudo eliminar la categoría.",
-      };
-    }
+  const mutation: MutationFn = async () => {
+    await softDeleteCategoryById(categoryId);
+  };
 
-    const actor = await getCurrentUser();
-    if (actor) {
-      await logAdminAction({
-        actorId: actor.id,
-        action: AccionAdministrador.ELIMINAR,
-        description: `Se eliminó la categoría "${currentCategory.nombre}".`,
-        entity: {
-          id: String(categoryId),
-          entity_type: "categoría",
-          display_name: currentCategory.nombre,
-        },
-      });
-    }
+  const buildAuditDescription: AuditDescriptionBuilder = (category) =>
+    `Se eliminó la categoría "${category.nombre}".`;
 
-    return {
-      success: true,
-      message: "Categoría eliminada exitosamente.",
-    };
-  } catch (error: unknown) {
-    console.error("Error inesperado al eliminar categoría:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Error desconocido";
-    return {
-      success: false,
-      errors: { form: errorMessage },
-      message: "No se pudo eliminar la categoría.",
-    };
-  }
+  return executeAdminCategoryMutation(
+    categoryId,
+    {
+      preMutationValidator,
+      mutation,
+      messages: {
+        errorMessageOnFailure: "No se pudo eliminar la categoría.",
+        successMessage: "Categoría eliminada exitosamente.",
+      },
+    },
+    { buildAuditDescription, auditAction: AccionAdministrador.ELIMINAR },
+  );
 }

@@ -1,6 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type { PersonalData, Genero } from "@/lib/types/auth";
-import type { ModelResult } from "@/lib/types/common";
 
 /** Datos crudos del perfil obtenidos por join usuario + dirección. */
 export interface RawUserProfile {
@@ -70,7 +69,7 @@ export async function updateUserProfile(
     genero: Genero;
     id_direccion?: number;
   }
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -87,10 +86,8 @@ export async function updateUserProfile(
 
   if (error) {
     console.error("Error al actualizar perfil del usuario:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 // ─── Validaciones de unicidad ──────────────────────────────────────
@@ -121,7 +118,7 @@ export async function checkDniExists(dni: string): Promise<boolean> {
  */
 export async function checkUsernameExists(
   username: string
-): Promise<{ exists: boolean; error?: string }> {
+): Promise<boolean> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient.rpc("check_username_exists", {
@@ -130,10 +127,10 @@ export async function checkUsernameExists(
 
   if (error) {
     console.error("Error al verificar username:", error);
-    return { exists: false, error: error.message };
+    throw error;
   }
 
-  return { exists: !!data };
+  return !!data;
 }
 
 // ─── Operaciones CRUD ──────────────────────────────────────────────
@@ -148,7 +145,7 @@ export async function createUserProfile(
   userId: string,
   personalData: PersonalData,
   addressId: number
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient.from("usuario").upsert({
@@ -164,10 +161,8 @@ export async function createUserProfile(
 
   if (error) {
     console.error("Error al registrar el perfil del usuario:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 /**
@@ -176,7 +171,7 @@ export async function createUserProfile(
  */
 export async function deleteUserProfile(
   userId: string
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
@@ -186,8 +181,6 @@ export async function deleteUserProfile(
 
   if (error) {
     console.error("Error al eliminar el perfil del usuario:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }

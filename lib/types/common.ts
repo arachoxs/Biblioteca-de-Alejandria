@@ -3,24 +3,6 @@
  * Centraliza patrones comunes para evitar duplicación (DRY).
  */
 
-// ─── Resultados de operaciones ─────────────────────────────────────
-
-/**
- * Resultado base para operaciones que pueden fallar.
- * Usado en modelos y operaciones internas.
- */
-export interface ModelResult {
-  success: boolean;
-  error?: string;
-}
-
-/**
- * Resultado de operación con ID generado (ej: INSERT con RETURNING id).
- */
-export interface ModelResultWithId extends ModelResult {
-  id?: number;
-}
-
 // ─── Respuestas de API / Server Actions ────────────────────────────
 
 /**

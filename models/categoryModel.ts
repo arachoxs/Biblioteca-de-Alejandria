@@ -1,12 +1,47 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type {
   CategoryCreateInput,
+  CategoryId,
+  CategoryName,
   CategoryRow,
   CategoryWithBookCount,
   CategoryUpdateInput,
+  PaginationParams,
 } from "@/lib/types/category";
-import type { ModelResult, ModelResultWithId, Paginated } from "@/lib/types/common";
+import type { Paginated } from "@/lib/types/common";
 import { escapeLikePattern, formatILIKE } from "@/lib/validations/db-utils";
+import { asCategoryId, asCategoryName } from "@/lib/types/category";
+
+function buildCategoryQueryOptions(page: number, pageSize: number) {
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.max(1, pageSize);
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+  return { safePage, safePageSize, from, to };
+}
+
+function applyCategorySearchFilter(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  searchTerm?: string
+): typeof query {
+  if (!searchTerm || searchTerm.trim() === "") return query;
+  const normalizedSearch = formatILIKE(searchTerm);
+  return query.ilike("nombre", normalizedSearch);
+}
+
+function buildCategoryUpdatePayload(
+  input: CategoryUpdateInput
+): Partial<Pick<CategoryRow, "nombre" | "descripcion">> {
+  const payload: Partial<Pick<CategoryRow, "nombre" | "descripcion">> = {};
+  if (input.nombre !== undefined) payload.nombre = input.nombre;
+  if (input.descripcion !== undefined) payload.descripcion = input.descripcion;
+  return payload;
+}
+
+function hasActiveBooks(data: { id: unknown }[] | null): boolean {
+  return (data?.length ?? 0) > 0;
+}
 
 function normalizeCategoryWithBookCount(
   row: CategoryRow & Record<string, unknown>
@@ -29,7 +64,7 @@ function normalizeCategoryWithBookCount(
  */
 export async function createCategory(
   input: CategoryCreateInput
-): Promise<ModelResultWithId> {
+): Promise<number> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -43,50 +78,40 @@ export async function createCategory(
 
   if (error) {
     console.error("Error al crear categoría:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return { success: true, id: data.id };
+  return data.id;
 }
 
 /**
  * Obtiene categorías activas paginadas para el panel.
- *
- * @param page - Número de página (comienza en 1)
- * @param pageSize - Cantidad de resultados por página (por defecto 10)
- * @returns Listado paginado de categorías activas
  */
 export async function getCategories(
-  page: number = 1,
-  pageSize: number = 10,
-  searchTerm?: string
+  params: PaginationParams,
 ): Promise<Paginated<CategoryWithBookCount>> {
+  const { page, pageSize, searchTerm } = params;
   const adminClient = createAdminClient();
 
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.max(1, pageSize);
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
+  const { safePage, safePageSize, from, to } = buildCategoryQueryOptions(page, pageSize);
 
-  let query = adminClient
-    .from("categoria")
-    .select("*, libro(count)", { count: "exact" })
-    .is("deleted_at", null)
-    .is("libro.deleted_at", null)
-    .range(from, to)
-    .order("id", { ascending: false });
-
-  if (searchTerm && searchTerm.trim() !== "") {
-    const normalizedSearch = formatILIKE(searchTerm);
-    query = query.ilike("nombre", normalizedSearch);
-  }
+  const query = applyCategorySearchFilter(
+    adminClient
+      .from("categoria")
+      .select("*, libro(count)", { count: "exact" })
+      .is("deleted_at", null)
+      .is("libro.deleted_at", null)
+      .range(from, to)
+      .order("id", { ascending: false }),
+    searchTerm
+  );
 
   const { data, error, count } = await query;
 
   if (error) throw error;
 
-  const normalized = (data ?? []).map((row) =>
-    normalizeCategoryWithBookCount(row as CategoryRow & Record<string, unknown>)
+  const normalized = (data ?? []).map((row: CategoryRow & Record<string, unknown>) =>
+    normalizeCategoryWithBookCount(row)
   );
 
   return {
@@ -102,15 +127,12 @@ export async function getCategories(
  * Actualiza una categoría activa por su ID.
  */
 export async function updateCategoryById(
-  categoryId: number,
-  input: CategoryUpdateInput
-): Promise<ModelResult> {
+  categoryId: CategoryId,
+  input: CategoryUpdateInput,
+): Promise<void> {
   const adminClient = createAdminClient();
 
-  const payload: CategoryUpdateInput = {
-    ...(input.nombre !== undefined ? { nombre: input.nombre } : {}),
-    ...(input.descripcion !== undefined ? { descripcion: input.descripcion } : {}),
-  };
+  const payload = buildCategoryUpdatePayload(input);
 
   const { data, error } = await adminClient
     .from("categoria")
@@ -122,22 +144,20 @@ export async function updateCategoryById(
 
   if (error) {
     console.error("Error al actualizar categoría:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Categoría no encontrada." };
+    throw new Error("Categoría no encontrada.");
   }
-
-  return { success: true };
 }
 
 /**
  * Realiza eliminación lógica de una categoría activa por su ID.
  */
 export async function softDeleteCategoryById(
-  categoryId: number
-): Promise<ModelResult> {
+  categoryId: CategoryId,
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -150,14 +170,12 @@ export async function softDeleteCategoryById(
 
   if (error) {
     console.error("Error al eliminar lógicamente categoría:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Categoría no encontrada." };
+    throw new Error("Categoría no encontrada.");
   }
-
-  return { success: true };
 }
 
 // ─── Helpers para validaciones en services/categoria ────────────────
@@ -167,7 +185,7 @@ export async function softDeleteCategoryById(
  * Helper para validar existencia antes de editar/eliminar.
  */
 export async function getActiveCategoryById(
-  categoryId: number
+  categoryId: CategoryId,
 ): Promise<CategoryRow | null> {
   const adminClient = createAdminClient();
 
@@ -191,7 +209,7 @@ export async function getActiveCategoryById(
  * Helper para validar duplicados al crear.
  */
 export async function getActiveCategoryByExactName(
-  categoryName: string
+  categoryName: CategoryName,
 ): Promise<CategoryRow | null> {
   const adminClient = createAdminClient();
   const exactNamePattern = escapeLikePattern(categoryName);
@@ -217,8 +235,8 @@ export async function getActiveCategoryByExactName(
  * Helper para validar duplicados al editar. no detecta la categoria propia
  */
 export async function getActiveCategoryByExactNameExcludingId(
-  categoryName: string,
-  excludedCategoryId: number //el id propio
+  categoryName: CategoryName,
+  excludedCategoryId: CategoryId,
 ): Promise<CategoryRow | null> {
   const adminClient = createAdminClient();
   const exactNamePattern = escapeLikePattern(categoryName);
@@ -245,7 +263,7 @@ export async function getActiveCategoryByExactNameExcludingId(
  * Helper para validar regla de eliminación lógica.
  */
 export async function hasActiveBooksForCategory(
-  categoryId: number
+  categoryId: CategoryId,
 ): Promise<boolean> {
   const adminClient = createAdminClient();
 
@@ -261,5 +279,5 @@ export async function hasActiveBooksForCategory(
     throw error;
   }
 
-  return (data?.length ?? 0) > 0;
+  return hasActiveBooks(data);
 }

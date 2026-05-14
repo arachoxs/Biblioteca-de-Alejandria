@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import type { AuthError, AuthResponse } from "@supabase/supabase-js";
 
 import { buildOrILikeFilter, escapeLikePattern } from "@/lib/validations/db-utils";
-import type { ModelResult } from "@/lib/types/common";
 import type { AuthSignUpResult } from "@/lib/types/auth";
 import { AdminUserFromView, PaginatedAdminUsers } from "@/lib/types/profile";
 
@@ -105,7 +104,7 @@ export async function adminSignUp(
 export async function setUserRole(
   userId: string,
   rol: Rol
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient.auth.admin.updateUserById(userId, {
@@ -114,10 +113,8 @@ export async function setUserRole(
 
   if (error) {
     console.error("Error al asignar rol en app_metadata:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
-
-  return { success: true };
 }
 
 /**

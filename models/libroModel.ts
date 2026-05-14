@@ -6,7 +6,7 @@ import type {
   LibroWithRelations,
   UpdateLibroPayload,
 } from "@/lib/types/libro";
-import type { ModelResult, Paginated } from "@/lib/types/common";
+import type { Paginated } from "@/lib/types/common";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 import {
   buildOrILikeFilter,
@@ -16,8 +16,26 @@ import {
 import type { CondicionLibro } from "@/lib/types/libro";
 
 type LibroUpdateRow = Database["public"]["Tables"]["libro"]["Update"];
-type LibroId = Database["public"]["Tables"]["libro"]["Row"]["id"];
-type LibroModelResultWithId = ModelResult & { id?: LibroId };
+
+function buildLibroUpdatePayload(
+  input: UpdateLibroPayload,
+): Partial<LibroUpdateRow> {
+  const payload: Partial<LibroUpdateRow> = {};
+  if (input.titulo !== undefined) payload.titulo = input.titulo;
+  if (input.isbn !== undefined) payload.isbn = input.isbn;
+  if (input.idioma !== undefined) payload.idioma = input.idioma;
+  if (input.sinopsis !== undefined) payload.sipnosis = input.sinopsis;
+  if (input.paginas !== undefined) payload.paginas = input.paginas;
+  if (input.precio !== undefined) payload.precio = input.precio;
+  if (input.estado !== undefined) payload.estado = input.estado;
+  if (input.id_autor !== undefined) payload.id_autor = input.id_autor;
+  if (input.id_categoria !== undefined) payload.id_categoria = input.id_categoria;
+  if (input.fecha_publicacion !== undefined)
+    payload.fecha_publicacion = input.fecha_publicacion;
+  if (input.editorial !== undefined) payload.editorial = input.editorial;
+  if (input.id_modeloRA !== undefined) payload.id_modeloRA = input.id_modeloRA;
+  return payload;
+}
 
 function extractRelationName(value: unknown): string | null {
   if (!value) return null;
@@ -86,7 +104,7 @@ async function getMatchingCategoryIds(searchTerm: string): Promise<number[]> {
  */
 export async function createLibro(
   input: InsertLibroPayload,
-): Promise<LibroModelResultWithId> {
+): Promise<string> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -110,10 +128,10 @@ export async function createLibro(
 
   if (error) {
     console.error("[libroModel] Error al crear libro:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
-  return { success: true, id: data.id };
+  return data.id;
 }
 
 /**
@@ -289,31 +307,13 @@ export async function getActiveLibroById(
 export async function updateLibroById(
   libroId: string,
   input: UpdateLibroPayload,
-): Promise<ModelResult> {
+): Promise<void> {
   const adminClient = createAdminClient();
 
-  const payload: LibroUpdateRow = {
-    ...(input.titulo !== undefined ? { titulo: input.titulo } : {}),
-    ...(input.isbn !== undefined ? { isbn: input.isbn } : {}),
-    ...(input.idioma !== undefined ? { idioma: input.idioma } : {}),
-    ...(input.sinopsis !== undefined ? { sipnosis: input.sinopsis } : {}),
-    ...(input.paginas !== undefined ? { paginas: input.paginas } : {}),
-    ...(input.precio !== undefined ? { precio: input.precio } : {}),
-    ...(input.estado !== undefined ? { estado: input.estado } : {}),
-    ...(input.id_autor !== undefined ? { id_autor: input.id_autor } : {}),
-    ...(input.id_categoria !== undefined ? { id_categoria: input.id_categoria } : {}),
-    ...(input.fecha_publicacion !== undefined
-      ? { fecha_publicacion: input.fecha_publicacion }
-      : {}),
-    ...(input.editorial !== undefined ? { editorial: input.editorial } : {}),
-    ...(input.id_modeloRA !== undefined ? { id_modeloRA: input.id_modeloRA } : {}),
-  };
+  const payload = buildLibroUpdatePayload(input);
 
   if (Object.keys(payload).length === 0) {
-    return {
-      success: false,
-      error: "Debes enviar al menos un campo para actualizar.",
-    };
+    throw new Error("Debes enviar al menos un campo para actualizar.");
   }
 
   const { data, error } = await adminClient
@@ -326,20 +326,18 @@ export async function updateLibroById(
 
   if (error) {
     console.error("[libroModel] Error al actualizar libro:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Libro no encontrado." };
+    throw new Error("Libro no encontrado.");
   }
-
-  return { success: true };
 }
 
 /**
  * Realiza eliminacion logica de un libro activo por su ID.
  */
-export async function softDeleteLibroById(libroId: string): Promise<ModelResult> {
+export async function softDeleteLibroById(libroId: string): Promise<void> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
@@ -352,14 +350,12 @@ export async function softDeleteLibroById(libroId: string): Promise<ModelResult>
 
   if (error) {
     console.error("[libroModel] Error al eliminar libro:", error);
-    return { success: false, error: error.message };
+    throw error;
   }
 
   if (!data) {
-    return { success: false, error: "Libro no encontrado." };
+    throw new Error("Libro no encontrado.");
   }
-
-  return { success: true };
 }
 
 /**
@@ -431,10 +427,9 @@ export async function checkLibroDuplicateInfo(
  * Rollback (Hard Delete) de un libro y sus dependencias creadas en transacciones fallidas.
  * Se eliminan primero copias, historico, noticias y finalmente el libro debido a NO ACTION FK.
  */
-export async function rollbackLibro(id_libro: string): Promise<ModelResult> {
+export async function rollbackLibro(id_libro: string): Promise<void> {
   const adminClient = createAdminClient();
 
-  // Borrar copias asociadas al libro
   const { error: copiaErr } = await adminClient
     .from("copia")
     .delete()
@@ -443,7 +438,6 @@ export async function rollbackLibro(id_libro: string): Promise<ModelResult> {
     console.error("[libroModel] Error eliminando copias en rollback:", copiaErr);
   }
 
-  // Borrar historicos
   const { error: histErr } = await adminClient
     .from("historico")
     .delete()
@@ -452,7 +446,6 @@ export async function rollbackLibro(id_libro: string): Promise<ModelResult> {
     console.error("[libroModel] Error eliminando historico en rollback:", histErr);
   }
 
-  // Borrar noticias
   const { error: noticErr } = await adminClient
     .from("noticias")
     .delete()
@@ -461,7 +454,6 @@ export async function rollbackLibro(id_libro: string): Promise<ModelResult> {
     console.error("[libroModel] Error eliminando noticias en rollback:", noticErr);
   }
 
-  // Borrar libro principal
   const { error: libroErr } = await adminClient
     .from("libro")
     .delete()
@@ -469,8 +461,6 @@ export async function rollbackLibro(id_libro: string): Promise<ModelResult> {
 
   if (libroErr) {
     console.error("[libroModel] Error eliminando libro principal en rollback:", libroErr);
-    return { success: false, error: libroErr.message };
+    throw libroErr;
   }
-
-  return { success: true };
 }
