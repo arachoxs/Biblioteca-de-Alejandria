@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Modal from "@/components/ui/Modal";
-
-
+import PreferenciasLiterariasSection from "./PreferenciasLiterariasSection";
 
 // ─── Componente principal ──────────────────────────────────────────
 
@@ -21,24 +20,7 @@ export default function ClientModules() {
             {/* Tarjetas de módulos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-6">
                 {/* Preferencias Literarias */}
-                <button
-                    type="button"
-                    onClick={() => handleOpenModal("Preferencias Literarias")}
-                    className="text-left bg-white border border-brand-accent/25 rounded-lg p-6 shadow-[0_1px_3px_rgba(10,9,8,0.04)] transition-all hover:border-brand-primary hover:shadow-lg hover:-translate-y-0.5 cursor-pointer group"
-                >
-                    <div className="w-12 h-12 rounded-full bg-brand-accent/12 grid place-items-center mb-3">
-                        <svg className="w-6 h-6 text-brand-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                        </svg>
-                    </div>
-                    <h3 className="font-display text-lg font-semibold text-brand-primary mb-1.5 tracking-wide group-hover:underline underline-offset-2">
-                        Preferencias Literarias
-                    </h3>
-                    <p className="text-sm text-brand-secondary font-light leading-relaxed">
-                        Administra tus géneros favoritos y recibe recomendaciones personalizadas de libros.
-                    </p>
-                </button>
+                <PreferenciasLiterariasSection />
 
                 {/* Gestión Financiera */}
                 <button

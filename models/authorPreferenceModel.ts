@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { findPreferenceId } from "@/lib/preferencias/preferenceQueryBuilder";
 import type {
   InsertAuthorPreferencePayload,
   AuthorPreferenceAuthorSummary,
@@ -52,39 +53,44 @@ async function findAuthorPreferenceId(
   id_usuario: string,
   id_autor: number
 ): Promise<number | null> {
-  const adminClient = createAdminClient();
+  return findPreferenceId("autor", id_usuario, id_autor, "active");
+}
 
-  const { data, error } = await adminClient
+async function findAuthorPreferenceIdIncludingDeleted(
+  id_usuario: string,
+  id_autor: number
+): Promise<number | null> {
+  return findPreferenceId("autor", id_usuario, id_autor, "all");
+}
+
+async function restoreAuthorPreference(existingId: number): Promise<number> {
+  const adminClient = createAdminClient();
+  const { data: updatedRows, error } = await adminClient
     .from("preferencia_autor")
+    .update({ deleted_at: null })
+    .eq("id", existingId)
     .select("id")
-    .eq("id_usuario", id_usuario)
-    .eq("id_autor", id_autor)
-    .is("deleted_at", null)
-    .limit(1)
-    .maybeSingle();
+    .single();
 
   if (error) {
     console.error(
-      "[authorPreferenceModel] Error al verificar preferencia:",
+      "[authorPreferenceModel] Error al restaurar preferencia de autor:",
       error
     );
     throw error;
   }
 
-  return data?.id ?? null;
+  return updatedRows!.id;
 }
 
-export async function insertAuthorPreference(
-  data: InsertAuthorPreferencePayload
+async function insertAuthorPreference(
+  id_usuario: string,
+  id_autor: number
 ): Promise<number> {
   const adminClient = createAdminClient();
-
   const { data: resultData, error } = await adminClient
     .from("preferencia_autor")
-    .insert({
-      id_usuario: data.id_usuario,
-      id_autor: data.id_autor,
-    })
+    .insert({ id_usuario, id_autor })
     .select("id")
     .single();
 
@@ -93,20 +99,33 @@ export async function insertAuthorPreference(
       "[authorPreferenceModel] Error al insertar preferencia de autor:",
       error
     );
-
     if (error.code === "23505") {
       throw new Error("Este autor ya está en tus preferencias.");
     }
-
     throw error;
   }
 
   return resultData!.id;
 }
 
+export async function insertOrRestoreAuthorPreference(
+  data: InsertAuthorPreferencePayload
+): Promise<number> {
+  const existingId = await findAuthorPreferenceIdIncludingDeleted(
+    data.id_usuario,
+    data.id_autor
+  );
+
+  if (existingId !== null) {
+    return restoreAuthorPreference(existingId);
+  }
+
+  return insertAuthorPreference(data.id_usuario, data.id_autor);
+}
+
 async function ensureAuthorPreferenceExists(
   id_usuario: string,
-  id_autor: number,
+  id_autor: number
 ): Promise<number> {
   const id = await findAuthorPreferenceId(id_usuario, id_autor);
 
@@ -119,7 +138,7 @@ async function ensureAuthorPreferenceExists(
 
 export async function deleteAuthorPreference(
   id_usuario: string,
-  id_autor: number,
+  id_autor: number
 ): Promise<void> {
   const adminClient = createAdminClient();
 
@@ -135,7 +154,7 @@ export async function deleteAuthorPreference(
   if (error) {
     console.error(
       "[authorPreferenceModel] Error al eliminar preferencia de autor:",
-      error,
+      error
     );
     throw error;
   }
