@@ -1,7 +1,10 @@
 import Footer from "@/components/Footer";
 import Carousel from "@/components/Carousel";
 import NewsGrid from "@/components/ui/NewsGrid";
+import PreferenciasLiterariasSection from "@/components/profile/PreferenciasLiterariasSection";
 import { getNoticiasWithPrecio } from "@/models/noticiaModel";
+import { getCurrentUser, getCurrentUserRole } from "@/models/authModel";
+import { Rol } from "@/lib/types/auth";
 import type { NoticiaWithPrecio } from "@/lib/types/noticia";
 import type { Paginated } from "@/lib/types/common";
 
@@ -22,6 +25,15 @@ const MOCK_CAROUSEL_TITLES = [
 ];
 
 export default async function Home() {
+  const [user, role] = await Promise.all([
+    getCurrentUser(),
+    getCurrentUserRole(),
+  ]);
+
+  const needsOnboarding =
+    role === Rol.CLIENTE &&
+    user?.user_metadata?.preferences_onboarding_complete !== true;
+
   let newsData: Paginated<NoticiaWithPrecio> = {
     data: [],
     total: 0,
@@ -73,6 +85,12 @@ export default async function Home() {
           </div>
           <NewsGrid initialNews={newsData.data} />
         </section>
+
+        {needsOnboarding && (
+          <section className="max-w-6xl mx-auto px-4 pb-16">
+            <PreferenciasLiterariasSection isOnboarding />
+          </section>
+        )}
       </main>
 
       <Footer />

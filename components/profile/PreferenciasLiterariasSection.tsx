@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import PreferenceSelectionModal from "@/components/ui/PreferenceSelectionModal";
 import PreferenciasCard from "@/components/profile/PreferenciasCard";
 import PreferenceTabSwitcher from "@/components/profile/PreferenceTabSwitcher";
@@ -10,10 +11,16 @@ import {
   updateAuthorPreferencesAction, 
   updateCategoryPreferencesAction 
 } from "@/app/(with-navbar)/perfil/actions";
+import { setPreferencesOnboardingCompleteAction } from "@/app/actions/authActions";
 
 interface PreferenceItem {
   id: number;
   nombre: string;
+}
+
+interface PreferenciasLiterariasSectionProps {
+  isOnboarding?: boolean;
+  onComplete?: () => void;
 }
 
 function extractSaveError(
@@ -24,7 +31,8 @@ function extractSaveError(
   return failed.errors?.form ?? failed.message ?? "Error al guardar";
 }
 
-export default function PreferenciasLiterariasSection() {
+export default function PreferenciasLiterariasSection({ isOnboarding = false, onComplete }: PreferenciasLiterariasSectionProps) {
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"autores" | "categorias">("autores");
   const [selectedAuthorIds, setSelectedAuthorIds] = useState<number[]>([]);
@@ -34,6 +42,12 @@ export default function PreferenciasLiterariasSection() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  useEffect(() => {
+    if (isOnboarding && !modalOpen) {
+      setModalOpen(true);
+    }
+  }, [isOnboarding, modalOpen]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -71,6 +85,12 @@ export default function PreferenciasLiterariasSection() {
     setTimeout(() => setNotification(null), 4000);
   }
 
+  async function handleOnboardingComplete() {
+    await setPreferencesOnboardingCompleteAction();
+    router.refresh();
+    onComplete?.();
+  }
+
   async function handleSave() {
     setIsSaving(true);
     try {
@@ -82,6 +102,9 @@ export default function PreferenciasLiterariasSection() {
       if (authorResult.success && categoryResult.success) {
         showNotification("success", "Preferencias guardadas correctamente");
         setModalOpen(false);
+        if (isOnboarding) {
+          await handleOnboardingComplete();
+        }
       } else {
         showNotification("error", extractSaveError(authorResult, categoryResult));
       }
@@ -89,6 +112,13 @@ export default function PreferenciasLiterariasSection() {
       showNotification("error", "Error inesperado al guardar");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  function handleModalClose() {
+    setModalOpen(false);
+    if (isOnboarding) {
+      handleOnboardingComplete();
     }
   }
 
@@ -114,9 +144,9 @@ export default function PreferenciasLiterariasSection() {
 
       <PreferenceSelectionModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={activeTab === "autores" ? "Preferencias de Autores" : "Preferencias de Categorías"}
-        subtitle="Selecciona los elementos que te interesen"
+        onClose={handleModalClose}
+        title={isOnboarding ? "¡Bienvenido a Biblioteca de Alejandría!" : (activeTab === "autores" ? "Preferencias de Autores" : "Preferencias de Categorías")}
+        subtitle={isOnboarding ? "Completa tu perfil seleccionando los autores y categorías literarias de tu interés. Puedes cambiar estas preferencias en cualquier momento desde tu perfil." : "Selecciona los elementos que te interesen"}
         items={currentItems}
         selectedIds={currentSelectedIds}
         onSelectionChange={setCurrentSelectedIds}

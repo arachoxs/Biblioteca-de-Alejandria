@@ -78,3 +78,7 @@ export type UserStatusResult = Omit<ActionResponse, "message"> & {
     message: string;
     errorIds?: string[];
 }
+
+export interface UserMetadata {
+    preferences_onboarding_complete?: boolean;
+}
