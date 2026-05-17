@@ -1,4 +1,4 @@
-import { updatePasswordWithVerification as updatePasswordModel, deactivateUsers, activateUsers, getCurrentUser } from "@/models/authModel";
+import { updatePasswordWithVerification as updatePasswordModel, deactivateUsers, activateUsers, getCurrentUser, setPreferencesOnboardingComplete as setPreferencesOnboardingCompleteModel } from "@/models/authModel";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
 import { Rol } from "@/lib/types/auth";
@@ -69,7 +69,13 @@ export async function deshabilitarUsuario(users: {id: string, email: string}[]):
     await auditBulkAction(actor.id, successUsers, "Se deshabilitó al administrador.");
   }
 
-  return result;
+return result;
+}
+
+export async function setPreferencesOnboardingComplete(
+  userId: string
+): Promise<AuthActionResult> {
+  return setPreferencesOnboardingCompleteModel(userId);
 }
 
 export async function habilitarUsuario(users: {id: string, email: string}[]): Promise<UserStatusResult> {

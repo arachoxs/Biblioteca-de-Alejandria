@@ -1,9 +1,10 @@
 "use server";
 
-import { globalSignOutModel } from "@/models/authModel";
-import { changePassword } from "@/services/auth/authService";
+import { globalSignOutModel, getCurrentUser } from "@/models/authModel";
+import { changePassword, setPreferencesOnboardingComplete } from "@/services/auth/authService";
 import { validatePasswordRule } from "@/lib/validations/rules";
 import type { AuthActionResult } from "@/lib/types/auth";
+import type { ActionResponse } from "@/lib/types/common";
 
 /**
  * Server Action: cierra la sesión del usuario en todos los dispositivos.
@@ -49,4 +50,30 @@ export async function changePasswordAction(
   }
 
   return changePassword(currentPassword, newPassword);
+}
+
+/**
+ * Server Action: marca el onboarding de preferencias como completado
+ * para el usuario CLIENTE autenticado actual.
+ *
+ * Establece `user_metadata.preferences_onboarding_complete = true`
+ * para que el modal de bienvenida no vuelva a mostrarse automáticamente.
+ */
+export async function setPreferencesOnboardingCompleteAction(): Promise<ActionResponse> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return { success: false, message: "No hay sesión activa." };
+  }
+
+  const result = await setPreferencesOnboardingComplete(user.id);
+
+  if (!result.success) {
+    return {
+      success: false,
+      message: "No se pudieron guardar los cambios. Inténtalo de nuevo.",
+    };
+  }
+
+  return { success: true };
 }

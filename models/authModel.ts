@@ -406,6 +406,23 @@ export async function getCurrentUserEmail(): Promise<string | null> {
   return user?.email ?? null;
 }
 
+/**
+ * Marca el onboarding de preferencias como completado para un usuario.
+ */
+export async function setPreferencesOnboardingComplete(
+  userId: string
+): Promise<AuthActionResult> {
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.auth.admin.updateUserById(userId, {
+    user_metadata: { preferences_onboarding_complete: true },
+  });
+  if (error) {
+    console.error("Error al marcar onboarding de preferencias:", error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
+
 // ─── Cierre de sesión global ───────────────────────────────────────
 
 /**
