@@ -77,7 +77,12 @@ export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalance
 
     const amountNum = parseFloat(values.amount);
 
-    if (isNaN(amountNum) || amountNum <= 0) {
+    if (Number.isNaN(amountNum)) {
+      errors.amount = "El monto debe ser un número válido.";
+      return errors;
+    }
+
+    if (amountNum <= 0) {
       errors.amount = "El monto debe ser mayor a 0.";
       return errors;
     }

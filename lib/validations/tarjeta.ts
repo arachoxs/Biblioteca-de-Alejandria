@@ -131,10 +131,6 @@ export function validateExpiryDate(
 export function validateBalance(
   balance: number | null | undefined
 ): string | null {
-  if (balance === null || balance === undefined) {
-    return "El saldo es obligatorio.";
-  }
-
   if (typeof balance !== "number" || isNaN(balance)) {
     return "El saldo debe ser un número válido.";
   }
@@ -184,10 +180,8 @@ export function validateTarjeta(
     if (expiryError) errors.fecha_caducidad = expiryError;
   }
 
-  if (payload.saldo !== undefined && payload.saldo !== null) {
-    const balanceError = validateBalance(payload.saldo);
-    if (balanceError) errors.saldo = balanceError;
-  }
+  const balanceError = validateBalance(payload.saldo);
+  if (balanceError) errors.saldo = balanceError;
 
   return errors;
 }

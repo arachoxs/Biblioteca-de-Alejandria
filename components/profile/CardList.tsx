@@ -59,6 +59,66 @@ function formatExpiry(month: number, year: number): string {
   return `${String(month).padStart(2, "0")}/${year}`;
 }
 
+interface CardItemActionsProps {
+  tarjeta: TarjetaListItem;
+  isConfirming: boolean;
+  isDeleting: boolean;
+  onAddBalance: (tarjeta: TarjetaListItem) => void;
+  onDelete: (id: number) => void;
+  onCancel: () => void;
+}
+
+function CardItemActions({
+  tarjeta,
+  isConfirming,
+  isDeleting,
+  onAddBalance,
+  onDelete,
+  onCancel,
+}: CardItemActionsProps) {
+  return (
+    <div className="flex items-center gap-2 pt-2 border-t border-brand-accent/10">
+      <button
+        type="button"
+        onClick={() => onAddBalance(tarjeta)}
+        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-brand-primary bg-brand-accent/8 hover:bg-brand-accent/18 transition-colors cursor-pointer"
+      >
+        {plusCircleIcon}
+        Agregar saldo
+      </button>
+
+      {isConfirming ? (
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onDelete(tarjeta.id)}
+            disabled={isDeleting}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-red-500 hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {isDeleting ? spinnerIcon : "Confirmar"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-2 py-1.5 rounded-md text-xs text-brand-secondary hover:text-brand-primary hover:bg-brand-accent/10 transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onDelete(tarjeta.id)}
+          className="inline-flex items-center justify-center p-1.5 rounded-md text-brand-secondary/60 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+          title="Eliminar tarjeta"
+        >
+          {trashIcon}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Skeleton ──────────────────────────────────────────────────────
 
 function CardSkeleton() {
@@ -190,45 +250,14 @@ export default function CardList({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 pt-2 border-t border-brand-accent/10">
-              <button
-                type="button"
-                onClick={() => onAddBalance(t)}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-brand-primary bg-brand-accent/8 hover:bg-brand-accent/18 transition-colors cursor-pointer"
-              >
-                {plusCircleIcon}
-                Agregar saldo
-              </button>
-
-              {isConfirming ? (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(t.id)}
-                    disabled={isDeleting}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-red-500 hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {isDeleting ? spinnerIcon : "Confirmar"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDeleteId(null)}
-                    className="px-2 py-1.5 rounded-md text-xs text-brand-secondary hover:text-brand-primary hover:bg-brand-accent/10 transition-colors cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleDelete(t.id)}
-                  className="inline-flex items-center justify-center p-1.5 rounded-md text-brand-secondary/60 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-                  title="Eliminar tarjeta"
-                >
-                  {trashIcon}
-                </button>
-              )}
-            </div>
+            <CardItemActions
+              tarjeta={t}
+              isConfirming={isConfirming}
+              isDeleting={isDeleting}
+              onAddBalance={onAddBalance}
+              onDelete={handleDelete}
+              onCancel={() => setConfirmDeleteId(null)}
+            />
           </div>
         );
       })}

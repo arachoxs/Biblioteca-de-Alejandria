@@ -6,6 +6,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import { useValidation } from "@/hooks/useValidation";
+import { formatCardNumber, formatCVV } from "@/lib/utils/cardFormatters";
 import {
   validateCardHolderName,
   validateCardNumber,
@@ -136,15 +137,11 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
 
   // Format card number input with spaces every 4 digits
   function handleCardNumberChange(rawValue: string) {
-    const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 16);
-    const formatted = digitsOnly.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
-    handleChange("numero_tarjeta", formatted);
+    handleChange("numero_tarjeta", formatCardNumber(rawValue));
   }
 
-  // Only allow digits for CVV
   function handleCVVChange(rawValue: string) {
-    const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 4);
-    handleChange("cvv", digitsOnly);
+    handleChange("cvv", formatCVV(rawValue));
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

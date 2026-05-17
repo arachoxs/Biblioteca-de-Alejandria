@@ -12,6 +12,8 @@ import {
   type DeleteTarjetaResponse,
   type AddBalanceResponse,
 } from "@/services/tarjeta/tarjetaService";
+import { validateTarjeta } from "@/lib/validations/tarjeta";
+import { isValidPositiveInteger } from "@/lib/validations/rules";
 
 // ─── Crear tarjeta ─────────────────────────────────────────────────
 
@@ -23,6 +25,11 @@ export async function createTarjetaAction(
   ano_caducidad: number,
   saldo: number
 ): Promise<CreateTarjetaResponse> {
+  const errors = validateTarjeta({ nombre_titular, numero_tarjeta, cvv, mes_caducidad, ano_caducidad, saldo });
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors };
+  }
+
   const result = await createTarjetaService({
     nombre_titular,
     numero_tarjeta,
@@ -50,6 +57,10 @@ export async function getTarjetasAction(): Promise<GetTarjetasResponse> {
 export async function deleteTarjetaAction(
   tarjetaId: number
 ): Promise<DeleteTarjetaResponse> {
+  if (!isValidPositiveInteger(tarjetaId)) {
+    return { success: false, errors: { form: "ID de tarjeta inválido." } };
+  }
+
   const result = await deleteTarjetaService(tarjetaId);
   
   if (result.success) {
@@ -65,6 +76,16 @@ export async function addBalanceAction(
   tarjetaId: number,
   amount: number
 ): Promise<AddBalanceResponse> {
+  if (typeof amount !== "number" || isNaN(amount)) {
+    return { success: false, errors: { amount: "El monto debe ser un número válido." } };
+  }
+  if (amount <= 0) {
+    return { success: false, errors: { amount: "El monto debe ser mayor a 0." } };
+  }
+  if (amount > 1000000) {
+    return { success: false, errors: { amount: "El monto no puede exceder $1'000.000 por operación." } };
+  }
+
   const result = await addBalanceService({ tarjetaId, amount });
   
   if (result.success) {
