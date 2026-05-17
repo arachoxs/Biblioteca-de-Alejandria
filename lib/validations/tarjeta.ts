@@ -4,27 +4,6 @@ const CARD_NUMBER_REGEX = /^\d{16}$/;
 const CVV_REGEX = /^\d{3,4}$/;
 const NAME_REGEX = /^[a-zA-Z\s]{3,100}$/;
 
-function luhnCheck(cardNumber: string): boolean {
-  let sum = 0;
-  let isEven = false;
-
-  for (let i = cardNumber.length - 1; i >= 0; i--) {
-    let digit = parseInt(cardNumber[i], 10);
-
-    if (isEven) {
-      digit *= 2;
-      if (digit > 9) {
-        digit -= 9;
-      }
-    }
-
-    sum += digit;
-    isEven = !isEven;
-  }
-
-  return sum % 10 === 0;
-}
-
 export function validateCardHolderName(
   name: string | null | undefined
 ): string | null {
@@ -58,7 +37,24 @@ export function validateCardNumber(
     return "El número de tarjeta debe contener exactamente 16 dígitos.";
   }
 
-  if (!luhnCheck(sanitized)) {
+  let sum = 0;
+  let isEven = false;
+
+  for (let i = sanitized.length - 1; i >= 0; i--) {
+    let digit = parseInt(sanitized[i], 10);
+
+    if (isEven) {
+      digit *= 2;
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+
+    sum += digit;
+    isEven = !isEven;
+  }
+
+  if (sum % 10 !== 0) {
     return "El número de tarjeta no es válido.";
   }
 
@@ -79,10 +75,6 @@ export function validateCVV(cvv: string | null | undefined): string | null {
   return null;
 }
 
-function isValidMonth(month: number): boolean {
-  return Number.isInteger(month) && month >= 1 && month <= 12;
-}
-
 export function validateExpiryMonth(
   month: number | null | undefined
 ): string | null {
@@ -90,16 +82,11 @@ export function validateExpiryMonth(
     return "El mes de caducidad es obligatorio.";
   }
 
-  if (isNaN(month) || !isValidMonth(month)) {
+  if (isNaN(month) || !Number.isInteger(month) || month < 1 || month > 12) {
     return "El mes de caducidad debe ser un número entre 1 y 12.";
   }
 
   return null;
-}
-
-function isValidYear(year: number): boolean {
-  const currentYear = new Date().getFullYear();
-  return Number.isInteger(year) && year >= currentYear && year <= currentYear + 20;
 }
 
 export function validateExpiryYear(
@@ -109,8 +96,14 @@ export function validateExpiryYear(
     return "El año de caducidad es obligatorio.";
   }
 
-  if (isNaN(year) || !isValidYear(year)) {
-    return `El año de caducidad debe ser un número de 4 dígitos mayor o igual a ${new Date().getFullYear()}.`;
+  const currentYear = new Date().getFullYear();
+  if (
+    isNaN(year) ||
+    !Number.isInteger(year) ||
+    year < currentYear ||
+    year > currentYear + 20
+  ) {
+    return `El año de caducidad debe ser un número de 4 dígitos mayor o igual a ${currentYear}.`;
   }
 
   return null;
