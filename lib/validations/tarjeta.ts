@@ -179,26 +179,18 @@ function validateCardIdentity(
   return errors;
 }
 
-function isExpiryDataValid(
+function combineValidationResults(
   monthErr: string | null,
-  yearErr: string | null
-): boolean {
-  return monthErr === null && yearErr === null;
-}
-
-function validateCardExpiry(
+  yearErr: string | null,
   month: number | undefined,
   year: number | undefined
 ): Record<string, string> {
   const errors: Record<string, string> = {};
 
-  const monthErr = validateExpiryMonth(month);
   if (monthErr) errors.mes_caducidad = monthErr;
-
-  const yearErr = validateExpiryYear(year);
   if (yearErr) errors.ano_caducidad = yearErr;
 
-  if (isExpiryDataValid(monthErr, yearErr)) {
+  if (monthErr === null && yearErr === null) {
     const expiryErr = validateExpiryDate(month as number, year as number);
     if (expiryErr) errors.fecha_caducidad = expiryErr;
   }
@@ -209,9 +201,17 @@ function validateCardExpiry(
 export function validateTarjeta(
   payload: TarjetaValidationPayload
 ): Record<string, string> {
+  const identityErrors = validateCardIdentity(payload);
+  const expiryErrors = combineValidationResults(
+    validateExpiryMonth(payload.mes_caducidad),
+    validateExpiryYear(payload.ano_caducidad),
+    payload.mes_caducidad,
+    payload.ano_caducidad
+  );
+
   const errors: Record<string, string> = {
-    ...validateCardIdentity(payload),
-    ...validateCardExpiry(payload.mes_caducidad, payload.ano_caducidad),
+    ...identityErrors,
+    ...expiryErrors,
   };
 
   if (payload.saldo !== undefined) {

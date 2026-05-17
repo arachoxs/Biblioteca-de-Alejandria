@@ -78,6 +78,18 @@ function validateCardIdentityFields(
   return errors;
 }
 
+function isExpiryFieldGroupValid(
+  month: number | null,
+  year: number | null
+): boolean {
+  return (
+    month !== null &&
+    year !== null &&
+    validateExpiryMonth(month) === null &&
+    validateExpiryYear(year) === null
+  );
+}
+
 function validateCardExpiryFields(
   values: Pick<AddCardFormValues, "mes_caducidad" | "ano_caducidad">
 ): Record<string, string> {
@@ -89,8 +101,8 @@ function validateCardExpiryFields(
   addErrorIfAbsent(errors, validateExpiryMonth(month), "mes_caducidad");
   addErrorIfAbsent(errors, validateExpiryYear(year), "ano_caducidad");
 
-  if (month !== null && year !== null && validateExpiryMonth(month) === null && validateExpiryYear(year) === null) {
-    const expiryErr = validateExpiryDate(month, year);
+  if (isExpiryFieldGroupValid(month, year)) {
+    const expiryErr = validateExpiryDate(month!, year!);
     addErrorIfAbsent(errors, expiryErr, "fecha_caducidad");
   }
 
@@ -121,6 +133,81 @@ function getYearOptions(): { value: string; label: string }[] {
     value: String(currentYear + i),
     label: String(currentYear + i),
   }));
+}
+
+// ─── Sub-components ────────────────────────────────────────────────
+
+interface FormHeaderProps {
+  onBack: () => void;
+}
+
+function FormHeader({ onBack }: FormHeaderProps) {
+  return (
+    <>
+      <div className="flex items-center gap-3 mb-1">
+        <button
+          type="button"
+          onClick={onBack}
+          className="p-1.5 rounded-full text-brand-secondary/70 hover:bg-brand-accent/10 hover:text-brand-primary transition-all cursor-pointer"
+          title="Volver"
+        >
+          {arrowLeftIcon}
+        </button>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-brand-accent/12 rounded-full flex items-center justify-center">
+            {cardAddIcon}
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-brand-primary">Agregar tarjeta</h3>
+            <p className="text-xs text-brand-accent">Ingresa los datos de tu tarjeta</p>
+          </div>
+        </div>
+      </div>
+      <div className="w-full h-px bg-brand-accent/15 mb-1" />
+    </>
+  );
+}
+
+interface ExpiryFieldGroupProps {
+  values: Pick<AddCardFormValues, "mes_caducidad" | "ano_caducidad">;
+  errors: Record<string, string>;
+  isPending: boolean;
+  handleChange: (field: keyof AddCardFormValues, value: string) => void;
+  handleBlur: (field: keyof AddCardFormValues) => void;
+}
+
+function ExpiryFieldGroup({ values, errors, isPending, handleChange, handleBlur }: ExpiryFieldGroupProps) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        <Select
+          id="add-card-month"
+          label="Mes"
+          options={MONTH_OPTIONS}
+          required
+          disabled={isPending}
+          value={values.mes_caducidad}
+          onChange={(e) => handleChange("mes_caducidad", e.target.value)}
+          onBlur={() => handleBlur("mes_caducidad")}
+          error={errors.mes_caducidad}
+        />
+        <Select
+          id="add-card-year"
+          label="Año"
+          options={getYearOptions()}
+          required
+          disabled={isPending}
+          value={values.ano_caducidad}
+          onChange={(e) => handleChange("ano_caducidad", e.target.value)}
+          onBlur={() => handleBlur("ano_caducidad")}
+          error={errors.ano_caducidad}
+        />
+      </div>
+      {errors.fecha_caducidad && (
+        <p className="text-xs text-red-500 -mt-2">{errors.fecha_caducidad}</p>
+      )}
+    </>
+  );
 }
 
 // ─── Componente ────────────────────────────────────────────────────
@@ -205,28 +292,7 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 relative" autoComplete="off">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="p-1.5 rounded-full text-brand-secondary/70 hover:bg-brand-accent/10 hover:text-brand-primary transition-all cursor-pointer"
-          title="Volver"
-        >
-          {arrowLeftIcon}
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-brand-accent/12 rounded-full flex items-center justify-center">
-            {cardAddIcon}
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-brand-primary">Agregar tarjeta</h3>
-            <p className="text-xs text-brand-accent">Ingresa los datos de tu tarjeta</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full h-px bg-brand-accent/15 mb-1" />
+      <FormHeader onBack={onBack} />
 
       {/* Name */}
       <Input
@@ -278,33 +344,13 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
       />
 
       {/* Expiry */}
-      <div className="grid grid-cols-2 gap-3">
-        <Select
-          id="add-card-month"
-          label="Mes"
-          options={MONTH_OPTIONS}
-          required
-          disabled={isPending}
-          value={values.mes_caducidad}
-          onChange={(e) => handleChange("mes_caducidad", e.target.value)}
-          onBlur={() => handleBlur("mes_caducidad")}
-          error={errors.mes_caducidad}
-        />
-        <Select
-          id="add-card-year"
-          label="Año"
-          options={getYearOptions()}
-          required
-          disabled={isPending}
-          value={values.ano_caducidad}
-          onChange={(e) => handleChange("ano_caducidad", e.target.value)}
-          onBlur={() => handleBlur("ano_caducidad")}
-          error={errors.ano_caducidad}
-        />
-      </div>
-      {errors.fecha_caducidad && (
-        <p className="text-xs text-red-500 -mt-2">{errors.fecha_caducidad}</p>
-      )}
+      <ExpiryFieldGroup
+        values={{ mes_caducidad: values.mes_caducidad, ano_caducidad: values.ano_caducidad }}
+        errors={errors}
+        isPending={isPending}
+        handleChange={handleChange}
+        handleBlur={handleBlur}
+      />
 
       {/* Initial balance */}
       <Input

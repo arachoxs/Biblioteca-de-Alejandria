@@ -50,6 +50,24 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+// ─── Validación ─────────────────────────────────────────────────────
+
+function validateBalanceForm(values: AddBalanceFormValues): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!values.amount?.trim()) {
+    errors.amount = "El monto es obligatorio.";
+    return errors;
+  }
+  const amountNum = parseFloat(values.amount);
+  if (Number.isNaN(amountNum)) {
+    errors.amount = "El monto debe ser un número válido.";
+    return errors;
+  }
+  const balErr = validateBalance(amountNum);
+  if (balErr) errors.amount = balErr;
+  return errors;
+}
+
 // ─── Tipos ─────────────────────────────────────────────────────────
 
 type AddBalanceFormValues = {
@@ -67,52 +85,25 @@ interface AddBalanceFormProps {
 export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalanceFormProps) {
   const [isPending, setIsPending] = useState(false);
 
-  const validateForm = useCallback((values: AddBalanceFormValues): Record<string, string> => {
-    const errors: Record<string, string> = {};
-
-    if (!values.amount || values.amount.trim() === "") {
-      errors.amount = "El monto es obligatorio.";
-      return errors;
-    }
-
-    const amountNum = parseFloat(values.amount);
-
-    if (Number.isNaN(amountNum)) {
-      errors.amount = "El monto debe ser un número válido.";
-      return errors;
-    }
-
-    const balErr = validateBalance(amountNum);
-    if (balErr) errors.amount = balErr;
-
-    return errors;
-  }, []);
-
   const { values, errors, handleChange, handleBlur, setErrors } = useValidation<AddBalanceFormValues>(
     { amount: "" },
-    validateForm,
+    validateBalanceForm,
   );
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    const validationErrors = validateForm(values);
-    setErrors(validationErrors);
-
+    const validationErrors = validateBalanceForm(values);
     if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
-
-    const amount = parseFloat(values.amount);
-
     setIsPending(true);
-    const result = await onSubmit(tarjeta.id, amount);
+    const result = await onSubmit(tarjeta.id, parseFloat(values.amount));
     setIsPending(false);
-
     if (!result.success && result.errors?.amount) {
       setErrors({ amount: result.errors.amount });
     }
-  }
+  }, [values, onSubmit, tarjeta.id, setErrors]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 relative" autoComplete="off">
