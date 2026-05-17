@@ -168,8 +168,12 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
     const result = await onSubmit(data);
     setIsPending(false);
 
-    if (!result.success && result.errors && !result.errors.form) {
-      setErrors(result.errors);
+    if (!result.success && result.errors) {
+      if (result.errors.form) {
+        setErrors({ form: result.errors.form });
+      } else {
+        setErrors(result.errors);
+      }
     }
   }
 

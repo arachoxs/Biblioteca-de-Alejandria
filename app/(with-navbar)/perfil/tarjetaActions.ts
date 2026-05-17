@@ -11,6 +11,7 @@ import {
   type GetTarjetasResponse,
   type DeleteTarjetaResponse,
   type AddBalanceResponse,
+  type CreateTarjetaInput,
 } from "@/services/tarjeta/tarjetaService";
 import { validateTarjeta } from "@/lib/validations/tarjeta";
 import { isValidPositiveInteger } from "@/lib/validations/rules";
@@ -18,26 +19,14 @@ import { isValidPositiveInteger } from "@/lib/validations/rules";
 // ─── Crear tarjeta ─────────────────────────────────────────────────
 
 export async function createTarjetaAction(
-  nombre_titular: string,
-  numero_tarjeta: string,
-  cvv: string,
-  mes_caducidad: number,
-  ano_caducidad: number,
-  saldo: number
+  input: CreateTarjetaInput
 ): Promise<CreateTarjetaResponse> {
-  const errors = validateTarjeta({ nombre_titular, numero_tarjeta, cvv, mes_caducidad, ano_caducidad, saldo });
+  const errors = validateTarjeta(input);
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
 
-  const result = await createTarjetaService({
-    nombre_titular,
-    numero_tarjeta,
-    cvv,
-    mes_caducidad,
-    ano_caducidad,
-    saldo,
-  });
+  const result = await createTarjetaService(input);
 
   if (result.success) {
     revalidatePath("/perfil");

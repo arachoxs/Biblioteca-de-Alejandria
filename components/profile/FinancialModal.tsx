@@ -88,14 +88,7 @@ export default function FinancialModal({ isOpen, onClose }: FinancialModalProps)
     ano_caducidad: number;
     saldo: number;
   }) {
-    const result = await createTarjetaAction(
-      data.nombre_titular,
-      data.numero_tarjeta,
-      data.cvv,
-      data.mes_caducidad,
-      data.ano_caducidad,
-      data.saldo
-    );
+    const result = await createTarjetaAction(data);
 
     if (result.success) {
       showNotification("success", result.message ?? "Tarjeta registrada.");

@@ -79,6 +79,10 @@ export function validateCVV(cvv: string | null | undefined): string | null {
   return null;
 }
 
+function isValidMonth(month: number): boolean {
+  return Number.isInteger(month) && month >= 1 && month <= 12;
+}
+
 export function validateExpiryMonth(
   month: number | null | undefined
 ): string | null {
@@ -86,11 +90,16 @@ export function validateExpiryMonth(
     return "El mes de caducidad es obligatorio.";
   }
 
-  if (!Number.isInteger(month) || month < 1 || month > 12) {
+  if (isNaN(month) || !isValidMonth(month)) {
     return "El mes de caducidad debe ser un número entre 1 y 12.";
   }
 
   return null;
+}
+
+function isValidYear(year: number): boolean {
+  const currentYear = new Date().getFullYear();
+  return Number.isInteger(year) && year >= currentYear && year <= currentYear + 20;
 }
 
 export function validateExpiryYear(
@@ -100,10 +109,8 @@ export function validateExpiryYear(
     return "El año de caducidad es obligatorio.";
   }
 
-  const currentYear = new Date().getFullYear();
-
-  if (!Number.isInteger(year) || year < currentYear || year > currentYear + 20) {
-    return `El año de caducidad debe ser un número de 4 dígitos mayor o igual a ${currentYear}.`;
+  if (isNaN(year) || !isValidYear(year)) {
+    return `El año de caducidad debe ser un número de 4 dígitos mayor o igual a ${new Date().getFullYear()}.`;
   }
 
   return null;
@@ -155,33 +162,55 @@ export interface TarjetaValidationPayload {
   saldo?: number;
 }
 
-export function validateTarjeta(
+function validateCardIdentity(
   payload: TarjetaValidationPayload
 ): Record<string, string> {
   const errors: Record<string, string> = {};
 
-  const nameError = validateCardHolderName(payload.nombre_titular);
-  if (nameError) errors.nombre_titular = nameError;
+  const nameErr = validateCardHolderName(payload.nombre_titular);
+  if (nameErr) errors.nombre_titular = nameErr;
 
-  const numberError = validateCardNumber(payload.numero_tarjeta);
-  if (numberError) errors.numero_tarjeta = numberError;
+  const numErr = validateCardNumber(payload.numero_tarjeta);
+  if (numErr) errors.numero_tarjeta = numErr;
 
-  const cvvError = validateCVV(payload.cvv);
-  if (cvvError) errors.cvv = cvvError;
+  const cvvErr = validateCVV(payload.cvv);
+  if (cvvErr) errors.cvv = cvvErr;
 
-  const monthError = validateExpiryMonth(payload.mes_caducidad);
-  if (monthError) errors.mes_caducidad = monthError;
+  return errors;
+}
 
-  const yearError = validateExpiryYear(payload.ano_caducidad);
-  if (yearError) errors.ano_caducidad = yearError;
+function validateCardExpiry(
+  month: number | undefined,
+  year: number | undefined
+): Record<string, string> {
+  const errors: Record<string, string> = {};
 
-  if (!monthError && !yearError) {
-    const expiryError = validateExpiryDate(payload.mes_caducidad, payload.ano_caducidad);
-    if (expiryError) errors.fecha_caducidad = expiryError;
+  const monthErr = validateExpiryMonth(month);
+  if (monthErr) errors.mes_caducidad = monthErr;
+
+  const yearErr = validateExpiryYear(year);
+  if (yearErr) errors.ano_caducidad = yearErr;
+
+  if (!monthErr && !yearErr && month !== undefined && year !== undefined) {
+    const expiryErr = validateExpiryDate(month, year);
+    if (expiryErr) errors.fecha_caducidad = expiryErr;
   }
 
-  const balanceError = validateBalance(payload.saldo);
-  if (balanceError) errors.saldo = balanceError;
+  return errors;
+}
+
+export function validateTarjeta(
+  payload: TarjetaValidationPayload
+): Record<string, string> {
+  const errors: Record<string, string> = {
+    ...validateCardIdentity(payload),
+    ...validateCardExpiry(payload.mes_caducidad, payload.ano_caducidad),
+  };
+
+  if (payload.saldo !== undefined) {
+    const balanceErr = validateBalance(payload.saldo);
+    if (balanceErr) errors.saldo = balanceErr;
+  }
 
   return errors;
 }
