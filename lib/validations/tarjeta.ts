@@ -75,6 +75,10 @@ export function validateCVV(cvv: string | null | undefined): string | null {
   return null;
 }
 
+function isValidMonth(month: number): boolean {
+  return !isNaN(month) && Number.isInteger(month) && month >= 1 && month <= 12;
+}
+
 export function validateExpiryMonth(
   month: number | null | undefined
 ): string | null {
@@ -82,11 +86,20 @@ export function validateExpiryMonth(
     return "El mes de caducidad es obligatorio.";
   }
 
-  if (isNaN(month) || !Number.isInteger(month) || month < 1 || month > 12) {
+  if (!isValidMonth(month)) {
     return "El mes de caducidad debe ser un número entre 1 y 12.";
   }
 
   return null;
+}
+
+function isValidExpiryYear(year: number, currentYear: number): boolean {
+  return (
+    !isNaN(year) &&
+    Number.isInteger(year) &&
+    year >= currentYear &&
+    year <= currentYear + 20
+  );
 }
 
 export function validateExpiryYear(
@@ -97,12 +110,7 @@ export function validateExpiryYear(
   }
 
   const currentYear = new Date().getFullYear();
-  if (
-    isNaN(year) ||
-    !Number.isInteger(year) ||
-    year < currentYear ||
-    year > currentYear + 20
-  ) {
+  if (!isValidExpiryYear(year, currentYear)) {
     return `El año de caducidad debe ser un número de 4 dígitos mayor o igual a ${currentYear}.`;
   }
 
