@@ -82,16 +82,6 @@ export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalance
       return errors;
     }
 
-    if (amountNum <= 0) {
-      errors.amount = "El monto debe ser mayor a 0.";
-      return errors;
-    }
-
-    if (amountNum > 1000000) {
-      errors.amount = "El monto no puede exceder $1'000.000 por operación.";
-      return errors;
-    }
-
     const balErr = validateBalance(amountNum);
     if (balErr) errors.amount = balErr;
 

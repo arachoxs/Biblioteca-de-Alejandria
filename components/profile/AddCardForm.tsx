@@ -55,6 +55,59 @@ type AddCardFormValues = {
   saldo: string;
 };
 
+// ─── Helpers ───────────────────────────────────────────────────────
+
+function addErrorIfAbsent(
+  errors: Record<string, string>,
+  error: string | null,
+  field: string
+): void {
+  if (error) errors[field] = error;
+}
+
+function validateCardIdentityFields(
+  values: Pick<AddCardFormValues, "nombre_titular" | "numero_tarjeta" | "cvv">
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const rawNumber = values.numero_tarjeta.replace(/\s/g, "");
+
+  addErrorIfAbsent(errors, validateCardHolderName(values.nombre_titular), "nombre_titular");
+  addErrorIfAbsent(errors, validateCardNumber(rawNumber), "numero_tarjeta");
+  addErrorIfAbsent(errors, validateCVV(values.cvv), "cvv");
+
+  return errors;
+}
+
+function validateCardExpiryFields(
+  values: Pick<AddCardFormValues, "mes_caducidad" | "ano_caducidad">
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  const month = values.mes_caducidad ? parseInt(values.mes_caducidad, 10) : null;
+  const year = values.ano_caducidad ? parseInt(values.ano_caducidad, 10) : null;
+
+  addErrorIfAbsent(errors, validateExpiryMonth(month), "mes_caducidad");
+  addErrorIfAbsent(errors, validateExpiryYear(year), "ano_caducidad");
+
+  if (month !== null && year !== null && validateExpiryMonth(month) === null && validateExpiryYear(year) === null) {
+    const expiryErr = validateExpiryDate(month, year);
+    addErrorIfAbsent(errors, expiryErr, "fecha_caducidad");
+  }
+
+  return errors;
+}
+
+function validateBalanceField(saldo: string): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  if (saldo) {
+    const saldoNum = parseFloat(saldo);
+    addErrorIfAbsent(errors, validateBalance(saldoNum), "saldo");
+  }
+
+  return errors;
+}
+
 // ─── Opciones de selects ───────────────────────────────────────────
 
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
@@ -87,41 +140,14 @@ interface AddCardFormProps {
 export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
   const [isPending, setIsPending] = useState(false);
 
-  const validateForm = useCallback((values: AddCardFormValues): Record<string, string> => {
-    const errors: Record<string, string> = {};
-
-    const nameErr = validateCardHolderName(values.nombre_titular);
-    if (nameErr) errors.nombre_titular = nameErr;
-
-    // Strip spaces for validation (visual formatting only)
-    const rawNumber = values.numero_tarjeta.replace(/\s/g, "");
-    const numErr = validateCardNumber(rawNumber);
-    if (numErr) errors.numero_tarjeta = numErr;
-
-    const cvvErr = validateCVV(values.cvv);
-    if (cvvErr) errors.cvv = cvvErr;
-
-    const month = values.mes_caducidad ? parseInt(values.mes_caducidad, 10) : null;
-    const monthErr = validateExpiryMonth(month);
-    if (monthErr) errors.mes_caducidad = monthErr;
-
-    const year = values.ano_caducidad ? parseInt(values.ano_caducidad, 10) : null;
-    const yearErr = validateExpiryYear(year);
-    if (yearErr) errors.ano_caducidad = yearErr;
-
-    if (!monthErr && !yearErr && month && year) {
-      const expiryErr = validateExpiryDate(month, year);
-      if (expiryErr) errors.fecha_caducidad = expiryErr;
-    }
-
-    if (values.saldo) {
-      const saldoNum = parseFloat(values.saldo);
-      const balErr = validateBalance(saldoNum);
-      if (balErr) errors.saldo = balErr;
-    }
-
-    return errors;
-  }, []);
+  const validateForm = useCallback(
+    (values: AddCardFormValues): Record<string, string> => ({
+      ...validateCardIdentityFields(values),
+      ...validateCardExpiryFields(values),
+      ...validateBalanceField(values.saldo),
+    }),
+    []
+  );
 
   const { values, errors, handleChange, handleBlur, setErrors } = useValidation<AddCardFormValues>(
     {

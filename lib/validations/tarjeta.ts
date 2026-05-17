@@ -179,6 +179,13 @@ function validateCardIdentity(
   return errors;
 }
 
+function isExpiryDataValid(
+  monthErr: string | null,
+  yearErr: string | null
+): boolean {
+  return monthErr === null && yearErr === null;
+}
+
 function validateCardExpiry(
   month: number | undefined,
   year: number | undefined
@@ -191,8 +198,8 @@ function validateCardExpiry(
   const yearErr = validateExpiryYear(year);
   if (yearErr) errors.ano_caducidad = yearErr;
 
-  if (!monthErr && !yearErr && month !== undefined && year !== undefined) {
-    const expiryErr = validateExpiryDate(month, year);
+  if (isExpiryDataValid(monthErr, yearErr)) {
+    const expiryErr = validateExpiryDate(month as number, year as number);
     if (expiryErr) errors.fecha_caducidad = expiryErr;
   }
 
