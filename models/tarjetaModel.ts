@@ -8,6 +8,7 @@ interface TarjetaInsert {
   mes_caducidad: number;
   ano_caducidad: number;
   saldo: number;
+  ultimos_cuatro_digitos: string;
 }
 
 interface TarjetaRow {
@@ -19,6 +20,7 @@ interface TarjetaRow {
   mes_caducidad: number;
   ano_caducidad: number;
   saldo: number;
+  ultimos_cuatro_digitos: string;
   deleted_at: string | null;
   created_at?: string;
 }
@@ -36,6 +38,7 @@ export async function createTarjeta(input: TarjetaInsert): Promise<number> {
       mes_caducidad: input.mes_caducidad,
       ano_caducidad: input.ano_caducidad,
       saldo: input.saldo,
+      ultimos_cuatro_digitos: input.ultimos_cuatro_digitos,
     })
     .select("id")
     .single();
@@ -65,7 +68,7 @@ export async function getTarjetaById(
     throw error;
   }
 
-  return data;
+  return data as TarjetaRow | null;
 }
 
 export async function getTarjetasByUserId(userId: string): Promise<TarjetaRow[]> {
@@ -83,10 +86,25 @@ export async function getTarjetasByUserId(userId: string): Promise<TarjetaRow[]>
     throw error;
   }
 
-  return data;
+  return data as TarjetaRow[];
 }
 
+export async function countActiveTarjetasByUserId(userId: string): Promise<number> {
+  const adminClient = createAdminClient();
 
+  const { count, error } = await adminClient
+    .from("tarjeta")
+    .select("*", { count: "exact", head: true })
+    .eq("id_usuario", userId)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[tarjetaModel] Error al contar tarjetas activas:", error);
+    throw error;
+  }
+
+  return count ?? 0;
+}
 
 export async function softDeleteTarjeta(id: number): Promise<void> {
   const adminClient = createAdminClient();

@@ -5,6 +5,7 @@ import {
   getTarjetasByUserId,
   softDeleteTarjeta,
   addBalance as addBalanceModel,
+  countActiveTarjetasByUserId,
 } from "@/models/tarjetaModel";
 import {
   encryptCardNumber,
@@ -16,6 +17,12 @@ import {
 } from "@/lib/validations/tarjeta";
 import { sanitizeText } from "@/lib/validations/rules";
 import { getErrorMessage } from "@/lib/services/errors";
+
+// ─── Constantes ────────────────────────────────────────────────────
+
+const MAX_TARJETAS_POR_USUARIO = 5;
+
+// ─── Tipos de entrada/salida ───────────────────────────────────────
 
 export interface CreateTarjetaInput {
   nombre_titular: string;
@@ -33,16 +40,19 @@ export interface CreateTarjetaResponse {
   tarjetaId?: number;
 }
 
+export interface TarjetaListItem {
+  id: number;
+  nombre_titular: string;
+  ultimos_cuatro_digitos: string;
+  mes_caducidad: number;
+  ano_caducidad: number;
+  saldo: number;
+  created_at: string;
+}
+
 export interface GetTarjetasResponse {
   success: boolean;
-  tarjetas?: Array<{
-    id: number;
-    nombre_titular: string;
-    mes_caducidad: number;
-    ano_caducidad: number;
-    saldo: number;
-    created_at: string;
-  }>;
+  tarjetas?: TarjetaListItem[];
   error?: string;
 }
 
@@ -63,6 +73,8 @@ export interface AddBalanceResponse {
   message?: string;
 }
 
+// ─── Helpers ───────────────────────────────────────────────────────
+
 function sanitizeTarjetaInput(
   payload: CreateTarjetaInput
 ): TarjetaValidationPayload {
@@ -76,6 +88,12 @@ function sanitizeTarjetaInput(
   };
 }
 
+function extractLastFourDigits(cardNumber: string): string {
+  return cardNumber.slice(-4);
+}
+
+// ─── Servicios ─────────────────────────────────────────────────────
+
 export async function createTarjetaService(
   input: CreateTarjetaInput
 ): Promise<CreateTarjetaResponse> {
@@ -85,6 +103,17 @@ export async function createTarjetaService(
       return { success: false, errors: { form: "No hay sesión activa." } };
     }
 
+    // Verificar límite de tarjetas activas
+    const activeCount = await countActiveTarjetasByUserId(user.id);
+    if (activeCount >= MAX_TARJETAS_POR_USUARIO) {
+      return {
+        success: false,
+        errors: {
+          form: `Has alcanzado el límite máximo de ${MAX_TARJETAS_POR_USUARIO} tarjetas activas.`,
+        },
+      };
+    }
+
     const sanitized = sanitizeTarjetaInput(input);
     const errors = validateTarjeta(sanitized);
 
@@ -92,6 +121,7 @@ export async function createTarjetaService(
       return { success: false, errors };
     }
 
+    const ultimos = extractLastFourDigits(sanitized.numero_tarjeta);
     const hashNumero = await encryptCardNumber(sanitized.numero_tarjeta);
     const hashCVV = await encryptCVV(sanitized.cvv);
 
@@ -105,6 +135,7 @@ export async function createTarjetaService(
         mes_caducidad: sanitized.mes_caducidad,
         ano_caducidad: sanitized.ano_caducidad,
         saldo: sanitized.saldo ?? 0,
+        ultimos_cuatro_digitos: ultimos,
       });
     } catch (error) {
       return {
@@ -143,6 +174,7 @@ export async function getTarjetasService(): Promise<GetTarjetasResponse> {
       tarjetas: tarjetas.map((t) => ({
         id: t.id,
         nombre_titular: t.nombre_titular ?? "",
+        ultimos_cuatro_digitos: t.ultimos_cuatro_digitos,
         mes_caducidad: t.mes_caducidad,
         ano_caducidad: t.ano_caducidad,
         saldo: t.saldo,
@@ -231,10 +263,10 @@ export async function addBalanceService(
       };
     }
 
-    if (input.amount > 100000) {
+    if (input.amount > 1000000) {
       return {
         success: false,
-        errors: { amount: "El monto no puede exceder 100,000 por operación." },
+        errors: { amount: "El monto no puede exceder $1'000.000 por operación." },
       };
     }
 
