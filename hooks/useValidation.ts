@@ -89,21 +89,21 @@ export function useValidation<T extends Record<string, unknown>>(
    */
   const handleChange = useCallback(
     (field: keyof T, value: unknown) => {
-      setValues((prevValues) => {
-        const newValues = { ...prevValues, [field]: value };
+      // Calculamos el nuevo estado de manera síncrona en el closure
+      setValues((prevValues) => ({ ...prevValues, [field]: value }));
 
-        // Revalidar si hay error presente (sin importar touched)
-        if (errors[field as string]) {
-          validateField(field, newValues);
-        }
+      // Revalidamos usando las dependencias de valores calculadas dinámicamente
+      // Solo revalidamos si ya hay un error
+      if (errors[field as string]) {
+        // Ejecutamos validateField usando el valor más reciente para el campo modificado
+        // Para esto pasamos un objeto temporal que mergea values + campo modificado
+        validateField(field, { ...values, [field]: value });
+      }
 
-        return newValues;
-      });
-
-      // Notificar al formulario que el campo cambió (para limpiar errores externos)
+      // Notificamos cambios (limpieza externa)
       options?.onFieldChange?.(field);
     },
-    [errors, validateField, options]
+    [errors, values, validateField, options]
   );
 
   /**

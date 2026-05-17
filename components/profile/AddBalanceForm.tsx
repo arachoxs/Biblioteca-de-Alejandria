@@ -4,7 +4,6 @@ import type React from "react";
 import { useState, useCallback } from "react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import Alert from "@/components/ui/Alert";
 import { useValidation } from "@/hooks/useValidation";
 import { validateBalance } from "@/lib/validations/tarjeta";
 import type { TarjetaListItem } from "@/services/tarjeta/tarjetaService";
@@ -67,9 +66,6 @@ interface AddBalanceFormProps {
 
 export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalanceFormProps) {
   const [isPending, setIsPending] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [submitCount, setSubmitCount] = useState(0);
 
   const validateForm = useCallback((values: AddBalanceFormValues): Record<string, string> => {
     const errors: Record<string, string> = {};
@@ -104,9 +100,6 @@ export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalance
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setServerError(null);
-    setSuccess(false);
-    setSubmitCount((p) => p + 1);
 
     const validationErrors = validateForm(values);
     setErrors(validationErrors);
@@ -121,14 +114,8 @@ export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalance
     const result = await onSubmit(tarjeta.id, amount);
     setIsPending(false);
 
-    if (result.success) {
-      setSuccess(true);
-    } else {
-      if (result.errors?.form) {
-        setServerError(result.errors.form);
-      } else if (result.errors?.amount) {
-        setErrors({ amount: result.errors.amount });
-      }
+    if (!result.success && result.errors?.amount) {
+      setErrors({ amount: result.errors.amount });
     }
   }
 
@@ -178,18 +165,6 @@ export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalance
         </div>
       </div>
 
-      {/* Alerts */}
-      {serverError && (
-        <Alert key={`error-${submitCount}`} variant="error">
-          {serverError}
-        </Alert>
-      )}
-      {success && (
-        <Alert key={`success-${submitCount}`} variant="success">
-          Saldo añadido correctamente.
-        </Alert>
-      )}
-
       {/* Amount */}
       <Input
         id="add-balance-amount"
@@ -201,7 +176,7 @@ export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalance
         required
         min={1}
         step={1}
-        disabled={isPending || success}
+        disabled={isPending}
         value={values.amount}
         onChange={(e) => handleChange("amount", e.target.value)}
         onBlur={() => handleBlur("amount")}
@@ -211,7 +186,7 @@ export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalance
       {/* Submit */}
       <Button
         type="submit"
-        disabled={isPending || success}
+        disabled={isPending}
         className="flex items-center justify-center gap-2 mt-2"
       >
         {isPending ? (
@@ -219,8 +194,6 @@ export default function AddBalanceForm({ tarjeta, onSubmit, onBack }: AddBalance
             {spinnerIcon}
             Procesando…
           </>
-        ) : success ? (
-          "✓ Saldo añadido"
         ) : (
           "Agregar saldo"
         )}

@@ -144,7 +144,7 @@ export function validateBalance(
   }
 
   if (balance > 1000000) {
-    return "El saldo no puede exceder 1,000,000.";
+    return "El saldo inicial no puede exceder $1'000.000.";
   }
 
   return null;

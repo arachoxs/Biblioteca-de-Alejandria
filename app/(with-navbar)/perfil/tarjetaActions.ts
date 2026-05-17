@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import {
   createTarjetaService,
   getTarjetasService,
@@ -21,7 +23,7 @@ export async function createTarjetaAction(
   ano_caducidad: number,
   saldo: number
 ): Promise<CreateTarjetaResponse> {
-  return createTarjetaService({
+  const result = await createTarjetaService({
     nombre_titular,
     numero_tarjeta,
     cvv,
@@ -29,6 +31,12 @@ export async function createTarjetaAction(
     ano_caducidad,
     saldo,
   });
+
+  if (result.success) {
+    revalidatePath("/perfil");
+  }
+
+  return result;
 }
 
 // ─── Listar tarjetas del usuario ───────────────────────────────────
@@ -42,7 +50,13 @@ export async function getTarjetasAction(): Promise<GetTarjetasResponse> {
 export async function deleteTarjetaAction(
   tarjetaId: number
 ): Promise<DeleteTarjetaResponse> {
-  return deleteTarjetaService(tarjetaId);
+  const result = await deleteTarjetaService(tarjetaId);
+  
+  if (result.success) {
+    revalidatePath("/perfil");
+  }
+
+  return result;
 }
 
 // ─── Añadir saldo ──────────────────────────────────────────────────
@@ -51,5 +65,11 @@ export async function addBalanceAction(
   tarjetaId: number,
   amount: number
 ): Promise<AddBalanceResponse> {
-  return addBalanceService({ tarjetaId, amount });
+  const result = await addBalanceService({ tarjetaId, amount });
+  
+  if (result.success) {
+    revalidatePath("/perfil");
+  }
+
+  return result;
 }

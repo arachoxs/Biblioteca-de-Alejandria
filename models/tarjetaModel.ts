@@ -22,7 +22,6 @@ interface TarjetaRow {
   saldo: number;
   ultimos_cuatro_digitos: string;
   deleted_at: string | null;
-  created_at?: string;
 }
 
 export async function createTarjeta(input: TarjetaInsert): Promise<number> {
@@ -79,7 +78,7 @@ export async function getTarjetasByUserId(userId: string): Promise<TarjetaRow[]>
     .select("*")
     .eq("id_usuario", userId)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("id", { ascending: false });
 
   if (error) {
     console.error("[tarjetaModel] Error al obtener tarjetas del usuario:", error);

@@ -47,7 +47,6 @@ export interface TarjetaListItem {
   mes_caducidad: number;
   ano_caducidad: number;
   saldo: number;
-  created_at: string;
 }
 
 export interface GetTarjetasResponse {
@@ -178,7 +177,6 @@ export async function getTarjetasService(): Promise<GetTarjetasResponse> {
         mes_caducidad: t.mes_caducidad,
         ano_caducidad: t.ano_caducidad,
         saldo: t.saldo,
-        created_at: t.created_at ?? "",
       })),
     };
   } catch (error) {

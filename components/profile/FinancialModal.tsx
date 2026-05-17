@@ -19,6 +19,7 @@ import type { TarjetaListItem } from "@/services/tarjeta/tarjetaService";
 type ModalView = "list" | "add" | "balance";
 
 interface Notification {
+  id: number;
   type: "success" | "error";
   message: string;
 }
@@ -74,7 +75,7 @@ export default function FinancialModal({ isOpen, onClose }: FinancialModalProps)
   // ── Notification helper ──
 
   function showNotification(type: "success" | "error", message: string) {
-    setNotification({ type, message });
+    setNotification({ id: Date.now(), type, message });
   }
 
   // ── Handlers ──
@@ -101,6 +102,8 @@ export default function FinancialModal({ isOpen, onClose }: FinancialModalProps)
       await fetchTarjetas();
       // Delay navigation so user sees the success state on the form
       setTimeout(() => setView("list"), 1200);
+    } else if (result.errors?.form) {
+      showNotification("error", result.errors.form);
     }
 
     return { success: result.success, errors: result.errors };
@@ -124,6 +127,8 @@ export default function FinancialModal({ isOpen, onClose }: FinancialModalProps)
       showNotification("success", result.message ?? "Saldo añadido.");
       await fetchTarjetas();
       setTimeout(() => setView("list"), 1200);
+    } else if (result.errors?.form) {
+      showNotification("error", result.errors.form);
     }
 
     return { success: result.success, errors: result.errors };
@@ -186,7 +191,7 @@ export default function FinancialModal({ isOpen, onClose }: FinancialModalProps)
 
       {notification && (
         <Alert
-          key={`financial-${notification.type}-${Date.now()}`}
+          key={`financial-${notification.id}`}
           variant={notification.type}
           onClose={() => setNotification(null)}
         >

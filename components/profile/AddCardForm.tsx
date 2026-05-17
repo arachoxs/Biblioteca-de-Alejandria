@@ -5,7 +5,6 @@ import { useState, useCallback } from "react";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
-import Alert from "@/components/ui/Alert";
 import { useValidation } from "@/hooks/useValidation";
 import {
   validateCardHolderName,
@@ -20,11 +19,13 @@ import {
 // ─── Iconos ────────────────────────────────────────────────────────
 
 const cardAddIcon = (
-  <svg className="w-8 h-8 text-brand-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1" y="4" width="22" height="16" rx="2" />
-    <path d="M1 10h22" />
-    <path d="M12 15v-4" />
-    <path d="M10 13h4" />
+  <svg className="w-8 h-8 text-brand-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7" />
+    <path d="M3 10h18" />
+    <path d="M7 15h.01" />
+    <path d="M11 15h2" />
+    <path d="M16 19h6" />
+    <path d="M19 16v6" />
   </svg>
 );
 
@@ -84,9 +85,6 @@ interface AddCardFormProps {
 
 export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
   const [isPending, setIsPending] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [submitCount, setSubmitCount] = useState(0);
 
   const validateForm = useCallback((values: AddCardFormValues): Record<string, string> => {
     const errors: Record<string, string> = {};
@@ -139,7 +137,7 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
   // Format card number input with spaces every 4 digits
   function handleCardNumberChange(rawValue: string) {
     const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 16);
-    const formatted = digitsOnly.replace(/(\d{4})(?=\d)/g, "$1 ");
+    const formatted = digitsOnly.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
     handleChange("numero_tarjeta", formatted);
   }
 
@@ -151,9 +149,6 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setServerError(null);
-    setSuccess(false);
-    setSubmitCount((p) => p + 1);
 
     const validationErrors = validateForm(values);
     setErrors(validationErrors);
@@ -176,14 +171,8 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
     const result = await onSubmit(data);
     setIsPending(false);
 
-    if (result.success) {
-      setSuccess(true);
-    } else {
-      if (result.errors?.form) {
-        setServerError(result.errors.form);
-      } else if (result.errors) {
-        setErrors(result.errors);
-      }
+    if (!result.success && result.errors && !result.errors.form) {
+      setErrors(result.errors);
     }
   }
 
@@ -212,18 +201,6 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
 
       <div className="w-full h-px bg-brand-accent/15 mb-1" />
 
-      {/* Alerts */}
-      {serverError && (
-        <Alert key={`error-${submitCount}`} variant="error">
-          {serverError}
-        </Alert>
-      )}
-      {success && (
-        <Alert key={`success-${submitCount}`} variant="success">
-          Tarjeta registrada correctamente.
-        </Alert>
-      )}
-
       {/* Name */}
       <Input
         id="add-card-name"
@@ -232,7 +209,7 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
         type="text"
         placeholder="Como aparece en la tarjeta"
         required
-        disabled={isPending || success}
+        disabled={isPending}
         value={values.nombre_titular}
         onChange={(e) => handleChange("nombre_titular", e.target.value)}
         onBlur={() => handleBlur("nombre_titular")}
@@ -249,7 +226,7 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
         placeholder="0000 0000 0000 0000"
         required
         maxLength={19}
-        disabled={isPending || success}
+        disabled={isPending}
         value={values.numero_tarjeta}
         onChange={(e) => handleCardNumberChange(e.target.value)}
         onBlur={() => handleBlur("numero_tarjeta")}
@@ -266,7 +243,7 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
         placeholder="•••"
         required
         maxLength={4}
-        disabled={isPending || success}
+        disabled={isPending}
         value={values.cvv}
         onChange={(e) => handleCVVChange(e.target.value)}
         onBlur={() => handleBlur("cvv")}
@@ -280,7 +257,7 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
           label="Mes"
           options={MONTH_OPTIONS}
           required
-          disabled={isPending || success}
+          disabled={isPending}
           value={values.mes_caducidad}
           onChange={(e) => handleChange("mes_caducidad", e.target.value)}
           onBlur={() => handleBlur("mes_caducidad")}
@@ -291,7 +268,7 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
           label="Año"
           options={getYearOptions()}
           required
-          disabled={isPending || success}
+          disabled={isPending}
           value={values.ano_caducidad}
           onChange={(e) => handleChange("ano_caducidad", e.target.value)}
           onBlur={() => handleBlur("ano_caducidad")}
@@ -312,7 +289,7 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
         placeholder="0"
         min={0}
         step={1}
-        disabled={isPending || success}
+        disabled={isPending}
         value={values.saldo}
         onChange={(e) => handleChange("saldo", e.target.value)}
         onBlur={() => handleBlur("saldo")}
@@ -322,7 +299,7 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
       {/* Submit */}
       <Button
         type="submit"
-        disabled={isPending || success}
+        disabled={isPending}
         className="flex items-center justify-center gap-2 mt-2"
       >
         {isPending ? (
@@ -330,8 +307,6 @@ export default function AddCardForm({ onSubmit, onBack }: AddCardFormProps) {
             {spinnerIcon}
             Registrando…
           </>
-        ) : success ? (
-          "✓ Tarjeta registrada"
         ) : (
           "Registrar tarjeta"
         )}

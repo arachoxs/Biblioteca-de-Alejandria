@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Button from "@/components/ui/Button";
 import type { TarjetaListItem } from "@/services/tarjeta/tarjetaService";
 
 // ─── Iconos ────────────────────────────────────────────────────────
@@ -138,14 +139,14 @@ export default function CardList({
         <p className="text-xs text-brand-accent mb-5 max-w-[220px]">
           Agrega una tarjeta para gestionar tu saldo y realizar transacciones.
         </p>
-        <button
+        <Button
           type="button"
           onClick={onAddCard}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-primary text-brand-bg text-sm font-medium hover:bg-brand-secondary transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-2 mt-2 w-auto px-6 py-2.5 mx-auto"
         >
           {plusCircleIcon}
           Agregar tarjeta
-        </button>
+        </Button>
       </div>
     );
   }
@@ -233,14 +234,16 @@ export default function CardList({
       })}
 
       {/* Add card button */}
-      <button
+      <Button
         type="button"
         onClick={onAddCard}
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-brand-accent/25 text-sm font-medium text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-accent/5 transition-all cursor-pointer"
+        disabled={tarjetas.length >= 5}
+        title={tarjetas.length >= 5 ? "Límite máximo de 5 tarjetas alcanzado" : undefined}
+        className="flex items-center justify-center gap-2 mt-4"
       >
         {plusCircleIcon}
-        Agregar tarjeta
-      </button>
+        {tarjetas.length >= 5 ? "Límite alcanzado" : "Agregar tarjeta"}
+      </Button>
     </div>
   );
 }
