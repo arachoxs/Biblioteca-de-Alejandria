@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createPublicClient } from "@/lib/supabase/server";
 import type { Paginated } from "@/lib/types/common";
 import type {
   NoticiaId,
@@ -9,9 +9,10 @@ import type {
   InsertNoticiaPayload,
   UpdateNoticiaPayload,
   NoticiaRow,
+  NoticiaFilters,
 } from "@/lib/types/noticia";
 import { buildSafePagination, normalizePagination } from "@/lib/pagination";
-import { formatILIKE } from "@/lib/validations/db-utils";
+import { formatILIKE, quotePostgrestFilterValue } from "@/lib/validations/db-utils";
 
 interface NoticiaBaseRow {
   id: string;
@@ -136,9 +137,9 @@ export async function softDeleteNoticiaByLibroId(id_libro: LibroId): Promise<voi
 export async function getNoticiaById(
   id: NoticiaId
 ): Promise<NoticiaRow | null> {
-  const adminClient = createAdminClient();
+  const publicClient = createPublicClient();
 
-  const { data, error } = await adminClient
+  const { data, error } = await publicClient
     .from("noticias")
     .select("*")
     .eq("id", id)
@@ -156,9 +157,9 @@ export async function getNoticiaById(
 export async function getNoticiaByLibroId(
   libroId: LibroId
 ): Promise<NoticiaRow | null> {
-  const adminClient = createAdminClient();
+  const publicClient = createPublicClient();
 
-  const { data, error } = await adminClient
+  const { data, error } = await publicClient
     .from("noticias")
     .select("*")
     .eq("id_libro", libroId)
@@ -178,11 +179,11 @@ export async function getNoticias(
   pageSize: number = 10,
   searchTerm?: SearchTerm
 ): Promise<Paginated<NoticiaWithLibro>> {
-  const adminClient = createAdminClient();
+  const publicClient = createPublicClient();
 
   const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
 
-  let query = adminClient
+  let query = publicClient
     .from("noticias")
     .select("*, libro!inner(titulo)", { count: "exact" })
     .is("deleted_at", null)
@@ -209,11 +210,11 @@ export async function getNoticiasWithLibroCompleto(
   page: number = 1,
   pageSize: number = 20
 ): Promise<Paginated<NoticiaWithLibroCompleto>> {
-  const adminClient = createAdminClient();
+  const publicClient = createPublicClient();
 
   const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
 
-  const { data, error, count } = await adminClient
+  const { data, error, count } = await publicClient
     .from("noticias")
     .select("*, libro!inner(titulo, precio, autor(nombre)), imagenes", { count: "exact" })
     .is("deleted_at", null)
@@ -227,6 +228,108 @@ export async function getNoticiasWithLibroCompleto(
   }
 
   const normalized: NoticiaWithLibroCompleto[] = (data as unknown as NoticiaConLibroCompleto[] | null)?.map(mapNoticiaConLibroCompleto) ?? [];
+
+  return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
+}
+
+interface VistaNoticiaCompleta {
+  id: string;
+  id_libro: string;
+  fecha_publicacion: string;
+  fecha_expiracion: string;
+  es_visible: boolean;
+  deleted_at: string | null;
+  imagenes: string[] | null;
+  titulo: string | null;
+  isbn: string | null;
+  precio: number | null;
+  idioma: string | null;
+  editorial: string | null;
+  estado: string | null;
+  ano_publicacion: number | null;
+  autor_id: number | null;
+  autor_nombre: string | null;
+  categoria_id: number | null;
+  categoria_nombre: string | null;
+}
+
+function mapVistaToNoticiaWithLibroCompleto(row: VistaNoticiaCompleta): NoticiaWithLibroCompleto {
+  return {
+    id: row.id,
+    id_libro: row.id_libro,
+    fecha_publicacion: row.fecha_publicacion,
+    fecha_expiracion: row.fecha_expiracion,
+    es_visible: row.es_visible,
+    deleted_at: row.deleted_at,
+    imagenes: row.imagenes,
+    libro_titulo: row.titulo,
+    precio: row.precio ?? 0,
+    autor_nombre: row.autor_nombre,
+  };
+}
+
+export async function getAllNoticiasWithLibroCompleto(
+  page: number = 1,
+  pageSize: number = 20,
+  filters?: NoticiaFilters
+): Promise<Paginated<NoticiaWithLibroCompleto>> {
+  const publicClient = createPublicClient();
+
+  const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
+
+  let query = publicClient
+    .from("vista_noticias_completa")
+    .select("*", { count: "exact" })
+    .range(from, to)
+    .order("fecha_publicacion", { ascending: false });
+
+  if (filters?.searchTerm && filters.searchTerm.trim() !== "") {
+    const pattern = quotePostgrestFilterValue(formatILIKE(filters.searchTerm));
+    query = query.or(
+      `titulo.ilike.${pattern},isbn.ilike.${pattern},autor_nombre.ilike.${pattern}`
+    );
+  }
+
+  if (filters?.autor && filters.autor.trim() !== "") {
+    query = query.ilike("autor_nombre", formatILIKE(filters.autor));
+  }
+
+  if (filters?.categoria && filters.categoria.trim() !== "") {
+    query = query.ilike("categoria_nombre", formatILIKE(filters.categoria));
+  }
+
+  if (filters?.ano_publicacion) {
+    query = query.eq("ano_publicacion", filters.ano_publicacion);
+  }
+
+  if (filters?.idioma && filters.idioma.trim() !== "") {
+    query = query.eq("idioma", filters.idioma);
+  }
+
+  if (filters?.editorial && filters.editorial.trim() !== "") {
+    query = query.eq("editorial", filters.editorial);
+  }
+
+  if (filters?.estado) {
+    query = query.eq("estado", filters.estado);
+  }
+
+  if (filters?.precioMin !== undefined) {
+    query = query.gte("precio", filters.precioMin);
+  }
+
+  if (filters?.precioMax !== undefined) {
+    query = query.lte("precio", filters.precioMax);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("[noticiaModel] Error listando noticias con filtros:", error);
+    throw error;
+  }
+
+  const normalized: NoticiaWithLibroCompleto[] = (data as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
 
   return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
 }

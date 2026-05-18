@@ -517,11 +517,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "Libro_id_autor_fkey"
+            columns: ["id_autor"]
+            isOneToOne: false
+            referencedRelation: "vista_noticias_completa"
+            referencedColumns: ["autor_id"]
+          },
+          {
             foreignKeyName: "Libro_id_categoria_fkey"
             columns: ["id_categoria"]
             isOneToOne: false
             referencedRelation: "categoria"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Libro_id_categoria_fkey"
+            columns: ["id_categoria"]
+            isOneToOne: false
+            referencedRelation: "vista_noticias_completa"
+            referencedColumns: ["categoria_id"]
           },
           {
             foreignKeyName: "Libro_id_modeloRA_fkey"
@@ -626,6 +640,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "PreferenciaAutor_id_autor_fkey"
+            columns: ["id_autor"]
+            isOneToOne: false
+            referencedRelation: "vista_noticias_completa"
+            referencedColumns: ["autor_id"]
+          },
+          {
             foreignKeyName: "PreferenciaAutor_id_usuario_fkey"
             columns: ["id_usuario"]
             isOneToOne: false
@@ -660,6 +681,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categoria"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "PreferenciaCategoria_id_categoria_fkey"
+            columns: ["id_categoria"]
+            isOneToOne: false
+            referencedRelation: "vista_noticias_completa"
+            referencedColumns: ["categoria_id"]
           },
           {
             foreignKeyName: "PreferenciaCategoria_id_usuario_fkey"
@@ -972,6 +1000,46 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tienda"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      vista_noticias_completa: {
+        Row: {
+          ano_publicacion: number | null
+          autor_id: number | null
+          autor_nombre: string | null
+          categoria_id: number | null
+          categoria_nombre: string | null
+          deleted_at: string | null
+          editorial: string | null
+          es_visible: boolean | null
+          estado: Database["public"]["Enums"]["condicion_libro"] | null
+          fecha_expiracion: string | null
+          fecha_publicacion: string | null
+          id: string | null
+          id_libro: string | null
+          idioma: string | null
+          imagenes: Json | null
+          isbn: string | null
+          libro_fecha_publicacion: string | null
+          paginas: number | null
+          precio: number | null
+          titulo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Noticias_id_libro_fkey"
+            columns: ["id_libro"]
+            isOneToOne: false
+            referencedRelation: "libro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Noticias_id_libro_fkey"
+            columns: ["id_libro"]
+            isOneToOne: false
+            referencedRelation: "vista_inventario"
+            referencedColumns: ["libro_id"]
           },
         ]
       }

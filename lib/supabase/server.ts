@@ -34,6 +34,28 @@ export const createClient = async () => {
 };
 
 /**
+ * Cliente público para operaciones que no requieren autenticación.
+ * Usa la anon key y NO maneja cookies (no necesita sesión de usuario).
+ * Para búsquedas públicas, lectura de productos, etc.
+ */
+export const createPublicClient = () => {
+  return createServerClient<Database>(
+    supabaseUrl!,
+    supabaseKey!,
+    {
+      cookies: {
+        getAll() {
+          return [];
+        },
+        setAll() {
+          // no-op: no se necesitan cookies para cliente público
+        },
+      },
+    },
+  );
+};
+
+/**
  * Cliente admin que usa la service_role key para operaciones privilegiadas
  * del lado del servidor (ej: inserciones durante el registro).
  * Bypasea RLS — usar SOLO en Server Actions seguros, nunca exponer al cliente.

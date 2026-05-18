@@ -53,3 +53,17 @@ export type NoticiasListResponse = PaginatedResponse<NoticiaWithLibro>;
 
 /** Respuesta de mutación de noticia (crear/editar/eliminar). */
 export type NoticiaActionResponse = ActionResponse;
+
+// ─── Filtros ────────────────────────────────────────────────────────
+
+export interface NoticiaFilters {
+  searchTerm?: string;
+  autor?: string;
+  categoria?: string;
+  ano_publicacion?: number;
+  idioma?: string;
+  editorial?: string;
+  precioMin?: number;
+  precioMax?: number;
+  estado?: "nuevo" | "usado";
+}
