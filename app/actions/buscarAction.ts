@@ -14,6 +14,15 @@ function parseTextFilterParam(params: URLSearchParams, key: string, sanitize = t
   return sanitize ? sanitizeText(value) : value;
 }
 
+function parseNumericParam(
+  params: URLSearchParams,
+  key: string,
+  parser: (v: string) => number | undefined
+): number | undefined {
+  const value = params.get(key)?.trim();
+  return value ? parser(value) : undefined;
+}
+
 function parseSearchFilters(searchParams: URLSearchParams): BuscarNoticiasParams {
   const result: Partial<BuscarNoticiasParams> = {};
 
@@ -27,14 +36,11 @@ function parseSearchFilters(searchParams: URLSearchParams): BuscarNoticiasParams
   const page = toSafePositiveInt(Number(searchParams.get("page") ?? 1), 1);
   const pageSize = Math.min(toSafePositiveInt(Number(searchParams.get("pageSize") ?? 20), 20), 100);
 
-  const ano_publicacion_str = searchParams.get("ano_publicacion")?.trim();
-  const ano_publicacion = ano_publicacion_str ? toSafePositiveInt(Number(ano_publicacion_str), NaN) || undefined : undefined;
-
-  const precioMin_str = searchParams.get("precioMin")?.trim();
-  const precioMin = precioMin_str ? parseFloat(precioMin_str) : undefined;
-
-  const precioMax_str = searchParams.get("precioMax")?.trim();
-  const precioMax = precioMax_str ? parseFloat(precioMax_str) : undefined;
+  const ano_publicacion = parseNumericParam(searchParams, "ano_publicacion", (v) =>
+    toSafePositiveInt(Number(v), NaN) || undefined
+  );
+  const precioMin = parseNumericParam(searchParams, "precioMin", parseFloat);
+  const precioMax = parseNumericParam(searchParams, "precioMax", parseFloat);
 
   return {
     page,
