@@ -4,10 +4,10 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
-import type { NoticiaWithPrecio } from "@/lib/types/noticia";
+import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
 
 interface NewsCardClientProps {
-  noticia: NoticiaWithPrecio;
+  noticia: NoticiaWithLibroCompleto;
   delay?: number;
   isAdminView?: boolean;
 }
@@ -100,9 +100,14 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
           </span>
         </div>
 
-        <h3 className="font-display text-sm font-medium text-brand-text tracking-tight line-clamp-2 group-hover:text-brand-primary transition-colors min-h-[2.5rem]">
+        <h3 className="font-display text-sm font-medium text-brand-text tracking-tight line-clamp-2 group-hover:text-brand-primary transition-colors">
           {noticia.libro_titulo || "Título no disponible"}
         </h3>
+        {noticia.autor_nombre && (
+          <p className="text-xs text-brand-secondary/70 truncate">
+            {noticia.autor_nombre}
+          </p>
+        )}
 
         <div className="mt-auto pt-2">
           <span className="text-[10px] uppercase tracking-widest text-brand-accent font-medium">

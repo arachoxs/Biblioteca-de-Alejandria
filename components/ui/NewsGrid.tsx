@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { GripVertical } from "lucide-react";
-import type { NoticiaWithPrecio } from "@/lib/types/noticia";
+import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
 import NewsCardClient from "./NewsCardClient";
 
-type NewsItem = NoticiaWithPrecio;
+type NewsItem = NoticiaWithLibroCompleto;
 
 interface NewsGridProps {
   initialNews: NewsItem[];
@@ -13,7 +13,7 @@ interface NewsGridProps {
 }
 
 export default function NewsGrid({ initialNews, isAdminView = false }: NewsGridProps) {
-  const [news, setNews] = useState<NoticiaWithPrecio[]>(initialNews);
+  const [news, setNews] = useState<NoticiaWithLibroCompleto[]>(initialNews);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleDragStart = (index: number) => {

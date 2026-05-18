@@ -38,11 +38,12 @@ export interface NoticiaWithLibro extends NoticiaRow {
   libro_titulo: string | null;
 }
 
-/** Noticia con título y precio del libro asociado (para homepage). */
-export interface NoticiaWithPrecio extends NoticiaRow {
+/** Noticia con datos completos del libro asociado (título, precio, autor) para homepage. */
+export interface NoticiaWithLibroCompleto extends NoticiaRow {
   libro_titulo: string | null;
   precio: number;
   imagenes: string[] | null;
+  autor_nombre: string | null;
 }
 
 // ─── Respuestas de Server Actions ──────────────────────────────────

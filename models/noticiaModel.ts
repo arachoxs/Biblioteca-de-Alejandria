@@ -5,7 +5,7 @@ import type {
   LibroId,
   SearchTerm,
   NoticiaWithLibro,
-  NoticiaWithPrecio,
+  NoticiaWithLibroCompleto,
   InsertNoticiaPayload,
   UpdateNoticiaPayload,
   NoticiaRow,
@@ -27,9 +27,9 @@ interface NoticiaConLibroTitulo extends NoticiaBaseRow {
   libro: { titulo: string | null } | null;
 }
 
-interface NoticiaConLibroPrecio extends NoticiaBaseRow {
+interface NoticiaConLibroCompleto extends NoticiaBaseRow {
   imagenes: string[] | null;
-  libro: { titulo: string | null; precio: number | null } | null;
+  libro: { titulo: string | null; precio: number | null; autor: { nombre: string | null } | null } | null;
 }
 
 function mapNoticiaBase(row: NoticiaBaseRow) {
@@ -51,12 +51,13 @@ function mapNoticiaConLibro(row: NoticiaConLibroTitulo): NoticiaWithLibro {
   };
 }
 
-function mapNoticiaConPrecio(row: NoticiaConLibroPrecio): NoticiaWithPrecio {
+function mapNoticiaConLibroCompleto(row: NoticiaConLibroCompleto): NoticiaWithLibroCompleto {
   return {
     ...mapNoticiaBase(row),
     libro_titulo: row.libro?.titulo ?? null,
     precio: row.libro?.precio ?? 0,
     imagenes: row.imagenes ?? null,
+    autor_nombre: row.libro?.autor?.nombre ?? null,
   };
 }
 
@@ -204,17 +205,17 @@ export async function getNoticias(
   return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
 }
 
-export async function getNoticiasWithPrecio(
+export async function getNoticiasWithLibroCompleto(
   page: number = 1,
   pageSize: number = 20
-): Promise<Paginated<NoticiaWithPrecio>> {
+): Promise<Paginated<NoticiaWithLibroCompleto>> {
   const adminClient = createAdminClient();
 
   const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
 
   const { data, error, count } = await adminClient
     .from("noticias")
-    .select("*, libro!inner(titulo, precio), imagenes", { count: "exact" })
+    .select("*, libro!inner(titulo, precio, autor(nombre)), imagenes", { count: "exact" })
     .is("deleted_at", null)
     .eq("es_visible", true)
     .range(from, to)
@@ -225,7 +226,7 @@ export async function getNoticiasWithPrecio(
     throw error;
   }
 
-  const normalized: NoticiaWithPrecio[] = (data as unknown as NoticiaConLibroPrecio[] | null)?.map(mapNoticiaConPrecio) ?? [];
+  const normalized: NoticiaWithLibroCompleto[] = (data as unknown as NoticiaConLibroCompleto[] | null)?.map(mapNoticiaConLibroCompleto) ?? [];
 
   return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
 }

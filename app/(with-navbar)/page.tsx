@@ -2,10 +2,10 @@ import Footer from "@/components/Footer";
 import Carousel from "@/components/Carousel";
 import NewsGrid from "@/components/ui/NewsGrid";
 import PreferenciasLiterariasSection from "@/components/profile/PreferenciasLiterariasSection";
-import { getNoticiasWithPrecio } from "@/models/noticiaModel";
+import { getNoticiasWithLibroCompleto } from "@/models/noticiaModel";
 import { getCurrentUser, getCurrentUserRole } from "@/models/authModel";
 import { Rol } from "@/lib/types/auth";
-import type { NoticiaWithPrecio } from "@/lib/types/noticia";
+import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
 import type { Paginated } from "@/lib/types/common";
 
 const MOCK_CAROUSEL_IMAGES = [
@@ -34,7 +34,7 @@ export default async function Home() {
     role === Rol.CLIENTE &&
     user?.user_metadata?.preferences_onboarding_complete !== true;
 
-  let newsData: Paginated<NoticiaWithPrecio> = {
+  let newsData: Paginated<NoticiaWithLibroCompleto> = {
     data: [],
     total: 0,
     page: 1,
@@ -43,7 +43,7 @@ export default async function Home() {
   };
 
   try {
-    newsData = await getNoticiasWithPrecio(1, 20);
+    newsData = await getNoticiasWithLibroCompleto(1, 20);
   } catch (error) {
     console.error("[Home] Error fetching news:", error);
   }
