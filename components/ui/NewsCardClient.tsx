@@ -12,19 +12,36 @@ interface NewsCardClientProps {
   isAdminView?: boolean;
 }
 
-export default function NewsCardClient({ noticia, delay = 0, isAdminView = false }: NewsCardClientProps) {
-  const [isVisible, setIsVisible] = useState(noticia.es_visible);
+function getCardStyle(isVisible: boolean, isAdminView: boolean): string {
+  return !isVisible && isAdminView ? "opacity-60 border-dashed" : "";
+}
 
-  const formattedPrice = new Intl.NumberFormat("es-CO", {
+function getVisibilityButtonStyle(isVisible: boolean): string {
+  return isVisible
+    ? "bg-green-50 border-green-200 text-green-600 hover:bg-green-100"
+    : "bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100";
+}
+
+function getFormattedPrice(precio: number): string {
+  return new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency: "COP",
     minimumFractionDigits: 0,
-  }).format(noticia.precio);
+  }).format(precio);
+}
 
-  const formattedDate = new Intl.DateTimeFormat("es-CO", {
+function getFormattedDate(fecha: string): string {
+  return new Intl.DateTimeFormat("es-CO", {
     day: "numeric",
     month: "short",
-  }).format(new Date(noticia.fecha_publicacion));
+  }).format(new Date(fecha));
+}
+
+export default function NewsCardClient({ noticia, delay = 0, isAdminView = false }: NewsCardClientProps) {
+  const [isVisible, setIsVisible] = useState(noticia.es_visible);
+
+  const formattedPrice = getFormattedPrice(noticia.precio);
+  const formattedDate = getFormattedDate(noticia.fecha_publicacion);
 
   return (
     <div
@@ -33,7 +50,7 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
         overflow-hidden shadow-sm hover:shadow-lg hover:shadow-brand-text/8 
         transition-all duration-300 hover:-translate-y-0.5
         animate-in fade-in slide-in-from-bottom-4 fill-mode-both cursor-pointer
-        ${!isVisible && isAdminView ? "opacity-60 border-dashed" : ""}
+        ${getCardStyle(isVisible, isAdminView)}
       `}
       style={{ animationDelay: `${delay}ms` }}
     >
@@ -49,10 +66,7 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
             }}
             className={`
               w-7 h-7 rounded-full border flex items-center justify-center transition-colors cursor-pointer
-              ${isVisible 
-                ? "bg-green-50 border-green-200 text-green-600 hover:bg-green-100" 
-                : "bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100"
-              }
+              ${getVisibilityButtonStyle(isVisible)}
             `}
             title={isVisible ? "Ocultar noticia" : "Mostrar noticia"}
           >

@@ -268,6 +268,45 @@ function mapVistaToNoticiaWithLibroCompleto(row: VistaNoticiaCompleta): NoticiaW
   };
 }
 
+function applyNoticiaFilters(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  filters: NoticiaFilters
+): typeof query {
+  const { searchTerm, autor, categoria, ano_publicacion, idioma, editorial, estado, precioMin, precioMax } = filters;
+
+  if (searchTerm?.trim()) {
+    const pattern = quotePostgrestFilterValue(formatILIKE(searchTerm));
+    query = query.or(`titulo.ilike.${pattern},isbn.ilike.${pattern},autor_nombre.ilike.${pattern}`);
+  }
+  if (autor?.trim()) {
+    query = query.ilike("autor_nombre", formatILIKE(autor));
+  }
+  if (categoria?.trim()) {
+    query = query.ilike("categoria_nombre", formatILIKE(categoria));
+  }
+  if (ano_publicacion !== undefined) {
+    query = query.eq("ano_publicacion", ano_publicacion);
+  }
+  if (idioma?.trim()) {
+    query = query.eq("idioma", idioma);
+  }
+  if (editorial?.trim()) {
+    query = query.eq("editorial", editorial);
+  }
+  if (estado) {
+    query = query.eq("estado", estado);
+  }
+  if (precioMin !== undefined) {
+    query = query.gte("precio", precioMin);
+  }
+  if (precioMax !== undefined) {
+    query = query.lte("precio", precioMax);
+  }
+
+  return query;
+}
+
 export async function getAllNoticiasWithLibroCompleto(
   page: number = 1,
   pageSize: number = 20,
@@ -283,43 +322,8 @@ export async function getAllNoticiasWithLibroCompleto(
     .range(from, to)
     .order("fecha_publicacion", { ascending: false });
 
-  if (filters?.searchTerm && filters.searchTerm.trim() !== "") {
-    const pattern = quotePostgrestFilterValue(formatILIKE(filters.searchTerm));
-    query = query.or(
-      `titulo.ilike.${pattern},isbn.ilike.${pattern},autor_nombre.ilike.${pattern}`
-    );
-  }
-
-  if (filters?.autor && filters.autor.trim() !== "") {
-    query = query.ilike("autor_nombre", formatILIKE(filters.autor));
-  }
-
-  if (filters?.categoria && filters.categoria.trim() !== "") {
-    query = query.ilike("categoria_nombre", formatILIKE(filters.categoria));
-  }
-
-  if (filters?.ano_publicacion) {
-    query = query.eq("ano_publicacion", filters.ano_publicacion);
-  }
-
-  if (filters?.idioma && filters.idioma.trim() !== "") {
-    query = query.eq("idioma", filters.idioma);
-  }
-
-  if (filters?.editorial && filters.editorial.trim() !== "") {
-    query = query.eq("editorial", filters.editorial);
-  }
-
-  if (filters?.estado) {
-    query = query.eq("estado", filters.estado);
-  }
-
-  if (filters?.precioMin !== undefined) {
-    query = query.gte("precio", filters.precioMin);
-  }
-
-  if (filters?.precioMax !== undefined) {
-    query = query.lte("precio", filters.precioMax);
+  if (filters) {
+    query = applyNoticiaFilters(query, filters);
   }
 
   const { data, error, count } = await query;
