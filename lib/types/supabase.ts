@@ -786,6 +786,7 @@ export type Database = {
           mes_caducidad: number
           nombre_titular: string | null
           saldo: number
+          ultimos_cuatro_digitos: string
         }
         Insert: {
           ano_caducidad: number
@@ -797,6 +798,7 @@ export type Database = {
           mes_caducidad: number
           nombre_titular?: string | null
           saldo: number
+          ultimos_cuatro_digitos?: string
         }
         Update: {
           ano_caducidad?: number
@@ -808,6 +810,7 @@ export type Database = {
           mes_caducidad?: number
           nombre_titular?: string | null
           saldo?: number
+          ultimos_cuatro_digitos?: string
         }
         Relationships: [
           {
@@ -974,6 +977,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_tarjeta_balance: {
+        Args: { amount: number; tarjeta_id: number }
+        Returns: undefined
+      }
       check_username_exists: {
         Args: { username_check: string }
         Returns: boolean
