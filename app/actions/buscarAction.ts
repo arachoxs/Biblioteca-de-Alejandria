@@ -6,17 +6,26 @@ import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
 import type { Paginated } from "@/lib/types/common";
 import type { BuscarNoticiasParams } from "@/services/noticias/noticiaService";
 
+const TEXT_FILTER_PARAMS = ["q", "autor", "categoria", "idioma", "editorial", "estado"] as const;
+
+function parseTextFilterParam(params: URLSearchParams, key: string, sanitize = true): string | undefined {
+  const value = params.get(key)?.trim();
+  if (!value) return undefined;
+  return sanitize ? sanitizeText(value) : value;
+}
+
 function parseSearchFilters(searchParams: URLSearchParams): BuscarNoticiasParams {
+  const result: Partial<BuscarNoticiasParams> = {};
+
+  for (const key of TEXT_FILTER_PARAMS) {
+    const value = parseTextFilterParam(searchParams, key);
+    if (value !== undefined) {
+      (result as Record<string, unknown>)[key] = key === "estado" ? (value as "nuevo" | "usado") : value;
+    }
+  }
+
   const page = toSafePositiveInt(Number(searchParams.get("page") ?? 1), 1);
   const pageSize = Math.min(toSafePositiveInt(Number(searchParams.get("pageSize") ?? 20), 20), 100);
-
-  const q = searchParams.get("q")?.trim() || undefined;
-
-  const autor = searchParams.get("autor")?.trim() || undefined;
-  const categoria = searchParams.get("categoria")?.trim() || undefined;
-  const idioma = searchParams.get("idioma")?.trim() || undefined;
-  const editorial = searchParams.get("editorial")?.trim() || undefined;
-  const estado = searchParams.get("estado")?.trim() || undefined;
 
   const ano_publicacion_str = searchParams.get("ano_publicacion")?.trim();
   const ano_publicacion = ano_publicacion_str ? toSafePositiveInt(Number(ano_publicacion_str), NaN) || undefined : undefined;
@@ -30,15 +39,10 @@ function parseSearchFilters(searchParams: URLSearchParams): BuscarNoticiasParams
   return {
     page,
     pageSize,
-    q,
-    autor: autor ? sanitizeText(autor) : undefined,
-    categoria: categoria ? sanitizeText(categoria) : undefined,
-    idioma: idioma ? sanitizeText(idioma) : undefined,
-    editorial: editorial ? sanitizeText(editorial) : undefined,
-    estado: estado as "nuevo" | "usado" | undefined,
     ano_publicacion,
     precioMin,
     precioMax,
+    ...result,
   };
 }
 

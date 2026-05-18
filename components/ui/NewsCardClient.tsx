@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -35,6 +35,49 @@ function getFormattedDate(fecha: string): string {
     day: "numeric",
     month: "short",
   }).format(new Date(fecha));
+}
+
+function renderImageContent(noticia: NoticiaWithLibroCompleto): JSX.Element {
+  if (noticia.imagenes && noticia.imagenes.length > 0) {
+    return (
+      <Image
+        src={noticia.imagenes[0]}
+        alt={noticia.libro_titulo || "Libro"}
+        fill
+        className="object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+    );
+  }
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-primary/5 to-brand-accent/10">
+      <svg
+        className="w-12 h-12 text-brand-accent/40"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={1}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function getAutorDisplay(autorNombre: string | null): JSX.Element | null {
+  if (!autorNombre) return null;
+  return (
+    <p className="text-xs text-brand-secondary/70 truncate">
+      {autorNombre}
+    </p>
+  );
+}
+
+function getCardLabel(isAdminView: boolean): string {
+  return isAdminView ? "Arrastra para reordenar" : "Ver detalles";
 }
 
 export default function NewsCardClient({ noticia, delay = 0, isAdminView = false }: NewsCardClientProps) {
@@ -78,30 +121,7 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
       <div className="relative aspect-[3/4] w-full bg-brand-bg overflow-hidden">
-        {noticia.imagenes && noticia.imagenes.length > 0 ? (
-          <Image
-            src={noticia.imagenes[0]}
-            alt={noticia.libro_titulo || "Libro"}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-primary/5 to-brand-accent/10">
-            <svg
-              className="w-12 h-12 text-brand-accent/40"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-              />
-            </svg>
-          </div>
-        )}
+        {renderImageContent(noticia)}
       </div>
 
       <div className="p-4 flex flex-col gap-2 flex-1 relative z-10">
@@ -117,15 +137,11 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
         <h3 className="font-display text-sm font-medium text-brand-text tracking-tight line-clamp-2 group-hover:text-brand-primary transition-colors">
           {noticia.libro_titulo || "Título no disponible"}
         </h3>
-        {noticia.autor_nombre && (
-          <p className="text-xs text-brand-secondary/70 truncate">
-            {noticia.autor_nombre}
-          </p>
-        )}
+        {getAutorDisplay(noticia.autor_nombre)}
 
         <div className="mt-auto pt-2">
           <span className="text-[10px] uppercase tracking-widest text-brand-accent font-medium">
-            {isAdminView ? "Arrastra para reordenar" : "Ver detalles"}
+            {getCardLabel(isAdminView)}
           </span>
         </div>
       </div>
