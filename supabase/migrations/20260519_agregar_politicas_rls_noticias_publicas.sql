@@ -30,38 +30,34 @@ CREATE POLICY "Permitir lectura pública noticias"
 ON public.noticias
 FOR SELECT
 TO anon
-USING (true)
-WITH CHECK (true);
+USING (true);
 
 -- Política para libro: cualquier usuario puede LEER todos los libros
 CREATE POLICY "Permitir lectura pública libros"
 ON public.libro
 FOR SELECT
 TO anon
-USING (true)
-WITH CHECK (true);
+USING (true);
 
 -- Política para autor: cualquier usuario puede LEER todos los autores
 CREATE POLICY "Permitir lectura pública autores"
 ON public.autor
 FOR SELECT
 TO anon
-USING (true)
-WITH CHECK (true);
+USING (true);
 
 -- Política para categoría: cualquier usuario puede LEER todas las categorías
 CREATE POLICY "Permitir lectura pública categorías"
 ON public.categoria
 FOR SELECT
 TO anon
-USING (true)
-WITH CHECK (true);
+USING (true);
 
 -- ============================================================
 -- 4. NOTA IMPORTANTE
 -- ============================================================
 --
--- Las políticas INSERT, UPDATE, DELETE siguen controlladas por RLS.
+-- Las políticas INSERT, UPDATE, DELETE siguen controladas por RLS.
 -- Solo el service_role key (createAdminClient) puede modificar datos.
 --
 -- La tabla noticias tiene un campo 'deleted_at' para soft-delete.
