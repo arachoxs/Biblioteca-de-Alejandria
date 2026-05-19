@@ -1,5 +1,5 @@
-import { getAllNoticiasWithLibroCompleto } from "@/models/noticiaModel";
-import type { NoticiaFilters } from "@/lib/types/noticia";
+import { getAllNoticiasWithLibroCompleto, getNoticiaCompletaById } from "@/models/noticiaModel";
+import type { NoticiaId, NoticiaFilters } from "@/lib/types/noticia";
 import type { Paginated } from "@/lib/types/common";
 import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
 
@@ -58,5 +58,16 @@ export async function buscarNoticias(
       pageSize,
       totalPages: 0,
     };
+  }
+}
+
+export async function getNoticiaDetalle(
+  id: NoticiaId
+): Promise<NoticiaWithLibroCompleto | null> {
+  try {
+    return await getNoticiaCompletaById(id);
+  } catch (error) {
+    console.error("[noticiaService] Error getting noticia detalle:", error);
+    return null;
   }
 }

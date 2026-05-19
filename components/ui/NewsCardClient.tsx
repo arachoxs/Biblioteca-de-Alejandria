@@ -86,7 +86,7 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
   const formattedPrice = getFormattedPrice(noticia.precio);
   const formattedDate = getFormattedDate(noticia.fecha_publicacion);
 
-  return (
+return (
     <div
       className={`
         group relative flex flex-col bg-white border border-brand-accent/15 rounded-xl 
@@ -97,10 +97,10 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
       `}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <Link href="#" className="absolute inset-0 z-0" />
+      <Link href={`/noticia/${noticia.id}`} className="absolute inset-0 z-20" />
 
       {isAdminView && (
-        <div className="absolute top-2 right-2 z-20">
+        <div className="absolute top-2 right-2 z-30">
           <button
             onClick={(e) => {
               e.preventDefault();
