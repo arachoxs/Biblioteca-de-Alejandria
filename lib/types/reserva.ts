@@ -1,6 +1,6 @@
 import type { Database } from "@/lib/types/supabase";
 import type { EstadoCopia } from "@/lib/types/copia";
-import type { ActionResponse, DataResponse, PaginatedResponse } from "./common";
+import type { ActionResponse, DataResponse } from "./common";
 
 // ─── Fila base desde Supabase ──────────────────────────────────────
 
@@ -45,6 +45,8 @@ export interface ReservaAgrupadaItem {
   reservas: Array<{
     id_reserva: string;
     id_copia: string;
+    codigo_seq: string | null;
+    nombre_tienda: string | null;
     fecha_expiracion: string;
   }>;
 }
@@ -70,8 +72,24 @@ export type ReservaActionResponse = ActionResponse;
 /** Respuesta de lectura de una reserva con detalles. */
 export type ReservaDataResponse = DataResponse<ReservaWithDetails>;
 
-/** Respuesta de listado de reservas paginado. */
-export type ReservaListResponse = PaginatedResponse<ReservaWithDetails>;
+// ─── Tipos para slots disponibles ───────────────────────────────────
+
+/** Información de cuántas copias puede aún reservar el usuario de un libro. */
+export interface RemainingSlotsInfo {
+  id_libro: string;
+  titulo: string;
+  autor_nombre: string | null;
+  isbn: string;
+  precio: number;
+  copias_ya_reservadas: number;
+  max_por_limite: number;
+  disponibles_fisicas: number;
+  efectivo: number;
+  puede_agregar: boolean;
+}
+
+/** Respuesta de consulta de slots disponibles. */
+export type RemainingSlotsResponse = DataResponse<RemainingSlotsInfo>;
 
 // ─── Constantes de negocio ─────────────────────────────────────────
 // Definidas en lib/validations/rules.ts, re-exportadas aquí para conveniencia.

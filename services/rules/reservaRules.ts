@@ -101,3 +101,34 @@ export function buildCleanupResponse(cleanedCount: number): ReservaActionRespons
         : `${cleanedCount} reservas expiradas liberadas.`,
   };
 }
+
+export function buildLibroNotFoundResponse(): ReservaActionResponse {
+  return {
+    success: false,
+    errors: { id_libro: "El libro indicado no existe o fue eliminado." },
+    message: "No se encontró el libro especificado.",
+  };
+}
+
+export function buildInsufficientCopiasResponse(
+  solicitadas: number,
+  disponibles: number,
+): ReservaActionResponse {
+  return {
+    success: false,
+    errors: {
+      cantidad: `Solo hay ${disponibles} copia${disponibles === 1 ? "" : "s"} disponible${disponibles === 1 ? "" : "s"} para reservar.`,
+    },
+    message: `No hay suficientes copias disponibles. Se solicitaron ${solicitadas} pero solo hay ${disponibles}.`,
+  };
+}
+
+export function buildBookReservaSuccessResponse(cantidad: number): ReservaActionResponse {
+  return {
+    success: true,
+    message:
+      cantidad === 1
+        ? "1 copia reservada exitosamente."
+        : `${cantidad} copias reservadas exitosamente.`,
+  };
+}

@@ -106,6 +106,36 @@ export async function updateCopiaEstadoIf(
   return (data ?? []).length > 0;
 }
 
+/**
+ * Transición atómica masiva del estado de múltiples copias.
+ * Solo actualiza las que tengan el estado `fromEstado`.
+ * Retorna los IDs de las copias que efectivamente cambiaron de estado.
+ */
+export async function updateCopiaEstadoIfBatch(
+  ids: string[],
+  fromEstado: EstadoCopia,
+  toEstado: EstadoCopia,
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("copia")
+    .update({ estado: toEstado })
+    .in("id", ids)
+    .eq("estado", fromEstado)
+    .is("deleted_at", null)
+    .select("id");
+
+  if (error) {
+    console.error("[copiaModel] Error en transición masiva de estado:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((row) => row.id);
+}
+
 export async function transferCopias(
   ids: string[],
   id_tienda: string,
@@ -470,6 +500,41 @@ export async function getCopiaIdsByLibro(
 
   if (error) {
     console.error("[copiaModel] Error obteniendo IDs de copias por libro:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((c) => c.id);
+}
+
+/**
+ * Obtiene los IDs de copias disponibles (estado = "disponible")
+ * de un libro, hasta un límite opcional.
+ */
+export async function getAvailableCopiaIdsByLibro(
+  id_libro: string,
+  limit?: number,
+): Promise<string[]> {
+  const adminClient = createAdminClient();
+
+  let query = adminClient
+    .from("copia")
+    .select("id")
+    .eq("id_libro", id_libro)
+    .eq("estado", "disponible")
+    .is("deleted_at", null)
+    .order("id", { ascending: true });
+
+  if (limit !== undefined && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error obteniendo copias disponibles por libro:",
+      error,
+    );
     throw error;
   }
 

@@ -1,23 +1,11 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/server";
-import type { Paginated } from "@/lib/types/common";
 import type {
   InsertReservaPayload,
   ReservaRow,
   ReservaWithDetails,
 } from "@/lib/types/reserva";
-import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
-
-// ─── Helper de paginación ───────────────────────────────────────────
-
-function buildPaginationBounds(page: number, pageSize: number) {
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
-  return { safePage, safePageSize, from, to };
-}
 
 // ─── Escritura ──────────────────────────────────────────────────────
 
@@ -46,6 +34,30 @@ export async function createReserva(
   }
 
   return data.id;
+}
+
+/**
+ * Crea múltiples reservas en una sola operación.
+ * Retorna los IDs de las reservas creadas.
+ */
+export async function createReservasBatch(
+  inputs: InsertReservaPayload[],
+): Promise<string[]> {
+  if (inputs.length === 0) return [];
+
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("reserva")
+    .insert(inputs)
+    .select("id");
+
+  if (error) {
+    console.error("[reservaModel] Error creando reservas en batch:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((r) => r.id);
 }
 
 /**
@@ -111,62 +123,7 @@ export async function getReservaById(id: string): Promise<ReservaRow | null> {
   return data;
 }
 
-/**
- * Busca una reserva activa (no expirada) para una copia específica.
- * Retorna la reserva o null si la copia está disponible.
- */
-export async function getReservaActivaByCopia(
-  id_copia: string,
-): Promise<ReservaRow | null> {
-  const adminClient = createAdminClient();
-  const now = new Date().toISOString();
-
-  const { data, error } = await adminClient
-    .from("reserva")
-    .select("*")
-    .eq("id_copia", id_copia)
-    .gt("fecha_expiracion", now)
-    .maybeSingle();
-
-  if (error) {
-    console.error(
-      "[reservaModel] Error obteniendo reserva activa por copia:",
-      error,
-    );
-    throw error;
-  }
-
-  return data;
-}
-
 // ─── Lectura por usuario ────────────────────────────────────────────
-
-/**
- * Obtiene todas las reservas activas (no expiradas) de un usuario
- * sin paginación.
- */
-export async function getActiveReservasByUser(
-  id_usuario: string,
-): Promise<ReservaRow[]> {
-  const adminClient = createAdminClient();
-  const now = new Date().toISOString();
-
-  const { data, error } = await adminClient
-    .from("reserva")
-    .select("*")
-    .eq("id_usuario", id_usuario)
-    .gt("fecha_expiracion", now);
-
-  if (error) {
-    console.error(
-      "[reservaModel] Error obteniendo reservas activas del usuario:",
-      error,
-    );
-    throw error;
-  }
-
-  return data ?? [];
-}
 
 /**
  * Obtiene todas las reservas activas de un usuario con joins
@@ -218,89 +175,6 @@ export async function getActiveReservasConLibro(
   }
 
   return (data ?? []) as unknown as ReservaWithDetails[];
-}
-
-/**
- * Obtiene las reservas activas de un usuario paginadas,
- * enriquecidas con datos de copia, libro y tienda.
- */
-export async function getReservasByUserPaginated(
-  id_usuario: string,
-  page: number = 1,
-  pageSize: number = 10,
-): Promise<Paginated<ReservaWithDetails>> {
-  const adminClient = createAdminClient();
-  const now = new Date().toISOString();
-  const { safePage, safePageSize, from, to } = buildPaginationBounds(
-    page,
-    pageSize,
-  );
-
-  // Contar total de registros
-  const { count, error: countError } = await adminClient
-    .from("reserva")
-    .select("id", { count: "exact", head: true })
-    .eq("id_usuario", id_usuario)
-    .gt("fecha_expiracion", now);
-
-  if (countError) {
-    console.error(
-      "[reservaModel] Error contando reservas del usuario:",
-      countError,
-    );
-    throw countError;
-  }
-
-  const totalCount = count ?? 0;
-
-  // Obtener datos paginados con joins
-  const { data, error } = await adminClient
-    .from("reserva")
-    .select(
-      `
-      id,
-      created_at,
-      fecha_expiracion,
-      id_copia,
-      id_usuario,
-      copia (
-        id,
-        codigo_seq,
-        estado,
-        libro (
-          id,
-          titulo,
-          isbn,
-          precio,
-          autor ( nombre )
-        ),
-        tienda (
-          id,
-          nombre
-        )
-      )
-    `,
-    )
-    .eq("id_usuario", id_usuario)
-    .gt("fecha_expiracion", now)
-    .range(from, to)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error(
-      "[reservaModel] Error obteniendo reservas paginadas:",
-      error,
-    );
-    throw error;
-  }
-
-  return {
-    data: (data ?? []) as unknown as ReservaWithDetails[],
-    total: totalCount,
-    page: safePage,
-    pageSize: safePageSize,
-    totalPages: Math.ceil(totalCount / safePageSize),
-  };
 }
 
 // ─── Conteos para reglas de negocio ─────────────────────────────────

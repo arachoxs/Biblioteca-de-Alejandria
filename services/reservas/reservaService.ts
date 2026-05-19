@@ -5,17 +5,19 @@ import { getCurrentUser } from "@/models/authModel";
 import {
   getCopiaById,
   getCopiaIdsByLibro,
+  getAvailableCopiaIdsByLibro,
   updateCopiaEstadoIf,
+  updateCopiaEstadoIfBatch,
 } from "@/models/copiaModel";
 import { getActiveLibroById } from "@/models/libroModel";
 import { requireClientRole } from "@/lib/validations/server-auth";
 import {
   createReserva as modelsCreateReserva,
+  createReservasBatch,
   deleteReserva,
   deleteReservasBatch,
   getActiveReservasConLibro,
   getReservaById,
-  getReservasByUserPaginated,
   countReservasActivasByUser,
   countReservasByUserAndCopias,
   getReservasExpiradas,
@@ -24,8 +26,9 @@ import { MAX_RESERVAS_DIFERENTES, MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/r
 import type {
   ReservaActionResponse,
   ReservaAgrupadaItem,
-  ReservaListResponse,
   ReservasAgrupadasResponse,
+  RemainingSlotsResponse,
+  RemainingSlotsInfo,
 } from "@/lib/types/reserva";
 import * as rules from "@/services/rules/reservaRules";
 
@@ -161,41 +164,6 @@ export async function cancelReserva(
 }
 
 /**
- * Obtiene las reservas activas del usuario actual paginadas.
- */
-export async function getMyReservas(
-  page: number = 1,
-  pageSize: number = 10,
-): Promise<ReservaListResponse> {
-  const roleCheck = await requireClientRole();
-  if (!roleCheck.success) return roleCheck;
-
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        ...rules.buildSessionRequiredResponse(),
-        data: { data: [], total: 0, page: 1, pageSize: 10, totalPages: 0 },
-      };
-    }
-
-    const result = await getReservasByUserPaginated(user.id, page, pageSize);
-
-    return { success: true, data: result };
-  } catch (error) {
-    console.error(
-      "[reservaService] Error inesperado al obtener reservas:",
-      error,
-    );
-    return {
-      success: false,
-      errors: { form: getErrorMessage(error) },
-      message: "Ocurrió un error al obtener las reservas.",
-    };
-  }
-}
-
-/**
  * Obtiene el resumen de reservas del usuario actual agrupado por libro.
  *
  * Cada entrada representa un libro con el total de copias reservadas
@@ -230,6 +198,8 @@ export async function getReservasSummary(): Promise<ReservasAgrupadasResponse> {
         existing.reservas.push({
           id_reserva: r.id,
           id_copia: r.id_copia,
+          codigo_seq: r.copia?.codigo_seq ?? null,
+          nombre_tienda: r.copia?.tienda?.nombre ?? null,
           fecha_expiracion: r.fecha_expiracion,
         });
       } else {
@@ -245,6 +215,8 @@ export async function getReservasSummary(): Promise<ReservasAgrupadasResponse> {
             {
               id_reserva: r.id,
               id_copia: r.id_copia,
+              codigo_seq: r.copia?.codigo_seq ?? null,
+              nombre_tienda: r.copia?.tienda?.nombre ?? null,
               fecha_expiracion: r.fecha_expiracion,
             },
           ],
@@ -266,6 +238,177 @@ export async function getReservasSummary(): Promise<ReservasAgrupadasResponse> {
       errors: { form: getErrorMessage(error) },
       message: "Ocurrió un error al obtener el resumen de reservas.",
       data: [],
+    };
+  }
+}
+
+/**
+ * Consulta cuántas copias de un libro puede aún reservar el usuario.
+ * Útil para que el frontend muestre el máximo seleccionable
+ * antes de añadir al carrito.
+ */
+export async function getRemainingSlots(
+  id_libro: string,
+): Promise<RemainingSlotsResponse> {
+  const roleCheck = await requireClientRole();
+  if (!roleCheck.success) return roleCheck;
+
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { ...rules.buildSessionRequiredResponse(), data: undefined };
+
+    const libro = await getActiveLibroById(id_libro);
+    if (!libro) {
+      return {
+        ...rules.buildLibroNotFoundResponse(),
+        data: undefined,
+      };
+    }
+
+    const disponiblesFisicas = (
+      await getAvailableCopiaIdsByLibro(id_libro)
+    ).length;
+
+    const reservas = await getActiveReservasConLibro(user.id);
+    const distinctLibros = new Set(
+      reservas
+        .map((r) => r.copia?.libro?.id)
+        .filter(Boolean),
+    );
+    const copiasDeEsteLibro = reservas.filter(
+      (r) => r.copia?.libro?.id === id_libro,
+    ).length;
+
+    const tieneEsteLibro = copiasDeEsteLibro > 0;
+    const maxPorDiferentes = tieneEsteLibro
+      ? Infinity
+      : MAX_RESERVAS_DIFERENTES - distinctLibros.size;
+
+    const maxPorMismoLibro = MAX_RESERVAS_MISMO_LIBRO - copiasDeEsteLibro;
+    const puedeAgregar = maxPorDiferentes > 0;
+    const efectivo = puedeAgregar
+      ? Math.min(maxPorMismoLibro, disponiblesFisicas)
+      : 0;
+
+    return {
+      success: true,
+      data: {
+        id_libro,
+        titulo: libro.titulo,
+        autor_nombre: libro.autor_nombre ?? null,
+        isbn: libro.isbn,
+        precio: libro.precio,
+        copias_ya_reservadas: copiasDeEsteLibro,
+        max_por_limite: Math.max(0, maxPorMismoLibro),
+        disponibles_fisicas: disponiblesFisicas,
+        efectivo: Math.max(0, efectivo),
+        puede_agregar: puedeAgregar,
+      },
+    };
+  } catch (error) {
+    console.error(
+      "[reservaService] Error inesperado al consultar slots disponibles:",
+      error,
+    );
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "Ocurrió un error al consultar la disponibilidad.",
+      data: undefined,
+    };
+  }
+}
+
+/**
+ * Reserva múltiples copias de un libro para el usuario actual.
+ * Realiza un batch claim atómico seguido de batch insert.
+ * Si no hay suficientes copias, retorna error sin modificar nada.
+ */
+export async function createReservaForBook(
+  id_libro: string,
+  cantidad: number,
+): Promise<ReservaActionResponse> {
+  const roleCheck = await requireClientRole();
+  if (!roleCheck.success) return roleCheck;
+
+  try {
+    const user = await getCurrentUser();
+    if (!user) return rules.buildSessionRequiredResponse();
+
+    const libro = await getActiveLibroById(id_libro);
+    if (!libro) return rules.buildLibroNotFoundResponse();
+
+    await cleanExpiredReservasInternal();
+
+    const availableIds = await getAvailableCopiaIdsByLibro(id_libro, cantidad);
+
+    if (availableIds.length < cantidad) {
+      return rules.buildInsufficientCopiasResponse(cantidad, availableIds.length);
+    }
+
+    const copiaIds = await getCopiaIdsByLibro(id_libro);
+    const reservasResumen = await getActiveReservasConLibro(user.id);
+    const distinctLibros = new Set(
+      reservasResumen
+        .map((r) => r.copia?.libro?.id)
+        .filter(Boolean),
+    );
+    const tieneEsteLibro = distinctLibros.has(id_libro);
+
+    if (!tieneEsteLibro) {
+      const librosAReservarConEste = distinctLibros.size + 1;
+      if (librosAReservarConEste > MAX_RESERVAS_DIFERENTES) {
+        return rules.buildExceedsMaxDifferentBooksResponse(distinctLibros.size);
+      }
+    }
+
+    const sameBookCount = await countReservasByUserAndCopias(user.id, copiaIds);
+    if (sameBookCount + cantidad > MAX_RESERVAS_MISMO_LIBRO) {
+      return rules.buildExceedsMaxSameBookResponse(
+        sameBookCount,
+        libro.titulo,
+      );
+    }
+
+    const claimedIds = await updateCopiaEstadoIfBatch(
+      availableIds.slice(0, cantidad),
+      "disponible",
+      "reservado",
+    );
+
+    if (claimedIds.length < cantidad) {
+      if (claimedIds.length > 0) {
+        await updateCopiaEstadoIfBatch(claimedIds, "reservado", "disponible");
+      }
+      return rules.buildInsufficientCopiasResponse(cantidad, claimedIds.length);
+    }
+
+    try {
+      await createReservasBatch(
+        claimedIds.map((id_copia) => ({
+          id_copia,
+          id_usuario: user.id,
+        })),
+      );
+    } catch (error) {
+      await updateCopiaEstadoIfBatch(claimedIds, "reservado", "disponible");
+      return {
+        success: false,
+        errors: { form: getErrorMessage(error) },
+        message: "No se pudieron crear las reservas.",
+      };
+    }
+
+    return rules.buildBookReservaSuccessResponse(cantidad);
+  } catch (error) {
+    console.error(
+      "[reservaService] Error inesperado al reservar copias del libro:",
+      error,
+    );
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "Ocurrió un error inesperado al realizar la reserva.",
     };
   }
 }
