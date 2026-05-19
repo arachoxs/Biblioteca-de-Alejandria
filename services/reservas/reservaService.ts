@@ -28,7 +28,6 @@ import type {
   ReservaAgrupadaItem,
   ReservasAgrupadasResponse,
   RemainingSlotsResponse,
-  RemainingSlotsInfo,
 } from "@/lib/types/reserva";
 import * as rules from "@/services/rules/reservaRules";
 
