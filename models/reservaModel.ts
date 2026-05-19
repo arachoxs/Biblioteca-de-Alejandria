@@ -169,6 +169,58 @@ export async function getActiveReservasByUser(
 }
 
 /**
+ * Obtiene todas las reservas activas de un usuario con joins
+ * a copia, libro y autor. Sin paginación — para agrupar en el servicio.
+ */
+export async function getActiveReservasConLibro(
+  id_usuario: string,
+): Promise<ReservaWithDetails[]> {
+  const adminClient = createAdminClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await adminClient
+    .from("reserva")
+    .select(
+      `
+      id,
+      created_at,
+      fecha_expiracion,
+      id_copia,
+      id_usuario,
+      copia (
+        id,
+        codigo_seq,
+        estado,
+        libro (
+          id,
+          titulo,
+          isbn,
+          precio,
+          autor ( nombre )
+        ),
+        tienda (
+          id,
+          nombre
+        )
+      )
+    `,
+    )
+    .eq("id_usuario", id_usuario)
+    .gt("fecha_expiracion", now)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(
+      "[reservaModel] Error obteniendo reservas con libro:",
+      error,
+    );
+    throw error;
+  }
+
+  return (data ?? []) as unknown as ReservaWithDetails[];
+}
+
+/**
  * Obtiene las reservas activas de un usuario paginadas,
  * enriquecidas con datos de copia, libro y tienda.
  */
@@ -219,7 +271,8 @@ export async function getReservasByUserPaginated(
           id,
           titulo,
           isbn,
-          precio
+          precio,
+          autor ( nombre )
         ),
         tienda (
           id,

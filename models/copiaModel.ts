@@ -78,6 +78,34 @@ export async function updateCopia(
   }
 }
 
+/**
+ * Transición atómica del estado de una copia.
+ * Solo actualiza si el estado actual coincide con `fromEstado`.
+ * Retorna `true` si la transición se realizó, `false` si no coincidía.
+ */
+export async function updateCopiaEstadoIf(
+  id: string,
+  fromEstado: EstadoCopia,
+  toEstado: EstadoCopia,
+): Promise<boolean> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("copia")
+    .update({ estado: toEstado })
+    .eq("id", id)
+    .eq("estado", fromEstado)
+    .is("deleted_at", null)
+    .select("id");
+
+  if (error) {
+    console.error("[copiaModel] Error en transición de estado de copia:", error);
+    throw error;
+  }
+
+  return (data ?? []).length > 0;
+}
+
 export async function transferCopias(
   ids: string[],
   id_tienda: string,

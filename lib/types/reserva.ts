@@ -25,12 +25,32 @@ export interface ReservaCopiaInfo {
     titulo: string;
     isbn: string;
     precio: number;
+    autor: { nombre: string } | null;
   } | null;
   tienda: {
     id: string;
     nombre: string;
   } | null;
 }
+
+/** Item de reserva agrupado por libro para la vista del usuario. */
+export interface ReservaAgrupadaItem {
+  id_libro: string;
+  titulo: string;
+  isbn: string;
+  precio: number;
+  autor_nombre: string | null;
+  copias_reservadas: number;
+  fecha_expiracion_mas_cercana: string;
+  reservas: Array<{
+    id_reserva: string;
+    id_copia: string;
+    fecha_expiracion: string;
+  }>;
+}
+
+/** Respuesta de resumen de reservas agrupadas por libro. */
+export type ReservasAgrupadasResponse = DataResponse<ReservaAgrupadaItem[]>;
 
 /** Reserva enriquecida con datos de copia, libro y tienda. */
 export interface ReservaWithDetails {
