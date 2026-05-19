@@ -215,10 +215,12 @@ export async function getNoticiasWithLibroCompleto(
   const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
 
   const { data, error, count } = await publicClient
-    .from("noticias")
-    .select("*, libro!inner(titulo, precio, autor(nombre)), imagenes", { count: "exact" })
+    .from("vista_noticias_completa")
+    .select("*", { count: "exact" })
     .is("deleted_at", null)
     .eq("es_visible", true)
+    .gt("fecha_expiracion", new Date().toISOString())
+    .gt("stock_disponible", 0)
     .range(from, to)
     .order("fecha_publicacion", { ascending: false });
 
@@ -227,7 +229,7 @@ export async function getNoticiasWithLibroCompleto(
     throw error;
   }
 
-  const normalized: NoticiaWithLibroCompleto[] = (data as unknown as NoticiaConLibroCompleto[] | null)?.map(mapNoticiaConLibroCompleto) ?? [];
+  const normalized: NoticiaWithLibroCompleto[] = (data as unknown as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
 
   return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
 }
@@ -331,6 +333,9 @@ export async function getAllNoticiasWithLibroCompleto(
   let query = publicClient
     .from("vista_noticias_completa")
     .select("*", { count: "exact" })
+    .is("deleted_at", null)
+    .eq("es_visible", true)
+    .gt("stock_disponible", 0)
     .range(from, to)
     .order("fecha_publicacion", { ascending: false });
 
