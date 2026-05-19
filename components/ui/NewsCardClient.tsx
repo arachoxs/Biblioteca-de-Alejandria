@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, type JSX } from "react";
+import { useState, useCallback, type JSX } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
+import { addToCartAction } from "@/app/(with-navbar)/reservasActions";
+import Alert from "@/components/ui/Alert";
 
 interface NewsCardClientProps {
   noticia: NoticiaWithLibroCompleto;
   delay?: number;
   isAdminView?: boolean;
+  isAuthenticated?: boolean;
 }
 
 function getCardStyle(isVisible: boolean, isAdminView: boolean): string {
@@ -80,8 +84,41 @@ function getCardLabel(isAdminView: boolean): string {
   return isAdminView ? "Arrastra para reordenar" : "Ver detalles";
 }
 
-export default function NewsCardClient({ noticia, delay = 0, isAdminView = false }: NewsCardClientProps) {
+export default function NewsCardClient({ noticia, delay = 0, isAdminView = false, isAuthenticated = false }: NewsCardClientProps) {
   const [isVisible, setIsVisible] = useState(noticia.es_visible);
+  const [buttonState, setButtonState] = useState<"idle" | "adding" | "added">("idle");
+  const [toast, setToast] = useState<{ type: "error" | "success"; message: string } | null>(null);
+
+  const router = useRouter();
+
+  const handleAddToCart = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (buttonState !== "idle") return;
+
+    if (!isAuthenticated) {
+      router.push("/login?redirect=%2F");
+      return;
+    }
+
+    if (!noticia.id_libro) return;
+
+    setButtonState("adding");
+    try {
+      const result = await addToCartAction(noticia.id_libro);
+      if (result.success) {
+        setButtonState("added");
+        setTimeout(() => setButtonState("idle"), 2000);
+      } else {
+        setButtonState("idle");
+        setToast({ type: "error", message: result.message ?? "No se pudo agregar al carrito." });
+      }
+    } catch {
+      setButtonState("idle");
+      setToast({ type: "error", message: "Error inesperado al agregar al carrito." });
+    }
+  }, [buttonState, isAuthenticated, noticia.id_libro, router]);
 
   const formattedPrice = getFormattedPrice(noticia.precio);
   const formattedDate = getFormattedDate(noticia.fecha_publicacion);
@@ -139,12 +176,51 @@ export default function NewsCardClient({ noticia, delay = 0, isAdminView = false
         </h3>
         {getAutorDisplay(noticia.autor_nombre)}
 
+        {!isAdminView && noticia.id_libro && (
+          <div className="relative z-10 pt-1.5">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={buttonState !== "idle"}
+              className={`
+                w-full py-1.5 px-3 text-xs font-medium rounded-lg border
+                transition-all duration-200
+                ${buttonState === "added"
+                  ? "bg-green-50 border-green-200 text-green-600"
+                  : "bg-brand-bg border-brand-accent/20 text-brand-primary hover:bg-brand-accent/10 hover:border-brand-accent/40"
+                }
+                disabled:cursor-not-allowed disabled:opacity-60
+              `}
+            >
+              {buttonState === "adding" && (
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Agregando...
+                </span>
+              )}
+              {buttonState === "idle" && "+ Agregar al carrito"}
+              {buttonState === "added" && (
+                <span className="inline-flex items-center justify-center gap-1">✓ Agregado</span>
+              )}
+            </button>
+          </div>
+        )}
+
         <div className="mt-auto pt-2">
           <span className="text-[10px] uppercase tracking-widest text-brand-accent font-medium">
             {getCardLabel(isAdminView)}
           </span>
         </div>
       </div>
+
+      {toast && (
+        <Alert variant={toast.type} onClose={() => setToast(null)}>
+          {toast.message}
+        </Alert>
+      )}
     </div>
   );
 }

@@ -127,7 +127,7 @@ export default async function Home({
                 </h2>
                 <div className="h-px flex-1 bg-brand-accent/20" />
               </div>
-              <NewsGrid initialNews={newsData.data} />
+              <NewsGrid initialNews={newsData.data} isAuthenticated={user !== null} />
             </section>
 
             {needsOnboarding && (

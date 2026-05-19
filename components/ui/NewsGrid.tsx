@@ -10,9 +10,10 @@ interface NewsGridProps {
   initialNews?: NoticiaWithLibroCompleto[];
   totalPages?: number;
   isAdminView?: boolean;
+  isAuthenticated?: boolean;
 }
 
-export default function NewsGrid({ initialNews = [], totalPages = 1, isAdminView = false }: NewsGridProps) {
+export default function NewsGrid({ initialNews = [], totalPages = 1, isAdminView = false, isAuthenticated = false }: NewsGridProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [news, setNews] = useState<NoticiaWithLibroCompleto[]>(initialNews);
@@ -101,7 +102,7 @@ export default function NewsGrid({ initialNews = [], totalPages = 1, isAdminView
               </div>
             )}
 
-            <NewsCardClient noticia={noticia} delay={index * 75} isAdminView={isAdminView} />
+            <NewsCardClient noticia={noticia} delay={index * 75} isAdminView={isAdminView} isAuthenticated={isAuthenticated} />
           </div>
         ))}
       </div>
