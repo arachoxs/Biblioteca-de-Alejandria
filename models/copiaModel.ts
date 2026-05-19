@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { Paginated } from "@/lib/types/common";
 import type {
   CopiaRow,
+  EstadoCopia,
   InsertCopiaPayload,
   TransferCopiasByQuantityInput,
   UpdateCopiaPayload,
@@ -426,6 +427,25 @@ export async function countCopiasByLibro(id_libro: string): Promise<number> {
   }
 
   return count ?? 0;
+}
+
+export async function getCopiaIdsByLibro(
+  id_libro: string,
+): Promise<string[]> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("copia")
+    .select("id")
+    .eq("id_libro", id_libro)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[copiaModel] Error obteniendo IDs de copias por libro:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((c) => c.id);
 }
 
 export async function countAvailableCopiasByLibro(
