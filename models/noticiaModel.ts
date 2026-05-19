@@ -251,6 +251,9 @@ interface VistaNoticiaCompleta {
   autor_nombre: string | null;
   categoria_id: number | null;
   categoria_nombre: string | null;
+  paginas: number | null;
+  stock_disponible: number | null;
+  sipnosis: string | null;
 }
 
 function mapVistaToNoticiaWithLibroCompleto(row: VistaNoticiaCompleta): NoticiaWithLibroCompleto {
@@ -265,6 +268,15 @@ function mapVistaToNoticiaWithLibroCompleto(row: VistaNoticiaCompleta): NoticiaW
     libro_titulo: row.titulo,
     precio: row.precio ?? 0,
     autor_nombre: row.autor_nombre,
+    isbn: row.isbn,
+    paginas: row.paginas,
+    idioma: row.idioma,
+    editorial: row.editorial,
+    estado: row.estado,
+    ano_publicacion: row.ano_publicacion,
+    categoria_nombre: row.categoria_nombre,
+    stock_disponible: row.stock_disponible,
+    sinopsis: row.sipnosis,
   };
 }
 
@@ -333,7 +345,28 @@ export async function getAllNoticiasWithLibroCompleto(
     throw error;
   }
 
-  const normalized: NoticiaWithLibroCompleto[] = (data as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
+  const normalized: NoticiaWithLibroCompleto[] = (data as unknown as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
 
   return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
+}
+
+export async function getNoticiaCompletaById(
+  id: NoticiaId
+): Promise<NoticiaWithLibroCompleto | null> {
+  const publicClient = createPublicClient();
+
+  const { data, error } = await publicClient
+    .from("vista_noticias_completa")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[noticiaModel] Error obteniendo noticia completa por id:", error);
+    throw error;
+  }
+
+  if (!data) return null;
+
+  return mapVistaToNoticiaWithLibroCompleto(data as unknown as VistaNoticiaCompleta);
 }

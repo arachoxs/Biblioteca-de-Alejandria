@@ -216,10 +216,10 @@ export default function NewsCardClient({
         ${getCardStyle(isVisible, isAdminView)}
       `}
       style={{ animationDelay: `${delay}ms` }}>
-      <Link href="#" className="absolute inset-0 z-0" />
+      <Link href={`/noticia/${noticia.id}`} className="absolute inset-0 z-0" />
 
       {isAdminView && (
-        <div className="absolute top-2 right-2 z-20">
+        <div className="absolute top-2 right-2 z-30">
           <button
             onClick={(e) => {
               e.preventDefault();

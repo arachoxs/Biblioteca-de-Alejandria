@@ -1024,6 +1024,8 @@ export type Database = {
           libro_fecha_publicacion: string | null
           paginas: number | null
           precio: number | null
+          sipnosis: string | null
+          stock_disponible: number | null
           titulo: string | null
         }
         Relationships: [

@@ -44,6 +44,15 @@ export interface NoticiaWithLibroCompleto extends NoticiaRow {
   precio: number;
   imagenes: string[] | null;
   autor_nombre: string | null;
+  isbn?: string | null;
+  paginas?: number | null;
+  idioma?: string | null;
+  editorial?: string | null;
+  estado?: string | null;
+  ano_publicacion?: number | null;
+  categoria_nombre?: string | null;
+  stock_disponible?: number | null;
+  sinopsis?: string | null;
 }
 
 // ─── Respuestas de Server Actions ──────────────────────────────────
