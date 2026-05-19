@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import BackLink from "@/components/ui/BackLink";
 import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
+import { Rol } from "@/lib/types/auth";
 import { ShoppingCart, Smartphone } from "lucide-react";
 
 interface BookDetailClientProps {
   noticia: NoticiaWithLibroCompleto;
+  userRole: Rol | null;
 }
 
 function formatPrice(precio: number): string {
@@ -23,12 +25,8 @@ function capitalize(str: string | null | undefined): string | null {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export default function BookDetailClient({ noticia }: BookDetailClientProps) {
+export default function BookDetailClient({ noticia, userRole }: BookDetailClientProps) {
   const [quantity, setQuantity] = useState(1);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
 
   const formattedPrice = formatPrice(noticia.precio);
   const coverImage = noticia.imagenes?.[0];
@@ -49,6 +47,18 @@ export default function BookDetailClient({ noticia }: BookDetailClientProps) {
     { label: "Año de publicación", value: noticia.ano_publicacion?.toString() },
     { label: "Categoría", value: noticia.categoria_nombre },
   ].filter((item) => item.value);
+
+  const stockValid = (noticia.stock_disponible ?? 0) > 0;
+  const isCartAvailable = userRole === Rol.CLIENTE && stockValid;
+
+  const getCartTooltip = () => {
+    if (!userRole) return "Inicia sesión para agregar al carrito";
+    if (userRole !== Rol.CLIENTE) return "Esta opción está deshabilitada para administradores";
+    if (!stockValid) return "Sin stock disponible";
+    return "";
+  };
+
+  const cartTooltip = getCartTooltip();
 
   return (
     <div className="min-h-screen bg-brand-bg pb-24 md:pb-0">
@@ -141,7 +151,11 @@ export default function BookDetailClient({ noticia }: BookDetailClientProps) {
                   </svg>
                 </button>
               </div>
-              <button className="flex-1 bg-brand-primary text-white py-4 px-8 rounded-sm hover:bg-brand-primary/90 transition-colors flex items-center justify-center gap-2 font-semibold uppercase tracking-wider text-sm">
+              <button
+                disabled={!isCartAvailable}
+                title={cartTooltip}
+                className="flex-1 bg-brand-primary text-white py-4 px-8 rounded-sm hover:bg-brand-primary/90 transition-colors flex items-center justify-center gap-2 font-semibold uppercase tracking-wider text-sm disabled:bg-brand-accent/30 disabled:cursor-not-allowed"
+              >
                 <ShoppingCart className="w-5 h-5" />
                 Agregar al carrito
               </button>
@@ -204,7 +218,11 @@ export default function BookDetailClient({ noticia }: BookDetailClientProps) {
       </main>
 
       <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-brand-accent/20 p-4 pb-6 md:hidden z-50 shadow-lg">
-        <button className="w-full bg-brand-primary text-white py-4 rounded-sm font-semibold uppercase tracking-wider text-sm hover:bg-brand-primary/90 transition-colors flex items-center justify-center gap-2">
+        <button
+          disabled={!isCartAvailable}
+          title={cartTooltip}
+          className="w-full bg-brand-primary text-white py-4 rounded-sm font-semibold uppercase tracking-wider text-sm hover:bg-brand-primary/90 transition-colors flex items-center justify-center gap-2 disabled:bg-brand-accent/30 disabled:cursor-not-allowed"
+        >
           <ShoppingCart className="w-5 h-5" />
           Agregar al carrito
         </button>
