@@ -4,7 +4,7 @@
 
 Next.js 16 app (App Router, Server Actions) + Supabase (Auth + Postgres + RLS).
 
-**Root is the project root** — no subdirectory.
+**Root is the project root** — no subdirectory. No automated tests.
 
 ## Developer Commands
 
@@ -18,50 +18,72 @@ pnpm lint             # ESLint (no --fix)
 
 ## Setup Required Before Dev
 
-1. Create `.env.local` (NOT `.env`) with vars from README
-2. Run `supabase/seed.sql` contents in Supabase SQL Editor → creates ROOT user
+1. Create `.env.local` (NOT `.env`) — env vars template in README, no `.env.example` exists.
+2. Run `supabase/seed.sql` in Supabase SQL Editor → creates ROOT user.
 3. `pnpm dev`
 
 ## Architecture (4 layers, strict)
 
 ```
-View (components/) → Actions (app/**/actions.ts) → Services (services/) → Models (models/) → Supabase
+Components → Actions (app/**/actions.ts "use server")
+  → Services (services/**/*Service.ts) → Models (models/*Model.ts) → Supabase
 ```
 
-Rules:
+Every layer has a single responsibility. Never skip a layer.
 
-- **Actions** never import from `models/` (except atomic ops like `signIn`)
-- **Models** never call other models
-- **Services** access Supabase only through a Model
-- Rollback is the Service's responsibility
-- Shared types go in `lib/types/` — never inline
-- Follow the DRY (Don't Repeat Yourself) principle across the entire codebase
-- Avoid duplicating business logic, validation, queries, or transformations
-- Extract repeated logic into shared utilities, services, hooks, or reusable components
-- Keep React components small, focused, and composable
-- Separate views into isolated UI components and compose them together
-- Prefer composition over tightly coupled components
-- Components should have a single responsibility
-- Follow the established 4-layer architecture strictly
+### Layer rules
+
+- **Models** (`models/*Model.ts`) — atomic CRUD/Auth ops. Must import `"server-only"`. Access Supabase via `lib/supabase/server.ts`. Never call other models.
+- **Services** (`services/**/*Service.ts`) — orchestrate use cases across models. Handle rollback. Access Supabase only through Models.
+- **Actions** (`app/**/actions.ts`) — validate & sanitize input, delegate to Services. Never import from `models/` except atomic ops like `signIn`.
+- **Components** (`components/`) — render UI, call Server Actions. Keep small, focused, composable.
+
+### Supabase clients (`lib/supabase/server.ts`)
+
+| Client | Uses | Scope |
+|---|---|---|
+| `createClient()` | anon key + cookies | SSR with user context (default for models) |
+| `createPublicClient()` | anon key, no cookies | Public read-only queries |
+| `createAdminClient()` | service_role key | Bypasses RLS — **server-only**, never expose to client |
+
+### Key directories
+
+- `lib/types/` — all shared types. `supabase.ts` is auto-generated, never edit manually.
+- `lib/validations/` — `rules.ts` is the single source of validation constants and composable rules. Domain validators in named files. `server-auth.ts` has role guards (`requireRootRole`, `isCurrentUserRoot`, etc.).
+- `lib/services/` — infrastructure utilities (email, crypto, errors). NOT business logic — that's `services/`.
+- `hooks/` — `useDebounce`, `useValidation`.
+
+### Shared utilities
+
+- `getErrorMessage(error)` from `lib/services/errors.ts`
+- `sanitizeText`, `validateRequiredString`, `validateEmail` from `lib/validations/rules.ts`
+- `escapeLikePattern`, `buildOrILikeFilter` from `lib/validations/db-utils.ts` for safe ILIKE queries
 
 ## Styling — Tailwind v4
 
-Colors via `@theme` tokens in `app/globals.css`. **Never use hex codes.** Tokens: `brand-primary`, `brand-secondary`, `brand-accent`, `brand-bg`, `brand-text`.
+Colors via `@theme` tokens in `app/globals.css`. **Never use hex codes.**
+Tokens: `brand-primary`, `brand-secondary`, `brand-accent`, `brand-bg`, `brand-text`.
 
-Fonts: `lib/fonts.ts` (Geist Sans, Geist Mono, Cormorant Garamond).
+Fonts in `lib/fonts.ts` (Geist Sans, Geist Mono, Cormorant Garamond).
 
 ## RBAC
 
-Roles in `auth.users.raw_app_meta_data.role` (not `usuario` table): `ROOT`, `ADMINISTRADOR`, `CLIENTE`.
+Roles in `auth.users.raw_app_meta_data.role` (NOT in `usuario` table): `ROOT`, `ADMINISTRADOR`, `CLIENTE`. Sentinel `VISITANTE` (`"VISITANTE"`) for unauthenticated — never persisted.
 
-`proxy.ts` is the middleware (4 protection layers: guest-only, role-based, onboarding guard, session).
+Middleware: `proxy.ts` (root) → `lib/supabase/proxy.ts`. 5 protection layers:
+1. Guest-only routes redirect authed users to `/`
+2. Role-protected: `/panel-root` → ROOT, `/panel-admin` → ADMINISTRADOR
+3. Onboarding guard: incomplete admins forced to `/completar-perfil`
+4. `/perfil` guard: requires session, ROOT redirected away
+5. Banned users: forced sign-out, redirect to `/login?banned=true`
+
+**Critical**: Server Actions (POST with `next-action` header) are never redirected by middleware.
 
 Role changes require `service_role` key.
 
 ## Supabase
 
-Types auto-generated: `lib/types/supabase.ts` — **do not edit manually**. Regenerate:
-
+Types auto-generated in `lib/types/supabase.ts`. **Do not edit manually.** Regenerate:
 ```bash
 supabase gen types typescript --project-id <project-id> > lib/types/supabase.ts
 ```
@@ -70,9 +92,9 @@ Migrations: `supabase/migrations/` (numbered `YYYYMMDD_*.sql`). Seed: `supabase/
 
 ## No formatter / linter config files
 
-ESLint uses Next.js defaults only. No `.prettierrc`, `.eslintrc`, etc.
+ESLint uses Next.js defaults. No `.prettierrc`, `.eslintrc`, etc.
 
 ## CI / Deployment
 
 - Vercel: set **Root Directory to `.`** (not `biblioteca-alejandria`)
-- GitHub Actions workflows in `.github/workflows/`
+- No GitHub Actions workflows configured
