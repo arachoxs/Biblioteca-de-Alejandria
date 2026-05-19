@@ -206,7 +206,7 @@ export default function NewsCardClient({
                 ${
                   buttonState === "added"
                     ? "bg-green-50 border-green-200 text-green-600"
-                    : "bg-brand-bg border-brand-accent/20 text-brand-primary hover:bg-brand-accent/10 hover:border-brand-accent/40"
+                    : "bg-brand-bg border-brand-accent/20 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary/40 hover:shadow-sm hover:shadow-brand-primary/5 active:scale-[0.97]"
                 }
                 disabled:cursor-not-allowed disabled:opacity-60
               `}>
