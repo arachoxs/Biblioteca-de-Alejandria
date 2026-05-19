@@ -4,7 +4,7 @@ import { useState, useCallback, type JSX } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ShoppingCart, Check } from "lucide-react";
 import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
 import { addToCartAction } from "@/app/(with-navbar)/reservasActions";
 import Alert from "@/components/ui/Alert";
@@ -201,7 +201,7 @@ export default function NewsCardClient({
               onClick={handleAddToCart}
               disabled={buttonState !== "idle"}
               className={`
-                w-full py-1.5 px-3 text-xs font-medium rounded-lg border
+                group w-full py-1.5 px-3 text-xs font-medium rounded-lg border
                 transition-all duration-200 cursor-pointer
                 ${
                   buttonState === "added"
@@ -228,13 +228,19 @@ export default function NewsCardClient({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                     />
                   </svg>
-                  Agregando...
+                  <span>Agregando...</span>
                 </span>
               )}
-              {buttonState === "idle" && "+ Agregar al carrito"}
+              {buttonState === "idle" && (
+                <span className="inline-flex items-center justify-center gap-1.5 group/btn">
+                  <ShoppingCart className="w-3.5 h-3.5 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-brand-primary" />
+                  <span className="transition-colors duration-200 group-hover:text-brand-primary">Agregar al carrito</span>
+                </span>
+              )}
               {buttonState === "added" && (
-                <span className="inline-flex items-center justify-center gap-1">
-                  ✓ Agregado
+                <span className="inline-flex items-center justify-center gap-1.5 animate-in zoom-in duration-200">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Agregado</span>
                 </span>
               )}
             </button>
