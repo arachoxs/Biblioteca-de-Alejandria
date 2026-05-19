@@ -38,11 +38,12 @@ export interface NoticiaWithLibro extends NoticiaRow {
   libro_titulo: string | null;
 }
 
-/** Noticia con título y precio del libro asociado (para homepage). */
-export interface NoticiaWithPrecio extends NoticiaRow {
+/** Noticia con datos completos del libro asociado (título, precio, autor) para homepage. */
+export interface NoticiaWithLibroCompleto extends NoticiaRow {
   libro_titulo: string | null;
   precio: number;
   imagenes: string[] | null;
+  autor_nombre: string | null;
 }
 
 // ─── Respuestas de Server Actions ──────────────────────────────────
@@ -52,3 +53,17 @@ export type NoticiasListResponse = PaginatedResponse<NoticiaWithLibro>;
 
 /** Respuesta de mutación de noticia (crear/editar/eliminar). */
 export type NoticiaActionResponse = ActionResponse;
+
+// ─── Filtros ────────────────────────────────────────────────────────
+
+export interface NoticiaFilters {
+  searchTerm?: string;
+  autor?: string;
+  categoria?: string;
+  ano_publicacion?: number;
+  idioma?: string;
+  editorial?: string;
+  precioMin?: number;
+  precioMax?: number;
+  estado?: "nuevo" | "usado";
+}
