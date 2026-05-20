@@ -5,9 +5,10 @@ import type { Paginated } from "@/lib/types/common";
 
 interface SearchSectionProps {
   results: Paginated<NoticiaWithLibroCompleto>;
+  isAuthenticated?: boolean;
 }
 
-export default function SearchSection({ results }: SearchSectionProps) {
+export default function SearchSection({ results, isAuthenticated = false }: SearchSectionProps) {
   return (
     <section className="max-w-6xl mx-auto px-4 pt-8 pb-16">
       <div className="flex items-center gap-4 mb-6">
@@ -24,7 +25,7 @@ export default function SearchSection({ results }: SearchSectionProps) {
           </div>
         }
       >
-        <SearchResultsClient initialResults={results} />
+        <SearchResultsClient initialResults={results} isAuthenticated={isAuthenticated} />
       </Suspense>
     </section>
   );

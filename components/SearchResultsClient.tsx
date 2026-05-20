@@ -8,6 +8,7 @@ import NewsGrid from "@/components/ui/NewsGrid";
 
 interface SearchResultsClientProps {
   initialResults: Paginated<NoticiaWithLibroCompleto>;
+  isAuthenticated?: boolean;
 }
 
 interface CurrentFilters {
@@ -42,14 +43,14 @@ function useCurrentFilters() {
   return buildCurrentFilters(searchParams);
 }
 
-export default function SearchResultsClient({ initialResults }: SearchResultsClientProps) {
+export default function SearchResultsClient({ initialResults, isAuthenticated = false }: SearchResultsClientProps) {
   const currentFilters = useCurrentFilters();
 
   return (
     <div className="flex gap-8 flex-col lg:flex-row">
       <SearchFilters currentFilters={currentFilters} />
       <div className="flex-1">
-        <NewsGrid initialNews={initialResults.data} totalPages={initialResults.totalPages} />
+        <NewsGrid initialNews={initialResults.data} totalPages={initialResults.totalPages} isAuthenticated={isAuthenticated} />
       </div>
     </div>
   );

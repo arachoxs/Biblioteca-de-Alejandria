@@ -1,7 +1,10 @@
+import "server-only";
+
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Paginated } from "@/lib/types/common";
 import type {
   CopiaRow,
+  EstadoCopia,
   InsertCopiaPayload,
   TransferCopiasByQuantityInput,
   UpdateCopiaPayload,
@@ -32,6 +35,53 @@ export class InsufficientStockError extends Error {
     this.errorCode = errorCode;
     this.transferredIds = transferredIds;
   }
+}
+
+// ─── Filtros ────────────────────────────────────────────────────────
+
+/** Filtros comunes para consultas sobre la tabla copia. */
+type CopiaFilterOptions = {
+  id?: string;
+  id_libro?: string;
+  ids?: string[];
+  estado?: EstadoCopia;
+  id_tienda?: string;
+};
+
+/** Filtros para el listado paginado de copias. */
+type CopiasFilters = {
+  searchTerm?: string;
+  id_tienda?: string;
+  id_libro?: string;
+};
+
+/**
+ * Interfaz mínima con los métodos de PostgrestQueryBuilder usados por
+ * buildCopiaFilterQuery. Evita importar PostgrestQueryBuilder desde el
+ * paquete transitivo @supabase/postgrest-js (no es dependencia directa).
+ */
+interface PostgrestQueryMethods {
+  eq(field: string, value: string): this;
+  in(field: string, values: string[]): this;
+  is(field: string, value: null): this;
+}
+
+/**
+ * Construye cadenas de filtros comunes sobre una query de copia.
+ * La query ya debe tener .select() o .update() encadenado.
+ * Aplica automáticamente .is("deleted_at", null).
+ */
+function buildCopiaFilterQuery<T extends PostgrestQueryMethods>(
+  query: T,
+  _table: string,
+  filters: CopiaFilterOptions,
+): T {
+  if (filters.id) query = query.eq("id", filters.id);
+  if (filters.id_libro) query = query.eq("id_libro", filters.id_libro);
+  if (filters.ids && filters.ids.length > 0) query = query.in("id", filters.ids);
+  if (filters.estado) query = query.eq("estado", filters.estado);
+  if (filters.id_tienda) query = query.eq("id_tienda", filters.id_tienda);
+  return query.is("deleted_at", null);
 }
 
 export async function insertCopias(
@@ -77,18 +127,71 @@ export async function updateCopia(
   }
 }
 
+/**
+ * Transición atómica del estado de una copia.
+ * Solo actualiza si el estado actual coincide con `fromEstado`.
+ * Retorna `true` si la transición se realizó, `false` si no coincidía.
+ */
+export async function updateCopiaEstadoIf(
+  id: string,
+  fromEstado: EstadoCopia,
+  toEstado: EstadoCopia,
+): Promise<boolean> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").update({ estado: toEstado }),
+    "copia",
+    { id, estado: fromEstado },
+  ).select("id");
+
+  if (error) {
+    console.error("[copiaModel] Error en transición de estado de copia:", error);
+    throw error;
+  }
+
+  return (data ?? []).length > 0;
+}
+
+/**
+ * Transición atómica masiva del estado de múltiples copias.
+ * Solo actualiza las que tengan el estado `fromEstado`.
+ * Retorna los IDs de las copias que efectivamente cambiaron de estado.
+ */
+export async function updateCopiaEstadoIfBatch(
+  ids: string[],
+  fromEstado: EstadoCopia,
+  toEstado: EstadoCopia,
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+
+  const adminClient = createAdminClient();
+
+  const { data, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").update({ estado: toEstado }),
+    "copia",
+    { ids, estado: fromEstado },
+  ).select("id");
+
+  if (error) {
+    console.error("[copiaModel] Error en transición masiva de estado:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((row: { id: string }) => row.id);
+}
+
 export async function transferCopias(
   ids: string[],
   id_tienda: string,
 ): Promise<void> {
   const adminClient = createAdminClient();
 
-  const { data: updatedRows, error } = await adminClient
-    .from("copia")
-    .update({ id_tienda })
-    .in("id", ids)
-    .is("deleted_at", null)
-    .select("id");
+  const { data: updatedRows, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").update({ id_tienda }),
+    "copia",
+    { ids },
+  ).select("id");
 
   if (error) {
     console.error("[copiaModel] Error trasladando copias:", error);
@@ -107,13 +210,11 @@ async function getCopiasForTransferByQuantity(
 ): Promise<string[]> {
   const adminClient = createAdminClient();
 
-  const { data, error } = await adminClient
-    .from("copia")
-    .select("id")
-    .eq("id_libro", id_libro)
-    .eq("id_tienda", id_tienda_origen)
-    .eq("estado", "disponible")
-    .is("deleted_at", null)
+  const { data, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").select("id"),
+    "copia",
+    { id_libro, id_tienda: id_tienda_origen, estado: "disponible" },
+  )
     .order("id", { ascending: true })
     .limit(cantidad);
 
@@ -125,7 +226,7 @@ async function getCopiasForTransferByQuantity(
     throw error;
   }
 
-  return (data ?? []).map((c) => c.id);
+  return (data ?? []).map((c: { id: string }) => c.id);
 }
 
 async function rollbackTransferByQuantity(
@@ -211,12 +312,11 @@ export async function transferCopiasByQuantityAtomic(
 export async function softDeleteCopias(ids: string[]): Promise<void> {
   const adminClient = createAdminClient();
 
-  const { data: updatedRows, error } = await adminClient
-    .from("copia")
-    .update({ deleted_at: new Date().toISOString() })
-    .in("id", ids)
-    .is("deleted_at", null)
-    .select("id");
+  const { data: updatedRows, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").update({ deleted_at: new Date().toISOString() }),
+    "copia",
+    { ids },
+  ).select("id");
 
   if (error) {
     console.error("[copiaModel] Error en softDeleteManyCopiasModel:", error);
@@ -234,12 +334,11 @@ export async function softDeleteCopias(ids: string[]): Promise<void> {
 export async function getCopiaById(id: string): Promise<CopiaRow | null> {
   const adminClient = createAdminClient();
 
-  const { data, error } = await adminClient
-    .from("copia")
-    .select("*")
-    .eq("id", id)
-    .is("deleted_at", null)
-    .maybeSingle();
+  const { data, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").select("*"),
+    "copia",
+    { id },
+  ).maybeSingle();
 
   if (error) {
     console.error("[copiaModel] Error obteniendo copia por id:", error);
@@ -299,12 +398,6 @@ export async function getAvailableCopiasByLibroAndStore(
   );
 }
 
-type CopiasFilters = {
-  searchTerm?: string;
-  id_tienda?: string;
-  id_libro?: string;
-};
-
 type PaginationBounds = {
   safePage: number;
   safePageSize: number;
@@ -318,19 +411,6 @@ function buildPaginationBounds(page: number, pageSize: number): PaginationBounds
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
   return { safePage, safePageSize, from, to };
-}
-
-function applyCopiasFilters(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  query: any,
-  filters: CopiasFilters,
-) {
-  if (filters.id_tienda) query = query.eq("id_tienda", filters.id_tienda);
-  if (filters.id_libro) query = query.eq("id_libro", filters.id_libro);
-  if (filters.searchTerm?.trim()) {
-    query = query.ilike("codigo_seq", `%${filters.searchTerm.trim()}%`);
-  }
-  return query;
 }
 
 function applyInventarioFilters(
@@ -369,6 +449,19 @@ export async function getInventarioRows(
   }
 
   return data ?? [];
+}
+
+function applyCopiasFilters(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  filters: CopiasFilters,
+) {
+  if (filters.id_tienda) query = query.eq("id_tienda", filters.id_tienda);
+  if (filters.id_libro) query = query.eq("id_libro", filters.id_libro);
+  if (filters.searchTerm?.trim()) {
+    query = query.ilike("codigo_seq", `%${filters.searchTerm.trim()}%`);
+  }
+  return query;
 }
 
 export async function getCopias(
@@ -414,11 +507,11 @@ export async function getCopias(
 export async function countCopiasByLibro(id_libro: string): Promise<number> {
   const adminClient = createAdminClient();
 
-  const { count, error } = await adminClient
-    .from("copia")
-    .select("id", { count: "exact", head: true })
-    .eq("id_libro", id_libro)
-    .is("deleted_at", null);
+  const { count, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").select("id", { count: "exact", head: true }),
+    "copia",
+    { id_libro },
+  );
 
   if (error) {
     console.error("[copiaModel] Error contando copias por libro:", error);
@@ -428,17 +521,68 @@ export async function countCopiasByLibro(id_libro: string): Promise<number> {
   return count ?? 0;
 }
 
+export async function getCopiaIdsByLibro(
+  id_libro: string,
+): Promise<string[]> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").select("id"),
+    "copia",
+    { id_libro },
+  );
+
+  if (error) {
+    console.error("[copiaModel] Error obteniendo IDs de copias por libro:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((c: { id: string }) => c.id);
+}
+
+/**
+ * Obtiene los IDs de copias disponibles (estado = "disponible")
+ * de un libro, hasta un límite opcional.
+ */
+export async function getAvailableCopiaIdsByLibro(
+  id_libro: string,
+  limit?: number,
+): Promise<string[]> {
+  const adminClient = createAdminClient();
+
+  let query = buildCopiaFilterQuery(
+    adminClient.from("copia").select("id"),
+    "copia",
+    { id_libro, estado: "disponible" },
+  ).order("id", { ascending: true });
+
+  if (limit !== undefined && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error obteniendo copias disponibles por libro:",
+      error,
+    );
+    throw error;
+  }
+
+  return (data ?? []).map((c: { id: string }) => c.id);
+}
+
 export async function countAvailableCopiasByLibro(
   id_libro: string,
 ): Promise<number> {
   const adminClient = createAdminClient();
 
-  const { count, error } = await adminClient
-    .from("copia")
-    .select("id", { count: "exact", head: true })
-    .eq("id_libro", id_libro)
-    .eq("estado", "disponible")
-    .is("deleted_at", null);
+  const { count, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").select("id", { count: "exact", head: true }),
+    "copia",
+    { id_libro, estado: "disponible" },
+  );
 
   if (error) {
     console.error(

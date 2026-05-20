@@ -14,6 +14,7 @@ import {
   LogIn,
   UserPlus,
   Menu,
+  ShoppingCart,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -21,6 +22,7 @@ import { Rol } from "@/lib/types/auth";
 import { globalSignOutAction } from "@/app/actions/authActions";
 import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 import MobileMenu from "@/components/MobileMenu";
+import CartDrawer from "@/components/cart/CartDrawer";
 
 // ── Tipos ───────────────────────────────────────────────────────────
 
@@ -44,6 +46,7 @@ export default function NavbarClient({
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [changePwdOpen, setChangePwdOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -62,6 +65,14 @@ export default function NavbarClient({
   }, [searchParams]);
 
   const isVisitor = role === "VISITANTE";
+
+  const handleCartClick = useCallback(() => {
+    if (isVisitor) {
+      router.push("/login?redirect=%2Fcarrito");
+      return;
+    }
+    setCartOpen(true);
+  }, [isVisitor, router]);
 
   // ── Close desktop menu on outside click ───────────────────────────
   useEffect(() => {
@@ -188,6 +199,18 @@ export default function NavbarClient({
 
       {/* ── Right section (desktop) ────────────────────────────────── */}
       <div className="hidden md:flex items-center gap-3">
+        {/* Cart button — solo para CLIENTE y VISITANTE */}
+        {role !== Rol.ADMINISTRADOR && role !== Rol.ROOT && (
+          <button
+            type="button"
+            onClick={handleCartClick}
+            className="p-2 rounded-lg bg-brand-bg/5 hover:bg-brand-bg/10 border border-transparent hover:border-brand-accent/30 transition-all text-brand-accent cursor-pointer"
+            aria-label="Carrito de compras"
+          >
+            <ShoppingCart className="w-5 h-5" />
+          </button>
+        )}
+
         {/* Panel Buttons — role-specific */}
         {role === Rol.ROOT && (
           <Link
@@ -281,16 +304,28 @@ export default function NavbarClient({
         )}
       </div>
 
-      {/* ── Hamburger button (mobile only) ────────────────────────── */}
-      <button
-        ref={mobileMenuTriggerRef}
-        type="button"
-        onClick={() => setMobileMenuOpen(true)}
-        className="flex md:hidden items-center rounded-lg text-brand-accent hover:bg-brand-bg/10 transition-colors cursor-pointer"
-        aria-label="Abrir menú de navegación"
-        aria-expanded={mobileMenuOpen}>
-        <Menu className="w-6 h-6" />
-      </button>
+      {/* ── Mobile: Cart + Hamburger ──────────────────────────────── */}
+      <div className="flex md:hidden items-center gap-1">
+        {role !== Rol.ADMINISTRADOR && role !== Rol.ROOT && (
+          <button
+            type="button"
+            onClick={handleCartClick}
+            className="flex items-center rounded-lg text-brand-accent hover:bg-brand-bg/10 transition-colors cursor-pointer p-1.5"
+            aria-label="Carrito de compras"
+          >
+            <ShoppingCart className="w-5 h-5" />
+          </button>
+        )}
+        <button
+          ref={mobileMenuTriggerRef}
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          className="flex items-center rounded-lg text-brand-accent hover:bg-brand-bg/10 transition-colors cursor-pointer"
+          aria-label="Abrir menú de navegación"
+          aria-expanded={mobileMenuOpen}>
+          <Menu className="w-6 h-6" />
+        </button>
+      </div>
 
       {/* ── Mobile Menu Drawer ────────────────────────────────────── */}
       <MobileMenu
@@ -309,6 +344,9 @@ export default function NavbarClient({
         isOpen={changePwdOpen}
         onClose={() => setChangePwdOpen(false)}
       />
+
+      {/* ── Cart Drawer ────────────────────────────────────────────── */}
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </nav>
   );
 }

@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, type JSX } from "react";
+import { useState, useCallback, type JSX } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, ShoppingCart, Check } from "lucide-react";
 import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
+import { addToCartAction } from "@/app/(with-navbar)/reservasActions";
+import Alert from "@/components/ui/Alert";
 
 interface NewsCardClientProps {
   noticia: NoticiaWithLibroCompleto;
   delay?: number;
   isAdminView?: boolean;
+  isAuthenticated?: boolean;
 }
 
 function getCardStyle(isVisible: boolean, isAdminView: boolean): string {
@@ -55,8 +59,7 @@ function renderImageContent(noticia: NoticiaWithLibroCompleto): JSX.Element {
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
-        strokeWidth={1}
-      >
+        strokeWidth={1}>
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -70,9 +73,7 @@ function renderImageContent(noticia: NoticiaWithLibroCompleto): JSX.Element {
 function getAutorDisplay(autorNombre: string | null): JSX.Element | null {
   if (!autorNombre) return null;
   return (
-    <p className="text-xs text-brand-secondary/70 truncate">
-      {autorNombre}
-    </p>
+    <p className="text-xs text-brand-secondary/70 truncate">{autorNombre}</p>
   );
 }
 
@@ -80,25 +81,143 @@ function getCardLabel(isAdminView: boolean): string {
   return isAdminView ? "Arrastra para reordenar" : "Ver detalles";
 }
 
-export default function NewsCardClient({ noticia, delay = 0, isAdminView = false }: NewsCardClientProps) {
+interface AddToCartButtonProps {
+  id_libro: string;
+  isAuthenticated: boolean;
+}
+
+function AddToCartButton({ id_libro, isAuthenticated }: AddToCartButtonProps) {
+  const [buttonState, setButtonState] = useState<"idle" | "adding" | "added">(
+    "idle",
+  );
+  const [toast, setToast] = useState<{
+    type: "error" | "success";
+    message: string;
+  } | null>(null);
+  const router = useRouter();
+
+  const handleAddToCart = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (buttonState !== "idle") return;
+
+      if (!isAuthenticated) {
+        router.push("/login?redirect=%2F");
+        return;
+      }
+
+      if (!id_libro) return;
+
+      setButtonState("adding");
+      try {
+        const result = await addToCartAction(id_libro);
+        if (result.success) {
+          setButtonState("added");
+          setTimeout(() => setButtonState("idle"), 2000);
+        } else {
+          setButtonState("idle");
+          setToast({
+            type: "error",
+            message: result.message ?? "No se pudo agregar al carrito.",
+          });
+        }
+      } catch {
+        setButtonState("idle");
+        setToast({
+          type: "error",
+          message: "Error inesperado al agregar al carrito.",
+        });
+      }
+    },
+    [buttonState, isAuthenticated, id_libro, router],
+  );
+
+  return (
+    <>
+      <div className="relative z-30 pt-1.5">
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={buttonState !== "idle"}
+          className={`
+            group w-full py-1.5 px-3 text-xs font-medium rounded-lg border
+            transition-all duration-200 cursor-pointer
+            ${
+              buttonState === "added"
+                ? "bg-green-50 border-green-200 text-green-600"
+                : "bg-brand-bg border-brand-accent/20 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary/40 hover:shadow-sm hover:shadow-brand-primary/5 active:scale-[0.97]"
+            }
+            disabled:cursor-not-allowed disabled:opacity-60
+          `}>
+          {buttonState === "adding" && (
+            <span className="inline-flex items-center justify-center gap-1.5">
+              <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              <span>Agregando...</span>
+            </span>
+          )}
+          {buttonState === "idle" && (
+            <span className="inline-flex items-center justify-center gap-1.5 group/btn">
+              <ShoppingCart className="w-3.5 h-3.5 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-brand-primary" />
+              <span className="transition-colors duration-200 group-hover:text-brand-primary">
+                Agregar al carrito
+              </span>
+            </span>
+          )}
+          {buttonState === "added" && (
+            <span className="inline-flex items-center justify-center gap-1.5 animate-in zoom-in duration-200">
+              <Check className="w-3.5 h-3.5" />
+              <span>Agregado</span>
+            </span>
+          )}
+        </button>
+      </div>
+      {toast && (
+        <Alert variant={toast.type} onClose={() => setToast(null)}>
+          {toast.message}
+        </Alert>
+      )}
+    </>
+  );
+}
+
+export default function NewsCardClient({
+  noticia,
+  delay = 0,
+  isAdminView = false,
+  isAuthenticated = false,
+}: NewsCardClientProps) {
   const [isVisible, setIsVisible] = useState(noticia.es_visible);
 
   const formattedPrice = getFormattedPrice(noticia.precio);
   const formattedDate = getFormattedDate(noticia.fecha_publicacion);
 
-return (
+  return (
     <div
       className={`
         group relative flex flex-col bg-white border border-brand-accent/15 rounded-xl 
         overflow-hidden shadow-sm hover:shadow-lg hover:shadow-brand-text/8 
         transition-all duration-300 hover:-translate-y-0.5
-        animate-in fade-in slide-in-from-bottom-4 fill-mode-both cursor-pointer
+        animate-in fade-in slide-in-from-bottom-4 fill-mode-both
         ${getCardStyle(isVisible, isAdminView)}
       `}
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <Link href={`/noticia/${noticia.id}`} className="absolute inset-0 z-20" />
-
+      style={{ animationDelay: `${delay}ms` }}>
       {isAdminView && (
         <div className="absolute top-2 right-2 z-30">
           <button
@@ -111,20 +230,25 @@ return (
               w-7 h-7 rounded-full border flex items-center justify-center transition-colors cursor-pointer
               ${getVisibilityButtonStyle(isVisible)}
             `}
-            title={isVisible ? "Ocultar noticia" : "Mostrar noticia"}
-          >
-            {isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            title={isVisible ? "Ocultar noticia" : "Mostrar noticia"}>
+            {isVisible ? (
+              <Eye className="w-3.5 h-3.5" />
+            ) : (
+              <EyeOff className="w-3.5 h-3.5" />
+            )}
           </button>
         </div>
       )}
 
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <div className="relative aspect-[3/4] w-full bg-brand-bg overflow-hidden">
+      <Link
+        href={`/noticia/${noticia.id}`}
+        className="relative aspect-[3/4] w-full bg-brand-bg overflow-hidden block z-10">
         {renderImageContent(noticia)}
-      </div>
+      </Link>
 
-      <div className="p-4 flex flex-col gap-2 flex-1 relative z-10">
+      <div className="p-4 flex flex-col gap-2 flex-1 relative z-30">
         <div className="flex items-center justify-between">
           <span className="text-lg font-bold text-brand-primary font-display">
             {formattedPrice}
@@ -138,6 +262,13 @@ return (
           {noticia.libro_titulo || "Título no disponible"}
         </h3>
         {getAutorDisplay(noticia.autor_nombre)}
+
+        {!isAdminView && noticia.id_libro && (
+          <AddToCartButton
+            id_libro={noticia.id_libro}
+            isAuthenticated={isAuthenticated}
+          />
+        )}
 
         <div className="mt-auto pt-2">
           <span className="text-[10px] uppercase tracking-widest text-brand-accent font-medium">
