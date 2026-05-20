@@ -3,24 +3,19 @@
 import { useState, useEffect, useCallback, type JSX } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { X, ShoppingBag, BookOpen } from "lucide-react";
-import { getCartAction, cancelCartItemAction } from "@/app/(with-navbar)/cartActions";
+import { X, ShoppingBag, BookOpen, Plus, Minus } from "lucide-react";
+import {
+  getCartAction,
+  cancelCartItemAction,
+  addCartBookAction,
+  cancelBookReservasAction,
+} from "@/app/(with-navbar)/cartActions";
 import Alert from "@/components/ui/Alert";
 import type { ReservaAgrupadaItem } from "@/lib/types/reserva";
 
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-function getTimeRemaining(expiration: string): string {
-  const diff = new Date(expiration).getTime() - Date.now();
-  if (diff <= 0) return "Expirado";
-  const hours = Math.floor(diff / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  if (hours > 0) return `${hours}h ${minutes}m restantes`;
-  if (minutes > 0) return `${minutes}m restantes`;
-  return "Expirando...";
 }
 
 type CartStatus = "idle" | "loading" | "loaded" | "error";
@@ -30,7 +25,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [cartData, setCartData] = useState<ReservaAgrupadaItem[] | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
-  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+  const [mutingBooks, setMutingBooks] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<{ type: "error"; message: string } | null>(null);
 
   const animateClose = useCallback(() => {
@@ -51,28 +46,30 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     };
   }, [isOpen, closing]);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const fetchCart = useCallback(async () => {
     setStatus("loading");
     setErrorMsg(null);
-
-    getCartAction()
-      .then((result) => {
-        if (result.success && result.data) {
-          setCartData(result.data);
-          setStatus(result.data.length > 0 ? "loaded" : "loaded");
-        } else {
-          setCartData([]);
-          setStatus("loaded");
-          if (result.message) setErrorMsg(result.message);
-        }
-      })
-      .catch(() => {
+    try {
+      const result = await getCartAction();
+      if (result.success && result.data) {
+        setCartData(result.data);
+        setStatus("loaded");
+      } else {
         setCartData([]);
-        setStatus("error");
-        setErrorMsg("Error al cargar el carrito.");
-      });
-  }, [isOpen]);
+        setStatus("loaded");
+        if (result.message) setErrorMsg(result.message);
+      }
+    } catch {
+      setCartData([]);
+      setStatus("error");
+      setErrorMsg("Error al cargar el carrito.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchCart();
+  }, [isOpen, fetchCart]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -83,36 +80,69 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, animateClose]);
 
-  async function handleCancel(reservaId: string) {
-    setRemovingIds((prev) => new Set(prev).add(reservaId));
+  async function handleIncrement(id_libro: string) {
+    setMutingBooks((prev) => new Set(prev).add(id_libro));
     try {
-      const result = await cancelCartItemAction(reservaId);
+      const result = await addCartBookAction(id_libro);
       if (result.success) {
-        setCartData((prev) => {
-          if (!prev) return prev;
-          const updated = prev
-            .map((group) => ({
-              ...group,
-              reservas: group.reservas.filter((r) => r.id_reserva !== reservaId),
-            }))
-            .filter((group) => group.reservas.length > 0);
-          return updated;
-        });
+        await fetchCart();
       } else {
-        setRemovingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(reservaId);
-          return next;
-        });
-        setToast({ type: "error", message: result.message ?? "No se pudo cancelar." });
+        setToast({ type: "error", message: result.message ?? "No se pudo agregar." });
       }
     } catch {
-      setRemovingIds((prev) => {
+      setToast({ type: "error", message: "Error inesperado." });
+    } finally {
+      setMutingBooks((prev) => {
         const next = new Set(prev);
-        next.delete(reservaId);
+        next.delete(id_libro);
         return next;
       });
-      setToast({ type: "error", message: "Error inesperado al cancelar." });
+    }
+  }
+
+  async function handleDecrement(group: ReservaAgrupadaItem) {
+    const targetId = group.reservas[0]?.id_reserva;
+    if (!targetId) return;
+
+    setMutingBooks((prev) => new Set(prev).add(group.id_libro));
+    try {
+      const result = await cancelCartItemAction(targetId);
+      if (result.success) {
+        await fetchCart();
+      } else {
+        setToast({ type: "error", message: result.message ?? "No se pudo quitar." });
+      }
+    } catch {
+      setToast({ type: "error", message: "Error inesperado." });
+    } finally {
+      setMutingBooks((prev) => {
+        const next = new Set(prev);
+        next.delete(group.id_libro);
+        return next;
+      });
+    }
+  }
+
+  async function handleRemoveBook(group: ReservaAgrupadaItem) {
+    const ids = group.reservas.map((r) => r.id_reserva);
+    if (ids.length === 0) return;
+
+    setMutingBooks((prev) => new Set(prev).add(group.id_libro));
+    try {
+      const result = await cancelBookReservasAction(ids);
+      if (result.success) {
+        await fetchCart();
+      } else {
+        setToast({ type: "error", message: result.message ?? "No se pudo eliminar el libro." });
+      }
+    } catch {
+      setToast({ type: "error", message: "Error inesperado." });
+    } finally {
+      setMutingBooks((prev) => {
+        const next = new Set(prev);
+        next.delete(group.id_libro);
+        return next;
+      });
     }
   }
 
@@ -135,10 +165,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="space-y-2">
-            <div className="h-4 w-3/4 bg-brand-accent/10 rounded animate-pulse" />
+          <div key={i} className="space-y-3 p-4 bg-brand-bg rounded-xl">
+            <div className="h-4 w-3/4 bg-brand-accent/12 rounded animate-pulse" />
             <div className="h-3 w-1/2 bg-brand-accent/8 rounded animate-pulse" />
-            <div className="h-3 w-full bg-brand-accent/8 rounded animate-pulse" />
+            <div className="h-8 w-2/3 bg-brand-accent/8 rounded-lg animate-pulse" />
           </div>
         ))}
       </div>
@@ -156,7 +186,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           Tu carrito está vacío
         </p>
         <p className="text-sm text-brand-secondary mb-6 leading-relaxed">
-          Explora nuestra colección y agrega libros a tu carrito para reservarlos.
+          Explora nuestra colección y agrega libros para reservarlos.
         </p>
         <Link
           href="/"
@@ -176,23 +206,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         <p className="text-sm text-brand-secondary mb-4">{errorMsg}</p>
         <button
           type="button"
-          onClick={() => {
-            setStatus("loading");
-            getCartAction()
-              .then((result) => {
-                if (result.success && result.data) {
-                  setCartData(result.data);
-                  setStatus("loaded");
-                } else {
-                  setCartData([]);
-                  setStatus("loaded");
-                }
-              })
-              .catch(() => {
-                setStatus("error");
-              });
-          }}
-          className="px-4 py-2 text-sm font-medium text-brand-primary bg-brand-primary/10 rounded-lg hover:bg-brand-primary/20 transition-colors"
+          onClick={fetchCart}
+          className="px-4 py-2 text-sm font-medium text-brand-primary bg-brand-primary/10 rounded-lg hover:bg-brand-primary/20 transition-colors cursor-pointer"
         >
           Reintentar
         </button>
@@ -205,57 +220,79 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     if (!cartData || cartData.length === 0) return renderEmpty();
 
     return (
-      <div className="space-y-3">
-        {cartData.map((group) => (
-          <div
-            key={group.id_libro}
-            className="bg-brand-bg rounded-xl p-4 border border-brand-accent/15"
-          >
-            <h3 className="font-display text-base font-semibold text-brand-text leading-tight">
-              {group.titulo}
-            </h3>
-            {group.autor_nombre && (
-              <p className="text-xs text-brand-secondary/80 mt-0.5">
-                {group.autor_nombre}
-              </p>
-            )}
-            <p className="text-xs font-medium text-brand-primary mt-1.5 mb-3">
-              {group.copias_reservadas} copias · {formatPrice(group.precio)} c/u
-            </p>
+      <div className="space-y-2.5">
+        {cartData.map((group) => {
+          const isMuting = mutingBooks.has(group.id_libro);
 
-            <div className="space-y-1.5">
-              {group.reservas.map((r) => {
-                const isRemoving = removingIds.has(r.id_reserva);
-                return (
-                  <div
-                    key={r.id_reserva}
-                    className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-white border border-brand-accent/10 transition-all duration-200 ${
-                      isRemoving ? "opacity-30 scale-95" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[11px] font-mono font-medium text-brand-secondary/70 shrink-0">
-                        {r.codigo_seq ?? "—"}
-                      </span>
-                      <span className="text-[11px] text-brand-secondary/60 whitespace-nowrap">
-                        {getTimeRemaining(r.fecha_expiracion)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCancel(r.id_reserva)}
-                      disabled={isRemoving}
-                      className="shrink-0 p-1 rounded-md text-brand-secondary/40 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                      aria-label="Cancelar reserva"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
+          return (
+            <div
+              key={group.id_libro}
+              className={`bg-brand-bg rounded-xl p-4 border border-brand-accent/15 transition-all duration-200 ${
+                isMuting ? "opacity-50 scale-[0.97]" : ""
+              }`}
+            >
+              {/* Header row: title + remove-all button */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="font-display text-base font-semibold text-brand-text leading-tight">
+                    {group.titulo}
+                  </h3>
+                  {group.autor_nombre && (
+                    <p className="text-xs text-brand-secondary/80 mt-0.5">
+                      {group.autor_nombre}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveBook(group)}
+                  disabled={isMuting}
+                  className="shrink-0 p-1 rounded-md text-brand-secondary/30 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  aria-label="Eliminar todas las copias de este libro"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Price per unit */}
+              <p className="text-xs font-medium text-brand-primary mt-1.5 mb-3">
+                {formatPrice(group.precio)} c/u
+              </p>
+
+              {/* Quantity controls */}
+              <div className="flex items-center gap-0">
+                <button
+                  type="button"
+                  onClick={() => handleDecrement(group)}
+                  disabled={isMuting}
+                  className="w-8 h-8 flex items-center justify-center rounded-l-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  aria-label="Disminuir cantidad"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+
+                <div className="h-8 px-4 flex items-center justify-center border-t border-b border-brand-accent/20 bg-white min-w-[5rem]">
+                  <span className="text-sm font-medium text-brand-text tabular-nums">
+                    {group.copias_reservadas}{" "}
+                    <span className="text-xs text-brand-secondary font-normal">
+                      {group.copias_reservadas === 1 ? "copia" : "copias"}
+                    </span>
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleIncrement(group.id_libro)}
+                  disabled={isMuting}
+                  className="w-8 h-8 flex items-center justify-center rounded-r-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  aria-label="Aumentar cantidad"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }

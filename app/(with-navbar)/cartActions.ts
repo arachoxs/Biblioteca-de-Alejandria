@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/models/authModel";
 import { getErrorMessage } from "@/lib/services/errors";
 import {
   getReservasSummary,
+  createReservaForBook,
   cancelReserva,
 } from "@/services/reservas/reservaService";
 import { revalidatePath } from "next/cache";
@@ -56,6 +57,91 @@ export async function cancelCartItemAction(
       success: false,
       errors: { form: getErrorMessage(error) },
       message: "Error inesperado al cancelar la reserva.",
+    };
+  }
+}
+
+export async function addCartBookAction(
+  id_libro: string,
+): Promise<ReservaActionResponse> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return {
+      success: false,
+      errors: { form: "Debes iniciar sesión." },
+      message: "No hay sesión activa.",
+    };
+  }
+
+  const sanitized = sanitizeText(id_libro);
+  if (!sanitized || !isValidUUID(sanitized)) {
+    return {
+      success: false,
+      errors: { id_libro: "El identificador del libro no es válido." },
+      message: "No se pudo procesar la solicitud.",
+    };
+  }
+
+  try {
+    const result = await createReservaForBook(sanitized, 1);
+    if (result.success) {
+      revalidatePath("/");
+    }
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "Error inesperado al agregar una copia.",
+    };
+  }
+}
+
+export async function cancelBookReservasAction(
+  reservaIds: string[],
+): Promise<ReservaActionResponse> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return {
+      success: false,
+      errors: { form: "Debes iniciar sesión." },
+      message: "No hay sesión activa.",
+    };
+  }
+
+  if (reservaIds.length === 0) {
+    return { success: true, message: "No hay reservas que cancelar." };
+  }
+
+  for (const id of reservaIds) {
+    const cleaned = sanitizeText(id);
+    if (!cleaned || !isValidUUID(cleaned)) {
+      return {
+        success: false,
+        errors: { id: "Uno de los identificadores no es válido." },
+        message: "No se pudo procesar la solicitud.",
+      };
+    }
+  }
+
+  let cancelledCount = 0;
+  try {
+    for (const id of reservaIds) {
+      const result = await cancelReserva(sanitizeText(id));
+      if (result.success) {
+        cancelledCount++;
+      }
+    }
+    revalidatePath("/");
+    return {
+      success: true,
+      message: `${cancelledCount} reserva${cancelledCount === 1 ? "" : "s"} cancelada${cancelledCount === 1 ? "" : "s"}.`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: `Error al cancelar. Se cancelaron ${cancelledCount} antes del error.`,
     };
   }
 }
