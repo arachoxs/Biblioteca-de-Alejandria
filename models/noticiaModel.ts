@@ -104,74 +104,63 @@ export async function updateNoticia(
   }
 }
 
-export async function softDeleteNoticia(id: NoticiaId): Promise<void> {
+async function _softDeleteNoticiaByField(
+  field: "id" | "id_libro",
+  value: string
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
     .from("noticias")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id)
+    .eq(field, value)
     .is("deleted_at", null);
 
   if (error) {
-    console.error("[noticiaModel] Error eliminando noticia:", error);
+    console.error(`[noticiaModel] Error eliminando noticia por ${field}:`, error);
     throw error;
   }
 }
 
-export async function softDeleteNoticiaByLibroId(id_libro: LibroId): Promise<void> {
-  const adminClient = createAdminClient();
+export async function softDeleteNoticia(id: NoticiaId): Promise<void> {
+  return _softDeleteNoticiaByField("id", id);
+}
 
-  const { error } = await adminClient
+export async function softDeleteNoticiaByLibroId(id_libro: LibroId): Promise<void> {
+  return _softDeleteNoticiaByField("id_libro", id_libro);
+}
+
+async function _fetchNoticiaByField(
+  field: "id" | "id_libro",
+  value: string
+): Promise<NoticiaRow | null> {
+  const publicClient = createPublicClient();
+
+  const { data, error } = await publicClient
     .from("noticias")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id_libro", id_libro)
-    .is("deleted_at", null);
+    .select("*")
+    .eq(field, value)
+    .is("deleted_at", null)
+    .maybeSingle();
 
   if (error) {
-    console.error("[noticiaModel] Error eliminando noticia por id_libro:", error);
+    console.error(`[noticiaModel] Error obteniendo noticia por ${field}:`, error);
     throw error;
   }
+
+  return data;
 }
 
 export async function getNoticiaById(
   id: NoticiaId
 ): Promise<NoticiaRow | null> {
-  const publicClient = createPublicClient();
-
-  const { data, error } = await publicClient
-    .from("noticias")
-    .select("*")
-    .eq("id", id)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[noticiaModel] Error obteniendo noticia por id:", error);
-    throw error;
-  }
-
-  return data;
+  return _fetchNoticiaByField("id", id);
 }
 
 export async function getNoticiaByLibroId(
   libroId: LibroId
 ): Promise<NoticiaRow | null> {
-  const publicClient = createPublicClient();
-
-  const { data, error } = await publicClient
-    .from("noticias")
-    .select("*")
-    .eq("id_libro", libroId)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[noticiaModel] Error obteniendo noticia por id_libro:", error);
-    throw error;
-  }
-
-  return data;
+  return _fetchNoticiaByField("id_libro", libroId);
 }
 
 export async function getNoticias(
@@ -206,30 +195,34 @@ export async function getNoticias(
   return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
 }
 
-export async function getNoticiasWithLibroCompleto(
-  page: number = 1,
-  pageSize: number = 20
-): Promise<Paginated<NoticiaWithLibroCompleto>> {
-  const publicClient = createPublicClient();
+interface NoticiasQueryConfig {
+  applyExpirationFilter: boolean;
+  filters?: NoticiaFilters;
+}
 
-  const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
-
-  const { data, error, count } = await publicClient
-    .from("noticias")
-    .select("*, libro!inner(titulo, precio, autor(nombre)), imagenes", { count: "exact" })
+function buildNoticiasQuery(
+  publicClient: ReturnType<typeof createPublicClient>,
+  { safePage, safePageSize, from, to }: { safePage: number; safePageSize: number; from: number; to: number },
+  config: NoticiasQueryConfig
+) {
+  let query = publicClient
+    .from("vista_noticias_completa")
+    .select("*", { count: "exact" })
     .is("deleted_at", null)
     .eq("es_visible", true)
+    .gt("stock_disponible", 0)
     .range(from, to)
     .order("fecha_publicacion", { ascending: false });
 
-  if (error) {
-    console.error("[noticiaModel] Error listando noticias con precio:", error);
-    throw error;
+  if (config.applyExpirationFilter) {
+    query = query.gt("fecha_expiracion", new Date().toISOString());
   }
 
-  const normalized: NoticiaWithLibroCompleto[] = (data as unknown as NoticiaConLibroCompleto[] | null)?.map(mapNoticiaConLibroCompleto) ?? [];
+  if (config.filters) {
+    query = applyNoticiaFilters(query, config.filters);
+  }
 
-  return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
+  return query;
 }
 
 interface VistaNoticiaCompleta {
@@ -251,6 +244,9 @@ interface VistaNoticiaCompleta {
   autor_nombre: string | null;
   categoria_id: number | null;
   categoria_nombre: string | null;
+  paginas: number | null;
+  stock_disponible: number | null;
+  sipnosis: string | null;
 }
 
 function mapVistaToNoticiaWithLibroCompleto(row: VistaNoticiaCompleta): NoticiaWithLibroCompleto {
@@ -265,6 +261,15 @@ function mapVistaToNoticiaWithLibroCompleto(row: VistaNoticiaCompleta): NoticiaW
     libro_titulo: row.titulo,
     precio: row.precio ?? 0,
     autor_nombre: row.autor_nombre,
+    isbn: row.isbn,
+    paginas: row.paginas,
+    idioma: row.idioma,
+    editorial: row.editorial,
+    estado: row.estado,
+    ano_publicacion: row.ano_publicacion,
+    categoria_nombre: row.categoria_nombre,
+    stock_disponible: row.stock_disponible,
+    sinopsis: row.sipnosis,
   };
 }
 
@@ -307,33 +312,75 @@ function applyNoticiaFilters(
   return query;
 }
 
-export async function getAllNoticiasWithLibroCompleto(
+export async function getNoticiasConFiltros(
   page: number = 1,
   pageSize: number = 20,
-  filters?: NoticiaFilters
+  options: { applyExpirationFilter?: boolean; filters?: NoticiaFilters } = {}
 ): Promise<Paginated<NoticiaWithLibroCompleto>> {
   const publicClient = createPublicClient();
 
-  const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
+  const pagination = buildSafePagination(page, pageSize);
 
-  let query = publicClient
-    .from("vista_noticias_completa")
-    .select("*", { count: "exact" })
-    .range(from, to)
-    .order("fecha_publicacion", { ascending: false });
-
-  if (filters) {
-    query = applyNoticiaFilters(query, filters);
-  }
-
-  const { data, error, count } = await query;
+  const { data, error, count } = await buildNoticiasQuery(publicClient, pagination, {
+    applyExpirationFilter: options.applyExpirationFilter ?? true,
+    filters: options.filters,
+  });
 
   if (error) {
-    console.error("[noticiaModel] Error listando noticias con filtros:", error);
+    console.error("[noticiaModel] Error listando noticias:", error);
     throw error;
   }
 
-  const normalized: NoticiaWithLibroCompleto[] = (data as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
+  const normalized: NoticiaWithLibroCompleto[] = (data as unknown as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
 
-  return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
+  return normalizePagination(normalized, count ?? 0, pagination.safePage, pagination.safePageSize);
+}
+
+export function getAllNoticiasWithLibroCompleto(
+  page: number,
+  pageSize: number,
+  filters?: NoticiaFilters
+): Promise<Paginated<NoticiaWithLibroCompleto>>;
+export function getAllNoticiasWithLibroCompleto(
+  page: number,
+  pageSize: number,
+  options?: { applyExpirationFilter?: boolean; filters?: NoticiaFilters }
+): Promise<Paginated<NoticiaWithLibroCompleto>>;
+export function getAllNoticiasWithLibroCompleto(
+  page: number,
+  pageSize: number,
+  arg?: NoticiaFilters | { applyExpirationFilter?: boolean; filters?: NoticiaFilters }
+): Promise<Paginated<NoticiaWithLibroCompleto>> {
+  const isFilters = !arg || typeof arg === "object" && !("applyExpirationFilter" in arg);
+  return getNoticiasConFiltros(page, pageSize, {
+    applyExpirationFilter: false,
+    ...(isFilters ? { filters: arg as NoticiaFilters | undefined } : arg as { applyExpirationFilter?: boolean; filters?: NoticiaFilters }),
+  });
+}
+
+export const getNoticiasWithLibroCompleto: typeof getNoticiasConFiltros = (
+  page,
+  pageSize,
+  options = {}
+) => getNoticiasConFiltros(page, pageSize, { ...options, applyExpirationFilter: true });
+
+export async function getNoticiaCompletaById(
+  id: NoticiaId
+): Promise<NoticiaWithLibroCompleto | null> {
+  const publicClient = createPublicClient();
+
+  const { data, error } = await publicClient
+    .from("vista_noticias_completa")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[noticiaModel] Error obteniendo noticia completa por id:", error);
+    throw error;
+  }
+
+  if (!data) return null;
+
+  return mapVistaToNoticiaWithLibroCompleto(data as unknown as VistaNoticiaCompleta);
 }
