@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Paginated } from "@/lib/types/common";
 import type {

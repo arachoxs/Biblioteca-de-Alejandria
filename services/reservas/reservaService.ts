@@ -4,7 +4,6 @@ import { getErrorMessage } from "@/lib/services/errors";
 import { getCurrentUser } from "@/models/authModel";
 import {
   getCopiaById,
-  getCopiaIdsByLibro,
   getAvailableCopiaIdsByLibro,
   updateCopiaEstadoIf,
   updateCopiaEstadoIfBatch,
@@ -19,8 +18,6 @@ import {
   getActiveReservasConLibro,
   getActiveReservaBookIds,
   getReservaById,
-  countReservasActivasByUser,
-  countReservasByUserAndCopias,
   getReservasExpiradas,
 } from "@/models/reservaModel";
 import { MAX_RESERVAS_DIFERENTES, MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/reserva";
@@ -327,9 +324,14 @@ export async function cleanExpiredReservas(): Promise<ReservaActionResponse> {
     );
   } catch (error) {
     console.error(
-      "[reservaService] Error al liberar copias expiradas en batch:",
+      "[reservaService] Error al liberar copias expiradas en batch, se aborta eliminacion:",
       error,
     );
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "Error al liberar copias expiradas. Las reservas no se eliminaron.",
+    };
   }
 
   const ids = expiradas.map((r) => r.id);
@@ -376,15 +378,15 @@ async function validateCreateReservaLimits(
   copiaId: string,
   libro: { id: string; titulo: string } | null,
 ): Promise<ReservaActionResponse | null> {
-  const activeCount = await countReservasActivasByUser(userId);
-  if (activeCount >= MAX_RESERVAS_DIFERENTES) {
+  const byLibro = await getActiveReservaBookIds(userId);
+
+  if (byLibro.size >= MAX_RESERVAS_DIFERENTES) {
     await safeRollback(copiaId);
-    return rules.buildExceedsMaxDifferentBooksResponse(activeCount);
+    return rules.buildExceedsMaxDifferentBooksResponse(byLibro.size);
   }
 
   if (libro) {
-    const copiaIds = await getCopiaIdsByLibro(libro.id);
-    const sameBookCount = await countReservasByUserAndCopias(userId, copiaIds);
+    const sameBookCount = byLibro.get(libro.id)?.length ?? 0;
     if (sameBookCount >= MAX_RESERVAS_MISMO_LIBRO) {
       await safeRollback(copiaId);
       return rules.buildExceedsMaxSameBookResponse(sameBookCount, libro.titulo);
