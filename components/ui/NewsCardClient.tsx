@@ -136,7 +136,7 @@ function AddToCartButton({ id_libro, isAuthenticated }: AddToCartButtonProps) {
 
   return (
     <>
-      <div className="relative z-10 pt-1.5">
+      <div className="relative z-30 pt-1.5">
         <button
           type="button"
           onClick={handleAddToCart}
@@ -175,7 +175,9 @@ function AddToCartButton({ id_libro, isAuthenticated }: AddToCartButtonProps) {
           {buttonState === "idle" && (
             <span className="inline-flex items-center justify-center gap-1.5 group/btn">
               <ShoppingCart className="w-3.5 h-3.5 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-brand-primary" />
-              <span className="transition-colors duration-200 group-hover:text-brand-primary">Agregar al carrito</span>
+              <span className="transition-colors duration-200 group-hover:text-brand-primary">
+                Agregar al carrito
+              </span>
             </span>
           )}
           {buttonState === "added" && (
@@ -216,7 +218,7 @@ export default function NewsCardClient({
         ${getCardStyle(isVisible, isAdminView)}
       `}
       style={{ animationDelay: `${delay}ms` }}>
-      <Link href={`/noticia/${noticia.id}`} className="absolute inset-0 z-0" />
+      <Link href={`/noticia/${noticia.id}`} className="absolute inset-0 z-20" />
 
       {isAdminView && (
         <div className="absolute top-2 right-2 z-30">
