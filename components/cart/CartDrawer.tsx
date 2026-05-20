@@ -94,7 +94,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     setMutingBooks((prev) => new Set(prev).add(id_libro));
     try {
       const result = await addCartBookAction(id_libro);
-      if (!result.success) {
+      if (result.success) {
+        await fetchCart();
+      } else {
         await fetchCart();
         setToast({ type: "error", message: result.message ?? "No se pudo agregar." });
       }
