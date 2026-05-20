@@ -113,25 +113,23 @@ export async function cancelBookReservasAction(
     return { success: true, message: "No hay reservas que cancelar." };
   }
 
-  for (const id of reservaIds) {
+  const allValid = reservaIds.every((id) => {
     const cleaned = sanitizeText(id);
-    if (!cleaned || !isValidUUID(cleaned)) {
-      return {
-        success: false,
-        errors: { id: "Uno de los identificadores no es válido." },
-        message: "No se pudo procesar la solicitud.",
-      };
-    }
+    return cleaned && isValidUUID(cleaned);
+  });
+  if (!allValid) {
+    return {
+      success: false,
+      errors: { id: "Uno de los identificadores no es válido." },
+      message: "No se pudo procesar la solicitud.",
+    };
   }
 
-  let cancelledCount = 0;
   try {
-    for (const id of reservaIds) {
-      const result = await cancelReserva(sanitizeText(id));
-      if (result.success) {
-        cancelledCount++;
-      }
-    }
+    const results = await Promise.all(
+      reservaIds.map((id) => cancelReserva(sanitizeText(id))),
+    );
+    const cancelledCount = results.filter((r) => r.success).length;
     revalidatePath("/");
     return {
       success: true,
@@ -141,7 +139,7 @@ export async function cancelBookReservasAction(
     return {
       success: false,
       errors: { form: getErrorMessage(error) },
-      message: `Error al cancelar. Se cancelaron ${cancelledCount} antes del error.`,
+      message: "Error al cancelar las reservas.",
     };
   }
 }

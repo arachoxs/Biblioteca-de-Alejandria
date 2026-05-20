@@ -81,15 +81,24 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   }, [isOpen, animateClose]);
 
   async function handleIncrement(id_libro: string) {
+    setCartData(
+      (prev) =>
+        prev?.map((g) =>
+          g.id_libro === id_libro
+            ? { ...g, copias_reservadas: g.copias_reservadas + 1 }
+            : g,
+        ) ?? prev,
+    );
+
     setMutingBooks((prev) => new Set(prev).add(id_libro));
     try {
       const result = await addCartBookAction(id_libro);
-      if (result.success) {
+      if (!result.success) {
         await fetchCart();
-      } else {
         setToast({ type: "error", message: result.message ?? "No se pudo agregar." });
       }
     } catch {
+      await fetchCart();
       setToast({ type: "error", message: "Error inesperado." });
     } finally {
       setMutingBooks((prev) => {
@@ -104,15 +113,30 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     const targetId = group.reservas[0]?.id_reserva;
     if (!targetId) return;
 
+    setCartData(
+      (prev) =>
+        prev
+          ?.map((g) =>
+            g.id_libro === group.id_libro
+              ? {
+                  ...g,
+                  copias_reservadas: g.copias_reservadas - 1,
+                  reservas: g.reservas.slice(0, -1),
+                }
+              : g,
+          )
+          .filter((g) => g.copias_reservadas > 0) ?? prev,
+    );
+
     setMutingBooks((prev) => new Set(prev).add(group.id_libro));
     try {
       const result = await cancelCartItemAction(targetId);
-      if (result.success) {
+      if (!result.success) {
         await fetchCart();
-      } else {
         setToast({ type: "error", message: result.message ?? "No se pudo quitar." });
       }
     } catch {
+      await fetchCart();
       setToast({ type: "error", message: "Error inesperado." });
     } finally {
       setMutingBooks((prev) => {
@@ -127,15 +151,17 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     const ids = group.reservas.map((r) => r.id_reserva);
     if (ids.length === 0) return;
 
+    setCartData((prev) => prev?.filter((g) => g.id_libro !== group.id_libro) ?? prev);
+
     setMutingBooks((prev) => new Set(prev).add(group.id_libro));
     try {
       const result = await cancelBookReservasAction(ids);
-      if (result.success) {
+      if (!result.success) {
         await fetchCart();
-      } else {
         setToast({ type: "error", message: result.message ?? "No se pudo eliminar el libro." });
       }
     } catch {
+      await fetchCart();
       setToast({ type: "error", message: "Error inesperado." });
     } finally {
       setMutingBooks((prev) => {
