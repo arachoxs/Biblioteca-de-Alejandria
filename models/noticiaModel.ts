@@ -336,11 +336,27 @@ export async function getNoticiasConFiltros(
   return normalizePagination(normalized, count ?? 0, pagination.safePage, pagination.safePageSize);
 }
 
-export const getAllNoticiasWithLibroCompleto: typeof getNoticiasConFiltros = (
-  page,
-  pageSize,
-  options = {}
-) => getNoticiasConFiltros(page, pageSize, { ...options, applyExpirationFilter: false });
+export function getAllNoticiasWithLibroCompleto(
+  page: number,
+  pageSize: number,
+  filters?: NoticiaFilters
+): Promise<Paginated<NoticiaWithLibroCompleto>>;
+export function getAllNoticiasWithLibroCompleto(
+  page: number,
+  pageSize: number,
+  options?: { applyExpirationFilter?: boolean; filters?: NoticiaFilters }
+): Promise<Paginated<NoticiaWithLibroCompleto>>;
+export function getAllNoticiasWithLibroCompleto(
+  page: number,
+  pageSize: number,
+  arg?: NoticiaFilters | { applyExpirationFilter?: boolean; filters?: NoticiaFilters }
+): Promise<Paginated<NoticiaWithLibroCompleto>> {
+  const isFilters = !arg || typeof arg === "object" && !("applyExpirationFilter" in arg);
+  return getNoticiasConFiltros(page, pageSize, {
+    applyExpirationFilter: false,
+    ...(isFilters ? { filters: arg as NoticiaFilters | undefined } : arg as { applyExpirationFilter?: boolean; filters?: NoticiaFilters }),
+  });
+}
 
 export const getNoticiasWithLibroCompleto: typeof getNoticiasConFiltros = (
   page,
