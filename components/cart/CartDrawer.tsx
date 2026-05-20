@@ -12,6 +12,7 @@ import {
 } from "@/app/(with-navbar)/cartActions";
 import Alert from "@/components/ui/Alert";
 import type { ReservaAgrupadaItem } from "@/lib/types/reserva";
+import { MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/reserva";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -309,7 +310,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <button
                   type="button"
                   onClick={() => handleIncrement(group.id_libro)}
-                  disabled={isMuting}
+                  disabled={isMuting || group.copias_reservadas >= MAX_RESERVAS_MISMO_LIBRO}
                   className="w-8 h-8 flex items-center justify-center rounded-r-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   aria-label="Aumentar cantidad"
                 >
