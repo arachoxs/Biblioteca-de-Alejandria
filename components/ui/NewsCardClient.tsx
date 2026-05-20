@@ -214,12 +214,10 @@ export default function NewsCardClient({
         group relative flex flex-col bg-white border border-brand-accent/15 rounded-xl 
         overflow-hidden shadow-sm hover:shadow-lg hover:shadow-brand-text/8 
         transition-all duration-300 hover:-translate-y-0.5
-        animate-in fade-in slide-in-from-bottom-4 fill-mode-both cursor-pointer
+        animate-in fade-in slide-in-from-bottom-4 fill-mode-both
         ${getCardStyle(isVisible, isAdminView)}
       `}
       style={{ animationDelay: `${delay}ms` }}>
-      <Link href={`/noticia/${noticia.id}`} className="absolute inset-0 z-20" />
-
       {isAdminView && (
         <div className="absolute top-2 right-2 z-30">
           <button
@@ -244,9 +242,9 @@ export default function NewsCardClient({
 
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <div className="relative aspect-[3/4] w-full bg-brand-bg overflow-hidden">
+      <Link href={`/noticia/${noticia.id}`} className="relative aspect-[3/4] w-full bg-brand-bg overflow-hidden block z-10">
         {renderImageContent(noticia)}
-      </div>
+      </Link>
 
       <div className="p-4 flex flex-col gap-2 flex-1 relative z-30">
         <div className="flex items-center justify-between">
