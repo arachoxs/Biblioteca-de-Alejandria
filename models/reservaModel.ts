@@ -177,6 +177,57 @@ export async function getActiveReservasConLibro(
   return (data ?? []) as unknown as ReservaWithDetails[];
 }
 
+/**
+ * Obtiene las reservas activas de un usuario agrupadas por libro.
+ * Retorna un Map<id_libro, id_copia[]>.
+ *
+ * Es una alternativa ligera a getActiveReservasConLibro cuando solo
+ * se necesitan IDs para validar límites (5 libros, 3 copias mismo libro).
+ */
+export async function getActiveReservaBookIds(
+  id_usuario: string,
+): Promise<Map<string, string[]>> {
+  const adminClient = createAdminClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await adminClient
+    .from("reserva")
+    .select(
+      `
+      id_copia,
+      copia!inner ( id_libro )
+    `,
+    )
+    .eq("id_usuario", id_usuario)
+    .gt("fecha_expiracion", now);
+
+  if (error) {
+    console.error(
+      "[reservaModel] Error obteniendo IDs de libros de reservas:",
+      error,
+    );
+    throw error;
+  }
+
+  const byLibro = new Map<string, string[]>();
+
+  for (const row of (data ?? []) as {
+    id_copia: string;
+    copia: { id_libro: string } | null;
+  }[]) {
+    const libroId = row.copia?.id_libro;
+    if (!libroId) continue;
+    const existing = byLibro.get(libroId);
+    if (existing) {
+      existing.push(row.id_copia);
+    } else {
+      byLibro.set(libroId, [row.id_copia]);
+    }
+  }
+
+  return byLibro;
+}
+
 // ─── Conteos para reglas de negocio ─────────────────────────────────
 
 /**

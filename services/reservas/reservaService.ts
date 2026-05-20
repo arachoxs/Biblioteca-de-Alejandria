@@ -17,6 +17,7 @@ import {
   deleteReserva,
   deleteReservasBatch,
   getActiveReservasConLibro,
+  getActiveReservaBookIds,
   getReservaById,
   countReservasActivasByUser,
   countReservasByUserAndCopias,
@@ -268,20 +269,12 @@ export async function getRemainingSlots(
       await getAvailableCopiaIdsByLibro(id_libro)
     ).length;
 
-    const reservas = await getActiveReservasConLibro(user.id);
-    const distinctLibros = new Set(
-      reservas
-        .map((r) => r.copia?.libro?.id)
-        .filter(Boolean),
-    );
-    const copiasDeEsteLibro = reservas.filter(
-      (r) => r.copia?.libro?.id === id_libro,
-    ).length;
-
+    const byLibro = await getActiveReservaBookIds(user.id);
+    const copiasDeEsteLibro = byLibro.get(id_libro)?.length ?? 0;
     const tieneEsteLibro = copiasDeEsteLibro > 0;
     const maxPorDiferentes = tieneEsteLibro
       ? Infinity
-      : MAX_RESERVAS_DIFERENTES - distinctLibros.size;
+      : MAX_RESERVAS_DIFERENTES - byLibro.size;
 
     const maxPorMismoLibro = MAX_RESERVAS_MISMO_LIBRO - copiasDeEsteLibro;
     const puedeAgregar = maxPorDiferentes > 0;
@@ -345,23 +338,17 @@ export async function createReservaForBook(
       return rules.buildInsufficientCopiasResponse(cantidad, availableIds.length);
     }
 
-    const copiaIds = await getCopiaIdsByLibro(id_libro);
-    const reservasResumen = await getActiveReservasConLibro(user.id);
-    const distinctLibros = new Set(
-      reservasResumen
-        .map((r) => r.copia?.libro?.id)
-        .filter(Boolean),
-    );
-    const tieneEsteLibro = distinctLibros.has(id_libro);
+    const byLibro = await getActiveReservaBookIds(user.id);
+    const tieneEsteLibro = byLibro.has(id_libro);
 
     if (!tieneEsteLibro) {
-      const librosAReservarConEste = distinctLibros.size + 1;
+      const librosAReservarConEste = byLibro.size + 1;
       if (librosAReservarConEste > MAX_RESERVAS_DIFERENTES) {
-        return rules.buildExceedsMaxDifferentBooksResponse(distinctLibros.size);
+        return rules.buildExceedsMaxDifferentBooksResponse(byLibro.size);
       }
     }
 
-    const sameBookCount = await countReservasByUserAndCopias(user.id, copiaIds);
+    const sameBookCount = byLibro.get(id_libro)?.length ?? 0;
     if (sameBookCount + cantidad > MAX_RESERVAS_MISMO_LIBRO) {
       return rules.buildExceedsMaxSameBookResponse(
         sameBookCount,
