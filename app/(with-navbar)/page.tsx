@@ -112,7 +112,7 @@ export default async function Home({
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <main className="flex-1">
         {filtersActive ? (
-          <SearchSection results={results!} />
+          <SearchSection results={results!} isAuthenticated={user !== null} />
         ) : (
           <>
             <section className="max-w-6xl mx-auto px-4 pt-8 pb-12">
