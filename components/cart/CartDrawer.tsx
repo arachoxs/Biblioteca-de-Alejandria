@@ -110,7 +110,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   }
 
   async function handleDecrement(group: ReservaAgrupadaItem) {
-    const targetId = group.reservas[0]?.id_reserva;
+    const targetId = group.reservas[group.reservas.length - 1]?.id_reserva;
     if (!targetId) return;
 
     setCartData(
@@ -125,7 +125,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 }
               : g,
           )
-          .filter((g) => g.copias_reservadas > 0) ?? prev,
+          ?.filter((g) => g.copias_reservadas > 0) ?? prev,
     );
 
     setMutingBooks((prev) => new Set(prev).add(group.id_libro));

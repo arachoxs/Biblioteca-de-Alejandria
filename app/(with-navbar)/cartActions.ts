@@ -130,7 +130,27 @@ export async function cancelBookReservasAction(
       reservaIds.map((id) => cancelReserva(sanitizeText(id))),
     );
     const cancelledCount = results.filter((r) => r.success).length;
+
+    if (cancelledCount === 0) {
+      return {
+        success: false,
+        errors: { form: "No se pudo cancelar ninguna reserva." },
+        message: "No se pudo cancelar ninguna reserva.",
+      };
+    }
+
     revalidatePath("/");
+
+    if (cancelledCount < reservaIds.length) {
+      return {
+        success: false,
+        message: `${cancelledCount} de ${reservaIds.length} reservas canceladas.`,
+        errors: {
+          form: `${cancelledCount} de ${reservaIds.length} reservas canceladas. Algunas no pudieron cancelarse.`,
+        },
+      };
+    }
+
     return {
       success: true,
       message: `${cancelledCount} reserva${cancelledCount === 1 ? "" : "s"} cancelada${cancelledCount === 1 ? "" : "s"}.`,
