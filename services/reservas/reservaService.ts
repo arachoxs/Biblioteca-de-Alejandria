@@ -28,6 +28,7 @@ import type {
   ReservaActionResponse,
   ReservaAgrupadaItem,
   ReservasAgrupadasResponse,
+  ReservaWithDetails,
   RemainingSlotsResponse,
 } from "@/lib/types/reserva";
 import * as rules from "@/services/rules/reservaRules";
@@ -73,26 +74,8 @@ export async function createReserva(
     );
     if (!claimed) return rules.buildCopyNotAvailableResponse();
 
-    const activeCount = await countReservasActivasByUser(user.id);
-    if (activeCount >= MAX_RESERVAS_DIFERENTES) {
-      await safeRollback(id_copia);
-      return rules.buildExceedsMaxDifferentBooksResponse(activeCount);
-    }
-
-    if (libro) {
-      const copiaIds = await getCopiaIdsByLibro(libro.id);
-      const sameBookCount = await countReservasByUserAndCopias(
-        user.id,
-        copiaIds,
-      );
-      if (sameBookCount >= MAX_RESERVAS_MISMO_LIBRO) {
-        await safeRollback(id_copia);
-        return rules.buildExceedsMaxSameBookResponse(
-          sameBookCount,
-          libro.titulo,
-        );
-      }
-    }
+    const limitError = await validateCreateReservaLimits(user.id, id_copia, libro);
+    if (limitError) return limitError;
 
     try {
       await modelsCreateReserva({ id_copia, id_usuario: user.id });
@@ -181,52 +164,9 @@ export async function getReservasSummary(): Promise<ReservasAgrupadasResponse> {
 
     const reservas = await getActiveReservasConLibro(user.id);
 
-    const grouped = new Map<string, ReservaAgrupadaItem>();
-
-    for (const r of reservas) {
-      const libro = r.copia?.libro;
-      if (!libro) continue;
-
-      const key = libro.id;
-      const existing = grouped.get(key);
-
-      if (existing) {
-        existing.copias_reservadas++;
-        if (r.fecha_expiracion < existing.fecha_expiracion_mas_cercana) {
-          existing.fecha_expiracion_mas_cercana = r.fecha_expiracion;
-        }
-        existing.reservas.push({
-          id_reserva: r.id,
-          id_copia: r.id_copia,
-          codigo_seq: r.copia?.codigo_seq ?? null,
-          nombre_tienda: r.copia?.tienda?.nombre ?? null,
-          fecha_expiracion: r.fecha_expiracion,
-        });
-      } else {
-        grouped.set(key, {
-          id_libro: key,
-          titulo: libro.titulo,
-          isbn: libro.isbn,
-          precio: libro.precio,
-          autor_nombre: libro.autor?.nombre ?? null,
-          copias_reservadas: 1,
-          fecha_expiracion_mas_cercana: r.fecha_expiracion,
-          reservas: [
-            {
-              id_reserva: r.id,
-              id_copia: r.id_copia,
-              codigo_seq: r.copia?.codigo_seq ?? null,
-              nombre_tienda: r.copia?.tienda?.nombre ?? null,
-              fecha_expiracion: r.fecha_expiracion,
-            },
-          ],
-        });
-      }
-    }
-
     return {
       success: true,
-      data: Array.from(grouped.values()),
+      data: groupReservationsByLibro(reservas),
     };
   } catch (error) {
     console.error(
@@ -338,52 +278,20 @@ export async function createReservaForBook(
       return rules.buildInsufficientCopiasResponse(cantidad, availableIds.length);
     }
 
-    const byLibro = await getActiveReservaBookIds(user.id);
-    const tieneEsteLibro = byLibro.has(id_libro);
-
-    if (!tieneEsteLibro) {
-      const librosAReservarConEste = byLibro.size + 1;
-      if (librosAReservarConEste > MAX_RESERVAS_DIFERENTES) {
-        return rules.buildExceedsMaxDifferentBooksResponse(byLibro.size);
-      }
-    }
-
-    const sameBookCount = byLibro.get(id_libro)?.length ?? 0;
-    if (sameBookCount + cantidad > MAX_RESERVAS_MISMO_LIBRO) {
-      return rules.buildExceedsMaxSameBookResponse(
-        sameBookCount,
-        libro.titulo,
-      );
-    }
-
-    const claimedIds = await updateCopiaEstadoIfBatch(
-      availableIds.slice(0, cantidad),
-      "disponible",
-      "reservado",
+    const limitError = await validateReservationLimits(
+      user.id,
+      id_libro,
+      cantidad,
+      libro.titulo,
     );
+    if (limitError) return limitError;
 
-    if (claimedIds.length < cantidad) {
-      if (claimedIds.length > 0) {
-        await updateCopiaEstadoIfBatch(claimedIds, "reservado", "disponible");
-      }
-      return rules.buildInsufficientCopiasResponse(cantidad, claimedIds.length);
-    }
-
-    try {
-      await createReservasBatch(
-        claimedIds.map((id_copia) => ({
-          id_copia,
-          id_usuario: user.id,
-        })),
-      );
-    } catch (error) {
-      await updateCopiaEstadoIfBatch(claimedIds, "reservado", "disponible");
-      return {
-        success: false,
-        errors: { form: getErrorMessage(error) },
-        message: "No se pudieron crear las reservas.",
-      };
-    }
+    const claimError = await claimAndCreateReservas(
+      user.id,
+      availableIds,
+      cantidad,
+    );
+    if (claimError) return claimError;
 
     return rules.buildBookReservaSuccessResponse(cantidad);
   } catch (error) {
@@ -453,4 +361,161 @@ async function safeRollback(id_copia: string): Promise<void> {
       error,
     );
   }
+}
+
+/**
+ * Valida que el usuario no exceda los límites al crear una reserva:
+ * 1. Máximo de libros diferentes (MAX_RESERVAS_DIFERENTES)
+ * 2. Máximo de copias del mismo libro (MAX_RESERVAS_MISMO_LIBRO)
+ * Retorna un error response si excede algún límite, o null si todo ok.
+ * Extraída para reducir la CC de createReserva (era 11, ahora ~7).
+ */
+async function validateCreateReservaLimits(
+  userId: string,
+  copiaId: string,
+  libro: { id: string; titulo: string } | null,
+): Promise<ReservaActionResponse | null> {
+  const activeCount = await countReservasActivasByUser(userId);
+  if (activeCount >= MAX_RESERVAS_DIFERENTES) {
+    await safeRollback(copiaId);
+    return rules.buildExceedsMaxDifferentBooksResponse(activeCount);
+  }
+
+  if (libro) {
+    const copiaIds = await getCopiaIdsByLibro(libro.id);
+    const sameBookCount = await countReservasByUserAndCopias(userId, copiaIds);
+    if (sameBookCount >= MAX_RESERVAS_MISMO_LIBRO) {
+      await safeRollback(copiaId);
+      return rules.buildExceedsMaxSameBookResponse(sameBookCount, libro.titulo);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Agrupa las reservas activas por libro, retornando un array de
+ * ReservaAgrupadaItem listo para la respuesta de getReservasSummary.
+ * Extraída para reducir la CC de getReservasSummary (era 16, ahora ~6).
+ */
+function groupReservationsByLibro(
+  reservas: ReservaWithDetails[],
+): ReservaAgrupadaItem[] {
+  return reservas.reduce<ReservaAgrupadaItem[]>((acc, r) => {
+    const libro = r.copia?.libro;
+    if (!libro) return acc;
+
+    const existing = acc.find((item) => item.id_libro === libro.id);
+
+    if (existing) {
+      existing.copias_reservadas++;
+      if (r.fecha_expiracion < existing.fecha_expiracion_mas_cercana) {
+        existing.fecha_expiracion_mas_cercana = r.fecha_expiracion;
+      }
+      existing.reservas.push({
+        id_reserva: r.id,
+        id_copia: r.id_copia,
+        codigo_seq: r.copia?.codigo_seq ?? null,
+        nombre_tienda: r.copia?.tienda?.nombre ?? null,
+        fecha_expiracion: r.fecha_expiracion,
+      });
+    } else {
+      acc.push({
+        id_libro: libro.id,
+        titulo: libro.titulo,
+        isbn: libro.isbn,
+        precio: libro.precio,
+        autor_nombre: libro.autor?.nombre ?? null,
+        copias_reservadas: 1,
+        fecha_expiracion_mas_cercana: r.fecha_expiracion,
+        reservas: [
+          {
+            id_reserva: r.id,
+            id_copia: r.id_copia,
+            codigo_seq: r.copia?.codigo_seq ?? null,
+            nombre_tienda: r.copia?.tienda?.nombre ?? null,
+            fecha_expiracion: r.fecha_expiracion,
+          },
+        ],
+      });
+    }
+
+    return acc;
+  }, []);
+}
+
+/**
+ * Valida que el usuario no exceda los límites de libros diferentes (5)
+ * ni de copias del mismo libro (3) al hacer una reserva batch.
+ * Retorna un error response si excede algún límite, o null si todo ok.
+ * Extraída para reducir la CC de createReservaForBook (era 13, ahora ~6).
+ */
+async function validateReservationLimits(
+  userId: string,
+  id_libro: string,
+  cantidad: number,
+  libroTitulo: string,
+): Promise<ReservaActionResponse | null> {
+  const byLibro = await getActiveReservaBookIds(userId);
+  const tieneEsteLibro = byLibro.has(id_libro);
+
+  if (!tieneEsteLibro) {
+    const librosAReservarConEste = byLibro.size + 1;
+    if (librosAReservarConEste > MAX_RESERVAS_DIFERENTES) {
+      return rules.buildExceedsMaxDifferentBooksResponse(byLibro.size);
+    }
+  }
+
+  const sameBookCount = byLibro.get(id_libro)?.length ?? 0;
+  if (sameBookCount + cantidad > MAX_RESERVAS_MISMO_LIBRO) {
+    return rules.buildExceedsMaxSameBookResponse(
+      sameBookCount,
+      libroTitulo,
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Reclama atómicamente N copias (disponible → reservado) y crea las
+ * reservas en BD. Si el claim falla, hace rollback parcial. Si el
+ * insert falla, revierte el claim. Retorna null en éxito o un error.
+ * Extraída para reducir CC y LOC de createReservaForBook.
+ */
+async function claimAndCreateReservas(
+  userId: string,
+  availableIds: string[],
+  cantidad: number,
+): Promise<ReservaActionResponse | null> {
+  const claimedIds = await updateCopiaEstadoIfBatch(
+    availableIds.slice(0, cantidad),
+    "disponible",
+    "reservado",
+  );
+
+  if (claimedIds.length < cantidad) {
+    if (claimedIds.length > 0) {
+      await updateCopiaEstadoIfBatch(claimedIds, "reservado", "disponible");
+    }
+    return rules.buildInsufficientCopiasResponse(cantidad, claimedIds.length);
+  }
+
+  try {
+    await createReservasBatch(
+      claimedIds.map((id_copia) => ({
+        id_copia,
+        id_usuario: userId,
+      })),
+    );
+  } catch (error) {
+    await updateCopiaEstadoIfBatch(claimedIds, "reservado", "disponible");
+    return {
+      success: false,
+      errors: { form: getErrorMessage(error) },
+      message: "No se pudieron crear las reservas.",
+    };
+  }
+
+  return null;
 }

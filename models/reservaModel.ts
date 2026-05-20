@@ -7,6 +7,97 @@ import type {
   ReservaWithDetails,
 } from "@/lib/types/reserva";
 
+// ─── Helpers privados ───────────────────────────────────────────────
+
+interface BasicQueryOptions {
+  /** Columnas a seleccionar (string de columnas). `null` = ejecuta delete(). */
+  selectColumns?: string | null;
+  /** Campo por el que filtrar (ej. "id", "id_usuario"). */
+  filterField: string;
+  /** Valor del filtro: string → `.eq()`, array → `.in()`. */
+  filterValue: string | string[];
+  /** Si es true, añade `.maybeSingle()` a la cadena. */
+  maybeSingle?: boolean;
+  /** Contexto para el mensaje de error: `[reservaModel] ${errorContext}:`. */
+  errorContext?: string;
+}
+
+/**
+ * Construye y ejecuta una consulta básica sobre la tabla `reserva`,
+ * extrayendo el patrón común de creación de cliente, filtrado y manejo de errores.
+ *
+ * - Si `selectColumns` es `null`, ejecuta un `delete()` en lugar de `select()`.
+ * - Si `filterValue` es un array, usa `.in()`; si es string, usa `.eq()`.
+ * - `maybeSingle` añade `.maybeSingle()` a la cadena.
+ * - `errorContext` se interpola en el mensaje de error: `[reservaModel] ${errorContext}:`.
+ */
+async function buildBasicQuery<T = ReservaRow>(
+  client: ReturnType<typeof createAdminClient>,
+  options: BasicQueryOptions,
+): Promise<T | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let builder: any = client.from("reserva");
+
+  if (options.selectColumns !== null) {
+    builder = builder.select(options.selectColumns);
+  } else {
+    builder = builder.delete();
+  }
+
+  if (Array.isArray(options.filterValue)) {
+    builder = builder.in(options.filterField, options.filterValue);
+  } else {
+    builder = builder.eq(options.filterField, options.filterValue);
+  }
+
+  if (options.maybeSingle) {
+    builder = builder.maybeSingle();
+  }
+
+  const { data, error } = await builder;
+
+  if (error) {
+    console.error(
+      `[reservaModel] ${options.errorContext ?? "Error en consulta básica"}:`,
+      error,
+    );
+    throw error;
+  }
+
+  return data as T | null;
+}
+
+/**
+ * Cuenta las reservas activas (no expiradas) de un usuario.
+ * Si se proporciona `copiaIds`, filtra adicionalmente por esos IDs de copia.
+ */
+async function queryActiveReservas(
+  id_usuario: string,
+  copiaIds?: string[],
+): Promise<number> {
+  const adminClient = createAdminClient();
+  const now = new Date().toISOString();
+
+  let query = adminClient
+    .from("reserva")
+    .select("id", { count: "exact", head: true })
+    .eq("id_usuario", id_usuario)
+    .gt("fecha_expiracion", now);
+
+  if (copiaIds && copiaIds.length > 0) {
+    query = query.in("id_copia", copiaIds);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error("[reservaModel] Error consultando reservas activas:", error);
+    throw error;
+  }
+
+  return count ?? 0;
+}
+
 // ─── Escritura ──────────────────────────────────────────────────────
 
 /**
@@ -66,16 +157,12 @@ export async function createReservasBatch(
  */
 export async function deleteReserva(id: string): Promise<void> {
   const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("reserva")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    console.error("[reservaModel] Error eliminando reserva:", error);
-    throw error;
-  }
+  await buildBasicQuery(adminClient, {
+    selectColumns: null,
+    filterField: "id",
+    filterValue: id,
+    errorContext: "Error eliminando reserva",
+  });
 }
 
 /**
@@ -86,19 +173,12 @@ export async function deleteReservasBatch(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
 
   const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("reserva")
-    .delete()
-    .in("id", ids);
-
-  if (error) {
-    console.error(
-      "[reservaModel] Error eliminando reservas en batch:",
-      error,
-    );
-    throw error;
-  }
+  await buildBasicQuery(adminClient, {
+    selectColumns: null,
+    filterField: "id",
+    filterValue: ids,
+    errorContext: "Error eliminando reservas en batch",
+  });
 }
 
 // ─── Lectura individual ─────────────────────────────────────────────
@@ -108,19 +188,13 @@ export async function deleteReservasBatch(ids: string[]): Promise<void> {
  */
 export async function getReservaById(id: string): Promise<ReservaRow | null> {
   const adminClient = createAdminClient();
-
-  const { data, error } = await adminClient
-    .from("reserva")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[reservaModel] Error obteniendo reserva por id:", error);
-    throw error;
-  }
-
-  return data;
+  return buildBasicQuery<ReservaRow>(adminClient, {
+    selectColumns: "*",
+    filterField: "id",
+    filterValue: id,
+    maybeSingle: true,
+    errorContext: "Error obteniendo reserva por id",
+  });
 }
 
 // ─── Lectura por usuario ────────────────────────────────────────────
@@ -236,24 +310,7 @@ export async function getActiveReservaBookIds(
 export async function countReservasActivasByUser(
   id_usuario: string,
 ): Promise<number> {
-  const adminClient = createAdminClient();
-  const now = new Date().toISOString();
-
-  const { count, error } = await adminClient
-    .from("reserva")
-    .select("id", { count: "exact", head: true })
-    .eq("id_usuario", id_usuario)
-    .gt("fecha_expiracion", now);
-
-  if (error) {
-    console.error(
-      "[reservaModel] Error contando reservas activas del usuario:",
-      error,
-    );
-    throw error;
-  }
-
-  return count ?? 0;
+  return queryActiveReservas(id_usuario);
 }
 
 /**
@@ -267,26 +324,7 @@ export async function countReservasByUserAndCopias(
   copiaIds: string[],
 ): Promise<number> {
   if (copiaIds.length === 0) return 0;
-
-  const adminClient = createAdminClient();
-  const now = new Date().toISOString();
-
-  const { count, error } = await adminClient
-    .from("reserva")
-    .select("id", { count: "exact", head: true })
-    .eq("id_usuario", id_usuario)
-    .in("id_copia", copiaIds)
-    .gt("fecha_expiracion", now);
-
-  if (error) {
-    console.error(
-      "[reservaModel] Error contando reservas por usuario y copias:",
-      error,
-    );
-    throw error;
-  }
-
-  return count ?? 0;
+  return queryActiveReservas(id_usuario, copiaIds);
 }
 
 // ─── Batch de expiración ────────────────────────────────────────────
