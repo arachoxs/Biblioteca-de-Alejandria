@@ -199,15 +199,17 @@ export default function NavbarClient({
 
       {/* ── Right section (desktop) ────────────────────────────────── */}
       <div className="hidden md:flex items-center gap-3">
-        {/* Cart button — always visible */}
-        <button
-          type="button"
-          onClick={handleCartClick}
-          className="p-2 rounded-lg bg-brand-bg/5 hover:bg-brand-bg/10 border border-transparent hover:border-brand-accent/30 transition-all text-brand-accent cursor-pointer"
-          aria-label="Carrito de compras"
-        >
-          <ShoppingCart className="w-5 h-5" />
-        </button>
+        {/* Cart button — solo para CLIENTE y VISITANTE */}
+        {role !== Rol.ADMINISTRADOR && role !== Rol.ROOT && (
+          <button
+            type="button"
+            onClick={handleCartClick}
+            className="p-2 rounded-lg bg-brand-bg/5 hover:bg-brand-bg/10 border border-transparent hover:border-brand-accent/30 transition-all text-brand-accent cursor-pointer"
+            aria-label="Carrito de compras"
+          >
+            <ShoppingCart className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Panel Buttons — role-specific */}
         {role === Rol.ROOT && (
@@ -304,14 +306,16 @@ export default function NavbarClient({
 
       {/* ── Mobile: Cart + Hamburger ──────────────────────────────── */}
       <div className="flex md:hidden items-center gap-1">
-        <button
-          type="button"
-          onClick={handleCartClick}
-          className="flex items-center rounded-lg text-brand-accent hover:bg-brand-bg/10 transition-colors cursor-pointer p-1.5"
-          aria-label="Carrito de compras"
-        >
-          <ShoppingCart className="w-5 h-5" />
-        </button>
+        {role !== Rol.ADMINISTRADOR && role !== Rol.ROOT && (
+          <button
+            type="button"
+            onClick={handleCartClick}
+            className="flex items-center rounded-lg text-brand-accent hover:bg-brand-bg/10 transition-colors cursor-pointer p-1.5"
+            aria-label="Carrito de compras"
+          >
+            <ShoppingCart className="w-5 h-5" />
+          </button>
+        )}
         <button
           ref={mobileMenuTriggerRef}
           type="button"
