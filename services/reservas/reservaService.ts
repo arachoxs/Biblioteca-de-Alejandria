@@ -423,16 +423,17 @@ export async function cleanExpiredReservas(): Promise<ReservaActionResponse> {
   const expiradas = await getReservasExpiradas();
   if (expiradas.length === 0) return rules.buildCleanupResponse(0);
 
-  for (const reserva of expiradas) {
-    try {
-      await updateCopiaEstadoIf(reserva.id_copia, "reservado", "disponible");
-    } catch (error) {
-      console.error(
-        "[reservaService] Error al liberar copia expirada:",
-        reserva.id_copia,
-        error,
-      );
-    }
+  try {
+    await updateCopiaEstadoIfBatch(
+      expiradas.map((r) => r.id_copia),
+      "reservado",
+      "disponible",
+    );
+  } catch (error) {
+    console.error(
+      "[reservaService] Error al liberar copias expiradas en batch:",
+      error,
+    );
   }
 
   const ids = expiradas.map((r) => r.id);
