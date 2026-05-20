@@ -58,6 +58,8 @@ export async function createReserva(
     const user = await getCurrentUser();
     if (!user) return rules.buildSessionRequiredResponse();
 
+    await cleanExpiredReservasInternal();
+
     const copia = await getCopiaById(id_copia);
     if (!copia) return rules.buildCopyNotFoundResponse();
     if (copia.estado !== "disponible") {
@@ -65,8 +67,6 @@ export async function createReserva(
     }
 
     const libro = await getActiveLibroById(copia.id_libro);
-
-    await cleanExpiredReservasInternal();
 
     const claimed = await updateCopiaEstadoIf(
       id_copia,
