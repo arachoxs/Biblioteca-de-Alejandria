@@ -104,74 +104,63 @@ export async function updateNoticia(
   }
 }
 
-export async function softDeleteNoticia(id: NoticiaId): Promise<void> {
+async function _softDeleteNoticiaByField(
+  field: "id" | "id_libro",
+  value: string
+): Promise<void> {
   const adminClient = createAdminClient();
 
   const { error } = await adminClient
     .from("noticias")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id)
+    .eq(field, value)
     .is("deleted_at", null);
 
   if (error) {
-    console.error("[noticiaModel] Error eliminando noticia:", error);
+    console.error(`[noticiaModel] Error eliminando noticia por ${field}:`, error);
     throw error;
   }
 }
 
-export async function softDeleteNoticiaByLibroId(id_libro: LibroId): Promise<void> {
-  const adminClient = createAdminClient();
+export async function softDeleteNoticia(id: NoticiaId): Promise<void> {
+  return _softDeleteNoticiaByField("id", id);
+}
 
-  const { error } = await adminClient
+export async function softDeleteNoticiaByLibroId(id_libro: LibroId): Promise<void> {
+  return _softDeleteNoticiaByField("id_libro", id_libro);
+}
+
+async function _fetchNoticiaByField(
+  field: "id" | "id_libro",
+  value: string
+): Promise<NoticiaRow | null> {
+  const publicClient = createPublicClient();
+
+  const { data, error } = await publicClient
     .from("noticias")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id_libro", id_libro)
-    .is("deleted_at", null);
+    .select("*")
+    .eq(field, value)
+    .is("deleted_at", null)
+    .maybeSingle();
 
   if (error) {
-    console.error("[noticiaModel] Error eliminando noticia por id_libro:", error);
+    console.error(`[noticiaModel] Error obteniendo noticia por ${field}:`, error);
     throw error;
   }
+
+  return data;
 }
 
 export async function getNoticiaById(
   id: NoticiaId
 ): Promise<NoticiaRow | null> {
-  const publicClient = createPublicClient();
-
-  const { data, error } = await publicClient
-    .from("noticias")
-    .select("*")
-    .eq("id", id)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[noticiaModel] Error obteniendo noticia por id:", error);
-    throw error;
-  }
-
-  return data;
+  return _fetchNoticiaByField("id", id);
 }
 
 export async function getNoticiaByLibroId(
   libroId: LibroId
 ): Promise<NoticiaRow | null> {
-  const publicClient = createPublicClient();
-
-  const { data, error } = await publicClient
-    .from("noticias")
-    .select("*")
-    .eq("id_libro", libroId)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[noticiaModel] Error obteniendo noticia por id_libro:", error);
-    throw error;
-  }
-
-  return data;
+  return _fetchNoticiaByField("id_libro", libroId);
 }
 
 export async function getNoticias(
@@ -323,22 +312,22 @@ function applyNoticiaFilters(
   return query;
 }
 
-export async function getAllNoticiasWithLibroCompleto(
+export async function getNoticiasConFiltros(
   page: number = 1,
   pageSize: number = 20,
-  filters?: NoticiaFilters
+  options: { applyExpirationFilter?: boolean; filters?: NoticiaFilters } = {}
 ): Promise<Paginated<NoticiaWithLibroCompleto>> {
   const publicClient = createPublicClient();
 
   const pagination = buildSafePagination(page, pageSize);
 
   const { data, error, count } = await buildNoticiasQuery(publicClient, pagination, {
-    applyExpirationFilter: false,
-    filters,
+    applyExpirationFilter: options.applyExpirationFilter ?? true,
+    filters: options.filters,
   });
 
   if (error) {
-    console.error("[noticiaModel] Error listando noticias con filtros:", error);
+    console.error("[noticiaModel] Error listando noticias:", error);
     throw error;
   }
 
@@ -347,27 +336,17 @@ export async function getAllNoticiasWithLibroCompleto(
   return normalizePagination(normalized, count ?? 0, pagination.safePage, pagination.safePageSize);
 }
 
-export async function getNoticiasWithLibroCompleto(
-  page: number = 1,
-  pageSize: number = 20
-): Promise<Paginated<NoticiaWithLibroCompleto>> {
-  const publicClient = createPublicClient();
+export const getAllNoticiasWithLibroCompleto: typeof getNoticiasConFiltros = (
+  page,
+  pageSize,
+  options = {}
+) => getNoticiasConFiltros(page, pageSize, { ...options, applyExpirationFilter: false });
 
-  const pagination = buildSafePagination(page, pageSize);
-
-  const { data, error, count } = await buildNoticiasQuery(publicClient, pagination, {
-    applyExpirationFilter: true,
-  });
-
-  if (error) {
-    console.error("[noticiaModel] Error listando noticias con precio:", error);
-    throw error;
-  }
-
-  const normalized: NoticiaWithLibroCompleto[] = (data as unknown as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
-
-  return normalizePagination(normalized, count ?? 0, pagination.safePage, pagination.safePageSize);
-}
+export const getNoticiasWithLibroCompleto: typeof getNoticiasConFiltros = (
+  page,
+  pageSize,
+  options = {}
+) => getNoticiasConFiltros(page, pageSize, { ...options, applyExpirationFilter: true });
 
 export async function getNoticiaCompletaById(
   id: NoticiaId
