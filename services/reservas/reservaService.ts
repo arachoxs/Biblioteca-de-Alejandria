@@ -27,8 +27,9 @@ import { MAX_RESERVAS_DIFERENTES, MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/r
 import type {
   ReservaActionResponse,
   ReservaAgrupadaItem,
-  ReservasAgrupadasResponse,
+  ReservaCopiaInfo,
   ReservaWithDetails,
+  ReservasAgrupadasResponse,
   RemainingSlotsResponse,
 } from "@/lib/types/reserva";
 import * as rules from "@/services/rules/reservaRules";
@@ -404,44 +405,51 @@ function groupReservationsByLibro(
   return reservas.reduce<ReservaAgrupadaItem[]>((acc, r) => {
     const libro = r.copia?.libro;
     if (!libro) return acc;
-
-    const existing = acc.find((item) => item.id_libro === libro.id);
-
-    if (existing) {
-      existing.copias_reservadas++;
-      if (r.fecha_expiracion < existing.fecha_expiracion_mas_cercana) {
-        existing.fecha_expiracion_mas_cercana = r.fecha_expiracion;
-      }
-      existing.reservas.push({
-        id_reserva: r.id,
-        id_copia: r.id_copia,
-        codigo_seq: r.copia?.codigo_seq ?? null,
-        nombre_tienda: r.copia?.tienda?.nombre ?? null,
-        fecha_expiracion: r.fecha_expiracion,
-      });
-    } else {
-      acc.push({
-        id_libro: libro.id,
-        titulo: libro.titulo,
-        isbn: libro.isbn,
-        precio: libro.precio,
-        autor_nombre: libro.autor?.nombre ?? null,
-        copias_reservadas: 1,
-        fecha_expiracion_mas_cercana: r.fecha_expiracion,
-        reservas: [
-          {
-            id_reserva: r.id,
-            id_copia: r.id_copia,
-            codigo_seq: r.copia?.codigo_seq ?? null,
-            nombre_tienda: r.copia?.tienda?.nombre ?? null,
-            fecha_expiracion: r.fecha_expiracion,
-          },
-        ],
-      });
-    }
-
-    return acc;
+    return accumulateGroup(acc, libro, r);
   }, []);
+}
+
+function accumulateGroup(
+  acc: ReservaAgrupadaItem[],
+  libro: NonNullable<ReservaCopiaInfo["libro"]>,
+  r: ReservaWithDetails,
+): ReservaAgrupadaItem[] {
+  const existing = acc.find((item) => item.id_libro === libro.id);
+
+  if (existing) {
+    existing.copias_reservadas++;
+    if (r.fecha_expiracion < existing.fecha_expiracion_mas_cercana) {
+      existing.fecha_expiracion_mas_cercana = r.fecha_expiracion;
+    }
+    existing.reservas.push({
+      id_reserva: r.id,
+      id_copia: r.id_copia,
+      codigo_seq: r.copia?.codigo_seq ?? null,
+      nombre_tienda: r.copia?.tienda?.nombre ?? null,
+      fecha_expiracion: r.fecha_expiracion,
+    });
+  } else {
+    acc.push({
+      id_libro: libro.id,
+      titulo: libro.titulo,
+      isbn: libro.isbn,
+      precio: libro.precio,
+      autor_nombre: libro.autor?.nombre ?? null,
+      copias_reservadas: 1,
+      fecha_expiracion_mas_cercana: r.fecha_expiracion,
+      reservas: [
+        {
+          id_reserva: r.id,
+          id_copia: r.id_copia,
+          codigo_seq: r.copia?.codigo_seq ?? null,
+          nombre_tienda: r.copia?.tienda?.nombre ?? null,
+          fecha_expiracion: r.fecha_expiracion,
+        },
+      ],
+    });
+  }
+
+  return acc;
 }
 
 /**

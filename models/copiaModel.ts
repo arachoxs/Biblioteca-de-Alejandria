@@ -47,11 +47,11 @@ type CopiaFilterOptions = {
 };
 
 /** Filtros para el listado paginado de copias. */
-export interface GetCopiasFilters {
+type CopiasFilters = {
   searchTerm?: string;
   id_tienda?: string;
   id_libro?: string;
-}
+};
 
 /**
  * Interfaz mínima con los métodos de PostgrestQueryBuilder usados por
@@ -449,26 +449,40 @@ export async function getInventarioRows(
   return data ?? [];
 }
 
+function applyCopiasFilters(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  filters: CopiasFilters,
+) {
+  if (filters.id_tienda) query = query.eq("id_tienda", filters.id_tienda);
+  if (filters.id_libro) query = query.eq("id_libro", filters.id_libro);
+  if (filters.searchTerm?.trim()) {
+    query = query.ilike("codigo_seq", `%${filters.searchTerm.trim()}%`);
+  }
+  return query;
+}
+
 export async function getCopias(
   page: number = 1,
   pageSize: number = 10,
-  filters: GetCopiasFilters = {},
+  searchTerm?: string,
+  id_tienda?: string,
+  id_libro?: string,
 ): Promise<Paginated<CopiaRow>> {
   const adminClient = createAdminClient();
 
   const { safePage, safePageSize, from, to } = buildPaginationBounds(page, pageSize);
 
-  let query = buildCopiaFilterQuery(
-    adminClient.from("copia").select("*", { count: "exact" }),
-    "copia",
-    { id_libro: filters.id_libro, id_tienda: filters.id_tienda },
-  )
-    .range(from, to)
-    .order("id", { ascending: false });
-
-  if (filters.searchTerm?.trim()) {
-    query = query.ilike("codigo_seq", `%${filters.searchTerm.trim()}%`);
-  }
+  const filters: CopiasFilters = { searchTerm, id_tienda, id_libro };
+  const query = applyCopiasFilters(
+    adminClient
+      .from("copia")
+      .select("*", { count: "exact" })
+      .is("deleted_at", null)
+      .range(from, to)
+      .order("id", { ascending: false }),
+    filters,
+  );
 
   const { data, error, count } = await query;
 
