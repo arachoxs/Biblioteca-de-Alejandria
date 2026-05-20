@@ -242,7 +242,9 @@ export default function NewsCardClient({
 
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <Link href={`/noticia/${noticia.id}`} className="relative aspect-[3/4] w-full bg-brand-bg overflow-hidden block z-10">
+      <Link
+        href={`/noticia/${noticia.id}`}
+        className="relative aspect-[3/4] w-full bg-brand-bg overflow-hidden block z-10">
         {renderImageContent(noticia)}
       </Link>
 
