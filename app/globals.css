@@ -63,3 +63,31 @@
   animation: toastSlideOut 0.3s ease-in both;
 }
 
+/* ── Cart sidebar animations ──────────────────────────────────────── */
+@keyframes cartSlideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes cartSlideOut {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+.cart-slide-in {
+  animation: cartSlideIn 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.cart-slide-out {
+  animation: cartSlideOut 0.25s ease-in both;
+}
+
+@keyframes cartBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cart-backdrop-in {
+  animation: cartBackdropIn 0.3s ease-out both;
+}
+
