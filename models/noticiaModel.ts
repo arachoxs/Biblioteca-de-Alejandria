@@ -206,32 +206,34 @@ export async function getNoticias(
   return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
 }
 
-export async function getNoticiasWithLibroCompleto(
-  page: number = 1,
-  pageSize: number = 20
-): Promise<Paginated<NoticiaWithLibroCompleto>> {
-  const publicClient = createPublicClient();
+interface NoticiasQueryConfig {
+  applyExpirationFilter: boolean;
+  filters?: NoticiaFilters;
+}
 
-  const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
-
-  const { data, error, count } = await publicClient
+function buildNoticiasQuery(
+  publicClient: ReturnType<typeof createPublicClient>,
+  { safePage, safePageSize, from, to }: { safePage: number; safePageSize: number; from: number; to: number },
+  config: NoticiasQueryConfig
+) {
+  let query = publicClient
     .from("vista_noticias_completa")
     .select("*", { count: "exact" })
     .is("deleted_at", null)
     .eq("es_visible", true)
-    .gt("fecha_expiracion", new Date().toISOString())
     .gt("stock_disponible", 0)
     .range(from, to)
     .order("fecha_publicacion", { ascending: false });
 
-  if (error) {
-    console.error("[noticiaModel] Error listando noticias con precio:", error);
-    throw error;
+  if (config.applyExpirationFilter) {
+    query = query.gt("fecha_expiracion", new Date().toISOString());
   }
 
-  const normalized: NoticiaWithLibroCompleto[] = (data as unknown as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
+  if (config.filters) {
+    query = applyNoticiaFilters(query, config.filters);
+  }
 
-  return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
+  return query;
 }
 
 interface VistaNoticiaCompleta {
@@ -328,22 +330,12 @@ export async function getAllNoticiasWithLibroCompleto(
 ): Promise<Paginated<NoticiaWithLibroCompleto>> {
   const publicClient = createPublicClient();
 
-  const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
+  const pagination = buildSafePagination(page, pageSize);
 
-  let query = publicClient
-    .from("vista_noticias_completa")
-    .select("*", { count: "exact" })
-    .is("deleted_at", null)
-    .eq("es_visible", true)
-    .gt("stock_disponible", 0)
-    .range(from, to)
-    .order("fecha_publicacion", { ascending: false });
-
-  if (filters) {
-    query = applyNoticiaFilters(query, filters);
-  }
-
-  const { data, error, count } = await query;
+  const { data, error, count } = await buildNoticiasQuery(publicClient, pagination, {
+    applyExpirationFilter: false,
+    filters,
+  });
 
   if (error) {
     console.error("[noticiaModel] Error listando noticias con filtros:", error);
@@ -352,7 +344,29 @@ export async function getAllNoticiasWithLibroCompleto(
 
   const normalized: NoticiaWithLibroCompleto[] = (data as unknown as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
 
-  return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
+  return normalizePagination(normalized, count ?? 0, pagination.safePage, pagination.safePageSize);
+}
+
+export async function getNoticiasWithLibroCompleto(
+  page: number = 1,
+  pageSize: number = 20
+): Promise<Paginated<NoticiaWithLibroCompleto>> {
+  const publicClient = createPublicClient();
+
+  const pagination = buildSafePagination(page, pageSize);
+
+  const { data, error, count } = await buildNoticiasQuery(publicClient, pagination, {
+    applyExpirationFilter: true,
+  });
+
+  if (error) {
+    console.error("[noticiaModel] Error listando noticias con precio:", error);
+    throw error;
+  }
+
+  const normalized: NoticiaWithLibroCompleto[] = (data as unknown as VistaNoticiaCompleta[] | null)?.map(mapVistaToNoticiaWithLibroCompleto) ?? [];
+
+  return normalizePagination(normalized, count ?? 0, pagination.safePage, pagination.safePageSize);
 }
 
 export async function getNoticiaCompletaById(
