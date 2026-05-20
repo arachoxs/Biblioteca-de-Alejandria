@@ -3,7 +3,6 @@
 import { getCurrentUser } from "@/models/authModel";
 import { getErrorMessage } from "@/lib/services/errors";
 import { createReservaForBook } from "@/services/reservas/reservaService";
-import { revalidatePath } from "next/cache";
 import { sanitizeText, isValidUUID } from "@/lib/validations/rules";
 import type { ReservaActionResponse } from "@/lib/types/reserva";
 
@@ -29,11 +28,7 @@ export async function addToCartAction(
   }
 
   try {
-    const result = await createReservaForBook(sanitized, 1);
-    if (result.success) {
-      revalidatePath("/");
-    }
-    return result;
+    return await createReservaForBook(sanitized, 1);
   } catch (error) {
     return {
       success: false,
