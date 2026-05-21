@@ -274,9 +274,18 @@ export default function NewsCardClient({
         )}
 
         <div className="mt-auto pt-2">
-          <span className="text-[10px] uppercase tracking-widest text-brand-accent font-medium">
-            {getCardLabel(isAdminView)}
-          </span>
+          {isAdminView ? (
+            <span className="text-[10px] uppercase tracking-widest text-brand-accent font-medium">
+              {getCardLabel(isAdminView)}
+            </span>
+          ) : (
+            <Link
+              href={`/noticia/${noticia.id}`}
+              className="text-[10px] uppercase tracking-widest text-brand-accent font-medium hover:text-brand-primary transition-colors inline-block cursor-pointer"
+            >
+              {getCardLabel(isAdminView)}
+            </Link>
+          )}
         </div>
       </div>
     </div>
