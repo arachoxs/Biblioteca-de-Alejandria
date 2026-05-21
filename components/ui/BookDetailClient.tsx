@@ -75,9 +75,11 @@ export default function BookDetailClient({ noticia, userRole }: BookDetailClient
         <BackLink href="/" label="Volver al catálogo" />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          <BookImage coverImage={coverImage} libroTitulo={noticia.libro_titulo} />
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 [animation-delay:100ms] fill-mode-both">
+            <BookImage coverImage={coverImage} libroTitulo={noticia.libro_titulo} />
+          </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700 [animation-delay:250ms] fill-mode-both">
             <BookHeader
               autorNombre={noticia.autor_nombre}
               libroTitulo={noticia.libro_titulo}

@@ -31,7 +31,7 @@ export default function QuantityControls({
         <button
           onClick={decrement}
           disabled={quantity <= 1 || isAdding}
-          className="px-4 py-3 text-brand-secondary hover:bg-brand-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-4 py-3 text-brand-secondary hover:bg-brand-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           aria-label="Decrease quantity"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -44,7 +44,7 @@ export default function QuantityControls({
         <button
           onClick={increment}
           disabled={quantity >= maxQuantity || isAdding}
-          className="px-4 py-3 text-brand-secondary hover:bg-brand-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-4 py-3 text-brand-secondary hover:bg-brand-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           aria-label="Increase quantity"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -56,7 +56,7 @@ export default function QuantityControls({
         disabled={!isCartAvailable || isAdding}
         title={isAdding ? "Agregando..." : cartTooltip}
         onClick={onAddToCart}
-        className="flex-1 bg-brand-primary text-white py-4 px-8 rounded-sm hover:bg-brand-primary/90 transition-colors flex items-center justify-center gap-2 font-semibold uppercase tracking-wider text-sm disabled:bg-brand-accent/30 disabled:cursor-not-allowed"
+        className="flex-1 bg-brand-primary text-white py-4 px-8 rounded-sm hover:bg-brand-primary/90 transition-all flex items-center justify-center gap-2 font-semibold uppercase tracking-wider text-sm disabled:bg-brand-accent/30 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
       >
         {isAdding ? (
           <>
@@ -71,10 +71,10 @@ export default function QuantityControls({
         )}
       </button>
       {stockDisponible !== undefined && stockDisponible !== null && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-brand-bg rounded-sm border border-brand-accent/20">
-          <span className="text-xs text-brand-secondary">Stock:</span>
+        <div className="flex items-center gap-2 px-4 py-2 bg-brand-bg/60 rounded-sm border border-brand-accent/20">
+          <span className="text-xs text-brand-secondary/70 uppercase tracking-wider">Stock:</span>
           <span className="text-sm font-semibold text-brand-text">
-            {stockDisponible} unidades
+            {stockDisponible} ud.
           </span>
         </div>
       )}

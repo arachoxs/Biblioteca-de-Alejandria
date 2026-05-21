@@ -16,7 +16,7 @@ export default function MobileCartBar({ isCartAvailable, cartTooltip, onAddToCar
         disabled={!isCartAvailable || isAdding}
         title={isAdding ? "Agregando..." : cartTooltip}
         onClick={onAddToCart}
-        className="w-full bg-brand-primary text-white py-4 rounded-sm font-semibold uppercase tracking-wider text-sm hover:bg-brand-primary/90 transition-colors flex items-center justify-center gap-2 disabled:bg-brand-accent/30 disabled:cursor-not-allowed"
+        className="w-full bg-brand-primary text-white py-4 rounded-sm font-semibold uppercase tracking-wider text-sm hover:bg-brand-primary/90 transition-all flex items-center justify-center gap-2 disabled:bg-brand-accent/30 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
       >
         {isAdding ? (
           <>
