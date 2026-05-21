@@ -19,7 +19,7 @@ function useQuantity(
   );
 
   const increment = () => {
-    setQuantity((q) => q + 1);
+    setQuantity((q) => Math.min(q + 1, max));
   };
 
   const decrement = () => {
