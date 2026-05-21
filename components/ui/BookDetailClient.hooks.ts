@@ -3,19 +3,30 @@
 import { useState } from "react";
 import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
 import { Rol } from "@/lib/types/auth";
+import { MAX_RESERVAS_MISMO_LIBRO } from "@/lib/validations/rules";
 
-function useQuantity(initial: number = 1, max: number = 3) {
-  const [quantity, setQuantity] = useState(initial);
+function useQuantity(
+  initial: number = 1,
+  stockDisponible: number | null | undefined,
+) {
+  const max = Math.min(
+    MAX_RESERVAS_MISMO_LIBRO,
+    stockDisponible ?? MAX_RESERVAS_MISMO_LIBRO,
+  );
+
+  const [quantity, setQuantity] = useState(
+    Math.min(initial, Math.max(1, max)),
+  );
 
   const increment = () => {
-    if (quantity < max) setQuantity((q) => q + 1);
+    setQuantity((q) => q + 1);
   };
 
   const decrement = () => {
-    if (quantity > 1) setQuantity((q) => q - 1);
+    setQuantity((q) => Math.max(1, q - 1));
   };
 
-  return { quantity, increment, decrement };
+  return { quantity, increment, decrement, max };
 }
 
 function useCartValidation(userRole: Rol | null, stockAvailable: number | null | undefined) {
