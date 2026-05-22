@@ -94,6 +94,7 @@ function AddToCartButton({ id_libro, isAuthenticated }: AddToCartButtonProps) {
     type: "error" | "success";
     message: string;
   } | null>(null);
+  const [toastKey, setToastKey] = useState(0);
   const router = useRouter();
 
   const handleAddToCart = useCallback(
@@ -118,6 +119,7 @@ function AddToCartButton({ id_libro, isAuthenticated }: AddToCartButtonProps) {
           setTimeout(() => setButtonState("idle"), 2000);
         } else {
           setButtonState("idle");
+          setToastKey((k) => k + 1);
           setToast({
             type: "error",
             message: result.message ?? "No se pudo agregar al carrito.",
@@ -125,6 +127,7 @@ function AddToCartButton({ id_libro, isAuthenticated }: AddToCartButtonProps) {
         }
       } catch {
         setButtonState("idle");
+        setToastKey((k) => k + 1);
         setToast({
           type: "error",
           message: "Error inesperado al agregar al carrito.",
@@ -189,7 +192,7 @@ function AddToCartButton({ id_libro, isAuthenticated }: AddToCartButtonProps) {
         </button>
       </div>
       {toast && (
-        <Alert variant={toast.type} onClose={() => setToast(null)}>
+        <Alert key={toastKey} variant={toast.type} onClose={() => setToast(null)}>
           {toast.message}
         </Alert>
       )}
@@ -271,9 +274,18 @@ export default function NewsCardClient({
         )}
 
         <div className="mt-auto pt-2">
-          <span className="text-[10px] uppercase tracking-widest text-brand-accent font-medium">
-            {getCardLabel(isAdminView)}
-          </span>
+          {isAdminView ? (
+            <span className="text-[10px] uppercase tracking-widest text-brand-accent font-medium">
+              {getCardLabel(isAdminView)}
+            </span>
+          ) : (
+            <Link
+              href={`/noticia/${noticia.id}`}
+              className="text-[10px] uppercase tracking-widest text-brand-accent font-medium hover:text-brand-primary transition-colors inline-block cursor-pointer"
+            >
+              {getCardLabel(isAdminView)}
+            </Link>
+          )}
         </div>
       </div>
     </div>

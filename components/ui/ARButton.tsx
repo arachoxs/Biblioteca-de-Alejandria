@@ -7,7 +7,7 @@ export default function ARButton() {
     <div className="mb-8 relative inline-block group">
       <button
         disabled
-        className="w-full sm:w-auto bg-transparent border border-brand-accent/30 text-brand-secondary/50 py-4 px-8 rounded-sm flex items-center justify-center gap-2 font-semibold uppercase tracking-wider text-sm cursor-not-allowed opacity-50"
+        className="w-full sm:w-auto bg-transparent border border-brand-accent/30 text-brand-secondary/50 py-4 px-8 rounded-sm flex items-center justify-center gap-2 font-semibold uppercase tracking-wider text-sm cursor-not-allowed opacity-60"
       >
         <Smartphone className="w-5 h-5" />
         Ver en realidad aumentada
