@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, type JSX } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { X, ShoppingBag, BookOpen, Plus, Minus } from "lucide-react";
 import {
   getCartAction,
@@ -22,6 +23,7 @@ interface CartDrawerProps {
 type CartStatus = "idle" | "loading" | "loaded" | "error";
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
+  const router = useRouter();
   const [status, setStatus] = useState<CartStatus>("idle");
   const [cartData, setCartData] = useState<ReservaAgrupadaItem[] | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -393,8 +395,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </div>
             <button
               type="button"
-              disabled
-              className="w-full py-3 px-4 bg-brand-primary/80 text-white text-sm font-medium rounded-lg opacity-60 cursor-not-allowed"
+              onClick={() => {
+                animateClose();
+                router.push("/checkout");
+              }}
+              className="w-full py-3 px-4 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-primary/90 active:scale-[0.98] transition-all cursor-pointer"
             >
               Proceder al checkout
             </button>

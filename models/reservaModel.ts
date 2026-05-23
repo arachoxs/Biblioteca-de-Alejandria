@@ -227,7 +227,10 @@ export async function getActiveReservasConLibro(
           titulo,
           isbn,
           precio,
-          autor ( nombre )
+          autor ( nombre ),
+          noticias (
+            imagenes
+          )
         ),
         tienda (
           id,

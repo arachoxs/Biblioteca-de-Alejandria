@@ -411,6 +411,12 @@ function groupReservationsByLibro(
   }, []);
 }
 
+function getFirstImage(libro: ReservaCopiaInfo["libro"]): string | undefined {
+  const noticias = libro?.noticias;
+  const imagenes = noticias?.[0]?.imagenes;
+  return imagenes?.[0] ?? undefined;
+}
+
 function accumulateGroup(
   acc: ReservaAgrupadaItem[],
   libro: NonNullable<ReservaCopiaInfo["libro"]>,
@@ -438,6 +444,7 @@ function accumulateGroup(
       precio: libro.precio,
       autor_nombre: libro.autor?.nombre ?? null,
       copias_reservadas: 1,
+      imagen: getFirstImage(libro),
       fecha_expiracion_mas_cercana: r.fecha_expiracion,
       reservas: [
         {
