@@ -1,70 +1,75 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { X, Plus, Minus, BookOpen, ChevronUp } from "lucide-react";
+import { useState, useEffect, useCallback } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { X, Plus, Minus, BookOpen, ChevronUp, ArrowLeft, Check } from "lucide-react"
 import {
   getCartAction,
   cancelCartItemAction,
   addCartBookAction,
   cancelBookReservasAction,
-} from "../cartActions";
-import type { ReservaAgrupadaItem } from "@/lib/types/reserva";
-import { MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/reserva";
-import Alert from "@/components/ui/Alert";
+} from "../cartActions"
+import type { ReservaAgrupadaItem } from "@/lib/types/reserva"
+import { MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/reserva"
+import type { OpcionEnvio } from "@/lib/types/checkout"
+import EnvioStep from "./EnvioStep"
+import Alert from "@/components/ui/Alert"
 
-type CartStatus = "loading" | "loaded" | "error";
+type CartStatus = "loading" | "loaded" | "error"
+type Step = "carrito" | "envio"
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency: "COP",
     minimumFractionDigits: 0,
-  }).format(price);
+  }).format(price)
 }
 
 export default function CheckoutClient() {
-  const [status, setStatus] = useState<CartStatus>("loading");
-  const [cartData, setCartData] = useState<ReservaAgrupadaItem[] | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [mutingBooks, setMutingBooks] = useState<Set<string>>(new Set());
-  const [toast, setToast] = useState<{ type: "error"; message: string } | null>(null);
-  const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [sheetClosing, setSheetClosing] = useState(false);
+  const [status, setStatus] = useState<CartStatus>("loading")
+  const [cartData, setCartData] = useState<ReservaAgrupadaItem[] | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [mutingBooks, setMutingBooks] = useState<Set<string>>(new Set())
+  const [toast, setToast] = useState<{ type: "error"; message: string } | null>(null)
+  const [summaryExpanded, setSummaryExpanded] = useState(false)
+  const [sheetClosing, setSheetClosing] = useState(false)
+  const [currentStep, setCurrentStep] = useState<Step>("carrito")
+  const [envioOpcion, setEnvioOpcion] = useState<OpcionEnvio | null>(null)
 
-  const openSummary = useCallback(() => setSummaryExpanded(true), []);
+  const openSummary = useCallback(() => setSummaryExpanded(true), [])
 
   const closeSummary = useCallback(() => {
-    setSheetClosing(true);
+    setSheetClosing(true)
     setTimeout(() => {
-      setSheetClosing(false);
-      setSummaryExpanded(false);
-    }, 250);
-  }, []);
+      setSheetClosing(false)
+      setSummaryExpanded(false)
+    }, 250)
+  }, [])
 
   const fetchCart = useCallback(async () => {
-    setStatus("loading");
-    setErrorMsg(null);
+    setStatus("loading")
+    setErrorMsg(null)
     try {
-      const result = await getCartAction();
+      const result = await getCartAction()
       if (result.success && result.data) {
-        setCartData(result.data);
+        setCartData(result.data)
       } else {
-        setCartData([]);
-        if (result.message) setErrorMsg(result.message);
+        setCartData([])
+        if (result.message) setErrorMsg(result.message)
       }
     } catch {
-      setCartData([]);
-      setErrorMsg("Error al cargar los datos del carrito.");
+      setCartData([])
+      setErrorMsg("Error al cargar los datos del carrito.")
     } finally {
-      setStatus("loaded");
+      setStatus("loaded")
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+    fetchCart()
+  }, [fetchCart])
 
   async function handleIncrement(id_libro: string) {
     setCartData(
@@ -74,29 +79,29 @@ export default function CheckoutClient() {
             ? { ...g, copias_reservadas: g.copias_reservadas + 1 }
             : g,
         ) ?? prev,
-    );
-    setMutingBooks((prev) => new Set(prev).add(id_libro));
+    )
+    setMutingBooks((prev) => new Set(prev).add(id_libro))
     try {
-      const result = await addCartBookAction(id_libro);
+      const result = await addCartBookAction(id_libro)
       if (!result.success) {
-        await fetchCart();
-        setToast({ type: "error", message: result.message ?? "No se pudo agregar una copia." });
+        await fetchCart()
+        setToast({ type: "error", message: result.message ?? "No se pudo agregar una copia." })
       }
     } catch {
-      await fetchCart();
-      setToast({ type: "error", message: "Error inesperado." });
+      await fetchCart()
+      setToast({ type: "error", message: "Error inesperado." })
     } finally {
       setMutingBooks((prev) => {
-        const next = new Set(prev);
-        next.delete(id_libro);
-        return next;
-      });
+        const next = new Set(prev)
+        next.delete(id_libro)
+        return next
+      })
     }
   }
 
   async function handleDecrement(group: ReservaAgrupadaItem) {
-    const targetId = group.reservas[group.reservas.length - 1]?.id_reserva;
-    if (!targetId) return;
+    const targetId = group.reservas[group.reservas.length - 1]?.id_reserva
+    if (!targetId) return
 
     setCartData(
       (prev) =>
@@ -111,49 +116,49 @@ export default function CheckoutClient() {
               : g,
           )
           ?.filter((g) => g.copias_reservadas > 0) ?? prev,
-    );
+    )
 
-    setMutingBooks((prev) => new Set(prev).add(group.id_libro));
+    setMutingBooks((prev) => new Set(prev).add(group.id_libro))
     try {
-      const result = await cancelCartItemAction(targetId);
+      const result = await cancelCartItemAction(targetId)
       if (!result.success) {
-        await fetchCart();
-        setToast({ type: "error", message: result.message ?? "No se pudo quitar la copia." });
+        await fetchCart()
+        setToast({ type: "error", message: result.message ?? "No se pudo quitar la copia." })
       }
     } catch {
-      await fetchCart();
-      setToast({ type: "error", message: "Error inesperado." });
+      await fetchCart()
+      setToast({ type: "error", message: "Error inesperado." })
     } finally {
       setMutingBooks((prev) => {
-        const next = new Set(prev);
-        next.delete(group.id_libro);
-        return next;
-      });
+        const next = new Set(prev)
+        next.delete(group.id_libro)
+        return next
+      })
     }
   }
 
   async function handleRemoveBook(group: ReservaAgrupadaItem) {
-    const ids = group.reservas.map((r) => r.id_reserva);
-    if (ids.length === 0) return;
+    const ids = group.reservas.map((r) => r.id_reserva)
+    if (ids.length === 0) return
 
-    setCartData((prev) => prev?.filter((g) => g.id_libro !== group.id_libro) ?? prev);
+    setCartData((prev) => prev?.filter((g) => g.id_libro !== group.id_libro) ?? prev)
 
-    setMutingBooks((prev) => new Set(prev).add(group.id_libro));
+    setMutingBooks((prev) => new Set(prev).add(group.id_libro))
     try {
-      const result = await cancelBookReservasAction(ids);
+      const result = await cancelBookReservasAction(ids)
       if (!result.success) {
-        await fetchCart();
-        setToast({ type: "error", message: result.message ?? "No se pudieron eliminar los libros." });
+        await fetchCart()
+        setToast({ type: "error", message: result.message ?? "No se pudieron eliminar los libros." })
       }
     } catch {
-      await fetchCart();
-      setToast({ type: "error", message: "Error inesperado." });
+      await fetchCart()
+      setToast({ type: "error", message: "Error inesperado." })
     } finally {
       setMutingBooks((prev) => {
-        const next = new Set(prev);
-        next.delete(group.id_libro);
-        return next;
-      });
+        const next = new Set(prev)
+        next.delete(group.id_libro)
+        return next
+      })
     }
   }
 
@@ -161,9 +166,23 @@ export default function CheckoutClient() {
     cartData?.reduce(
       (sum, item) => sum + item.precio * item.copias_reservadas,
       0,
-    ) ?? 0;
+    ) ?? 0
 
-  const itemCount = cartData?.reduce((s, g) => s + g.copias_reservadas, 0) ?? 0;
+  const costoEnvio = envioOpcion?.costo ?? 0
+  const totalConEnvio = total + costoEnvio
+  const itemCount = cartData?.reduce((s, g) => s + g.copias_reservadas, 0) ?? 0
+
+  function handleContinuar() {
+    setCurrentStep("envio")
+  }
+
+  function handleVolverAlCarrito() {
+    setCurrentStep("carrito")
+  }
+
+  function handleConfirmarEnvio(opcion: OpcionEnvio) {
+    setEnvioOpcion(opcion)
+  }
 
   // ── Loading skeleton ──
   if (status === "loading") {
@@ -196,7 +215,7 @@ export default function CheckoutClient() {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   // ── Error state ──
@@ -217,7 +236,7 @@ export default function CheckoutClient() {
           Reintentar
         </button>
       </div>
-    );
+    )
   }
 
   // ── Empty state ──
@@ -241,7 +260,7 @@ export default function CheckoutClient() {
           Explorar catálogo
         </Link>
       </div>
-    );
+    )
   }
 
   // ── Main content ──
@@ -254,112 +273,159 @@ export default function CheckoutClient() {
       )}
 
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-10 max-lg:pb-24">
-        {/* ── Left: Product list ── */}
+        {/* ── Left Column ── */}
         <div className="space-y-4">
-          {(cartData ?? []).map((group, index) => {
-            const isMuting = mutingBooks.has(group.id_libro);
-            const lineTotal = group.precio * group.copias_reservadas;
-
-            return (
-              <div
-                key={group.id_libro}
-                className={`checkout-fade-in bg-white rounded-xl border border-brand-accent/15 p-4 lg:p-5 transition-all duration-200 relative overflow-hidden ${
-                  isMuting
-                    ? "opacity-50 scale-[0.98]"
-                    : "hover:border-brand-accent/30 hover:shadow-sm"
-                }`}
-                style={{ animationDelay: `${index * 80}ms` }}
+          {/* Step header with back button */}
+          <div className="flex items-center justify-between mb-7 min-h-[2rem]">
+            {currentStep === "carrito" ? (
+              <div />
+            ) : (
+              <button
+                type="button"
+                onClick={handleVolverAlCarrito}
+                className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group"
               >
-                <div className="flex gap-4 lg:gap-5">
-                  {/* Cover image */}
-                  <div className="w-[64px] lg:w-[80px] aspect-[3/4] shrink-0 rounded-lg overflow-hidden bg-brand-bg shadow-sm shadow-brand-accent/10 ring-1 ring-black/5">
-                    {group.imagen ? (
-                      <Image
-                        src={group.imagen}
-                        alt={group.titulo}
-                        width={80}
-                        height={107}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-brand-primary/8 to-brand-accent/12 flex items-center justify-center">
-                        <span className="font-display text-lg font-bold text-brand-accent/40 select-none">
-                          {group.titulo.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+                Volver al carrito
+              </button>
+            )}
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h3 className="font-display text-base lg:text-lg font-semibold text-brand-text leading-tight truncate">
-                          {group.titulo}
-                        </h3>
-                        {group.autor_nombre && (
-                          <p className="text-sm text-brand-secondary/70 mt-0.5">
-                            {group.autor_nombre}
-                          </p>
+            {/* Step indicator */}
+            <div className="flex items-center justify-center gap-0 select-none">
+              <StepCircle
+                number={1}
+                label="Carrito"
+                active={currentStep === "carrito"}
+                completed={currentStep !== "carrito"}
+              />
+              <StepLine completed={currentStep !== "carrito"} />
+              <StepCircle
+                number={2}
+                label="Envío"
+                active={currentStep === "envio"}
+                completed={false}
+              />
+              <StepLine completed={false} />
+              <StepCircle
+                number={3}
+                label="Pago"
+                active={false}
+                completed={false}
+              />
+            </div>
+          </div>
+
+          {currentStep === "carrito" ? (
+            <>
+              {/* Product list */}
+              {(cartData ?? []).map((group, index) => {
+                const isMuting = mutingBooks.has(group.id_libro)
+                const lineTotal = group.precio * group.copias_reservadas
+
+                return (
+                  <div
+                    key={group.id_libro}
+                    className={`checkout-fade-in bg-white rounded-xl border border-brand-accent/15 p-4 lg:p-5 transition-all duration-200 relative overflow-hidden ${
+                      isMuting
+                        ? "opacity-50 scale-[0.98]"
+                        : "hover:border-brand-accent/30 hover:shadow-sm"
+                    }`}
+                    style={{ animationDelay: `${index * 80}ms` }}
+                  >
+                    <div className="flex gap-4 lg:gap-5">
+                      <div className="w-[64px] lg:w-[80px] aspect-[3/4] shrink-0 rounded-lg overflow-hidden bg-brand-bg shadow-sm shadow-brand-accent/10 ring-1 ring-black/5">
+                        {group.imagen ? (
+                          <Image
+                            src={group.imagen}
+                            alt={group.titulo}
+                            width={80}
+                            height={107}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-brand-primary/8 to-brand-accent/12 flex items-center justify-center">
+                            <span className="font-display text-lg font-bold text-brand-accent/40 select-none">
+                              {group.titulo.charAt(0)}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveBook(group)}
-                        disabled={isMuting}
-                        className="shrink-0 p-1.5 rounded-lg text-brand-secondary/25 hover:text-red-500 hover:bg-red-50/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                        aria-label="Eliminar este libro"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
 
-                    <p className="text-sm font-medium text-brand-primary/80 mt-2">
-                      {formatPrice(group.precio)} <span className="text-brand-secondary/50 text-xs font-normal">c/u</span>
-                    </p>
-
-                    {/* Quantity controls + line total */}
-                    <div className="flex items-center justify-between mt-3 lg:mt-4">
-                      <div className="flex items-center gap-0">
-                        <button
-                          type="button"
-                          onClick={() => handleDecrement(group)}
-                          disabled={isMuting || group.copias_reservadas <= 1}
-                          className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-l-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                          aria-label="Disminuir cantidad"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
-
-                        <div className="h-8 lg:h-9 px-3 lg:px-4 flex items-center justify-center border-t border-b border-brand-accent/20 bg-white min-w-[4rem] lg:min-w-[5rem]">
-                          <span className="text-sm font-medium text-brand-text tabular-nums">
-                            {group.copias_reservadas}
-                          </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="font-display text-base lg:text-lg font-semibold text-brand-text leading-tight truncate">
+                              {group.titulo}
+                            </h3>
+                            {group.autor_nombre && (
+                              <p className="text-sm text-brand-secondary/70 mt-0.5">
+                                {group.autor_nombre}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBook(group)}
+                            disabled={isMuting}
+                            className="shrink-0 p-1.5 rounded-lg text-brand-secondary/25 hover:text-red-500 hover:bg-red-50/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                            aria-label="Eliminar este libro"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleIncrement(group.id_libro)}
-                          disabled={
-                            isMuting ||
-                            group.copias_reservadas >= MAX_RESERVAS_MISMO_LIBRO
-                          }
-                          className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-r-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                          aria-label="Aumentar cantidad"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                        <p className="text-sm font-medium text-brand-primary/80 mt-2">
+                          {formatPrice(group.precio)} <span className="text-brand-secondary/50 text-xs font-normal">c/u</span>
+                        </p>
 
-                      <span className="font-display text-base lg:text-lg font-semibold text-brand-text tabular-nums">
-                        {formatPrice(lineTotal)}
-                      </span>
+                        <div className="flex items-center justify-between mt-3 lg:mt-4">
+                          <div className="flex items-center gap-0">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(group)}
+                              disabled={isMuting || group.copias_reservadas <= 1}
+                              className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-l-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              aria-label="Disminuir cantidad"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+
+                            <div className="h-8 lg:h-9 px-3 lg:px-4 flex items-center justify-center border-t border-b border-brand-accent/20 bg-white min-w-[4rem] lg:min-w-[5rem]">
+                              <span className="text-sm font-medium text-brand-text tabular-nums">
+                                {group.copias_reservadas}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(group.id_libro)}
+                              disabled={
+                                isMuting ||
+                                group.copias_reservadas >= MAX_RESERVAS_MISMO_LIBRO
+                              }
+                              className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-r-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              aria-label="Aumentar cantidad"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <span className="font-display text-base lg:text-lg font-semibold text-brand-text tabular-nums">
+                            {formatPrice(lineTotal)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                )
+              })}
+            </>
+          ) : (
+            <EnvioStep
+              onConfirm={handleConfirmarEnvio}
+              onBack={handleVolverAlCarrito}
+            />
+          )}
         </div>
 
         {/* ── Right: Summary panel (desktop) ── */}
@@ -376,23 +442,25 @@ export default function CheckoutClient() {
               </div>
             </div>
 
-            <div className="px-5 lg:px-6 py-4 space-y-3 border-b border-white/8">
-              {cartData.map((group) => (
-                <div key={group.id_libro} className="flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-white/80 truncate leading-tight">
-                      {group.titulo}
-                    </p>
-                    <span className="text-xs text-brand-accent/50">
-                      {group.copias_reservadas}× {formatPrice(group.precio)}
+            {currentStep === "carrito" && (
+              <div className="px-5 lg:px-6 py-4 space-y-3 border-b border-white/8">
+                {cartData.map((group) => (
+                  <div key={group.id_libro} className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-white/80 truncate leading-tight">
+                        {group.titulo}
+                      </p>
+                      <span className="text-xs text-brand-accent/50">
+                        {group.copias_reservadas}× {formatPrice(group.precio)}
+                      </span>
+                    </div>
+                    <span className="text-sm font-medium text-white tabular-nums shrink-0">
+                      {formatPrice(group.precio * group.copias_reservadas)}
                     </span>
                   </div>
-                  <span className="text-sm font-medium text-white tabular-nums shrink-0">
-                    {formatPrice(group.precio * group.copias_reservadas)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             <div className="px-5 lg:px-6 py-4 space-y-2.5">
               <div className="flex items-center justify-between">
@@ -401,32 +469,53 @@ export default function CheckoutClient() {
                   {formatPrice(total)}
                 </span>
               </div>
+
+              {envioOpcion && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-brand-accent/70">Envío</span>
+                  <span
+                    className={`text-sm font-medium tabular-nums ${
+                      envioOpcion.costo > 0 ? "text-amber-400" : "text-emerald-400"
+                    }`}
+                  >
+                    {envioOpcion.costo > 0 ? formatPrice(envioOpcion.costo) : "Gratis"}
+                  </span>
+                </div>
+              )}
+
               <div className="border-t border-white/8 my-2" />
               <div className="flex items-end justify-between">
                 <span className="text-sm text-brand-accent/70">Total</span>
                 <span className="font-display text-xl lg:text-2xl font-bold text-white tabular-nums leading-none">
-                  {formatPrice(total)}
+                  {formatPrice(totalConEnvio)}
                 </span>
               </div>
             </div>
 
             <div className="px-5 lg:px-6 pb-6 pt-2">
-              <button
-                type="button"
-                disabled
-                className="w-full py-3.5 px-4 bg-white/10 text-white/40 text-sm font-medium rounded-xl border border-white/8 cursor-not-allowed transition-all"
-              >
-                Continuar
-              </button>
-              <div className="flex items-center justify-center gap-1.5 mt-3">
-                <svg className="w-3.5 h-3.5 stroke-brand-accent/40 shrink-0" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                <p className="text-xs text-brand-accent/40 text-center leading-relaxed">
-                  Próximamente podrás seleccionar el método de entrega y pago
-                </p>
-              </div>
+              {currentStep === "carrito" ? (
+                <button
+                  type="button"
+                  onClick={handleContinuar}
+                  className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
+                >
+                  Continuar
+                </button>
+              ) : currentStep === "envio" && envioOpcion ? (
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400/80 bg-emerald-400/5 rounded-lg py-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Método de entrega seleccionado
+                  </div>
+                  <p className="text-white/70 text-xs mt-2">
+                    {envioOpcion.tipo === "domicilio"
+                      ? "Envío a domicilio"
+                      : envioOpcion.tipo === "traslado"
+                        ? `Traslado a ${envioOpcion.tiendaNombre}`
+                        : `Recogida en ${envioOpcion.tiendaNombre}`}
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -447,28 +536,41 @@ export default function CheckoutClient() {
               <div className="flex items-baseline gap-1 min-w-0">
                 <span className="text-xs text-brand-accent/50 leading-none shrink-0 hidden sm:inline">Total</span>
                 <span className="font-display text-base font-bold text-white tabular-nums truncate">
-                  {formatPrice(total)}
+                  {formatPrice(totalConEnvio)}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={openSummary}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
-              >
-                Ver detalle
-                <ChevronUp className="w-3.5 h-3.5" />
-              </button>
+              {currentStep === "carrito" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={openSummary}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    Ver detalle
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  </button>
 
-              <button
-                type="button"
-                disabled
-                className="px-3.5 py-1.5 bg-white/10 text-white/40 text-xs font-medium rounded-lg border border-white/8 cursor-not-allowed shrink-0 whitespace-nowrap"
-              >
-                Continuar
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleContinuar}
+                    className="px-3.5 py-1.5 bg-white text-brand-text text-xs font-medium rounded-lg hover:bg-white/90 transition-all shrink-0 whitespace-nowrap cursor-pointer"
+                  >
+                    Continuar
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleVolverAlCarrito}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Volver
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -506,52 +608,122 @@ export default function CheckoutClient() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 pb-6">
-              <div className="py-3 space-y-3 border-t border-white/8">
-                {cartData.map((group) => (
-                  <div key={group.id_libro} className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-white/80 truncate leading-tight">{group.titulo}</p>
-                      <span className="text-xs text-brand-accent/50">{group.copias_reservadas}× {formatPrice(group.precio)}</span>
+              {currentStep === "carrito" && (
+                <div className="py-3 space-y-3 border-t border-white/8">
+                  {cartData.map((group) => (
+                    <div key={group.id_libro} className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-white/80 truncate leading-tight">{group.titulo}</p>
+                        <span className="text-xs text-brand-accent/50">{group.copias_reservadas}× {formatPrice(group.precio)}</span>
+                      </div>
+                      <span className="text-sm font-medium text-white tabular-nums shrink-0">{formatPrice(group.precio * group.copias_reservadas)}</span>
                     </div>
-                    <span className="text-sm font-medium text-white tabular-nums shrink-0">{formatPrice(group.precio * group.copias_reservadas)}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               <div className="py-4 space-y-2.5 border-t border-white/8">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-brand-accent/70">Subtotal</span>
                   <span className="text-sm font-medium text-white tabular-nums">{formatPrice(total)}</span>
                 </div>
+
+                {envioOpcion && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-brand-accent/70">Envío</span>
+                    <span
+                      className={`text-sm font-medium tabular-nums ${
+                      envioOpcion.costo > 0 ? "text-amber-400" : "text-emerald-400"
+                    }`}
+                    >
+                      {envioOpcion.costo > 0 ? formatPrice(envioOpcion.costo) : "Gratis"}
+                    </span>
+                  </div>
+                )}
+
                 <div className="border-t border-white/8 my-2" />
                 <div className="flex items-end justify-between">
                   <span className="text-sm text-brand-accent/70">Total</span>
-                  <span className="font-display text-xl font-bold text-white tabular-nums">{formatPrice(total)}</span>
+                  <span className="font-display text-xl font-bold text-white tabular-nums">{formatPrice(totalConEnvio)}</span>
                 </div>
               </div>
 
-              <div className="pt-2">
-                <button
-                  type="button"
-                  disabled
-                  className="w-full py-3.5 px-4 bg-white/10 text-white/40 text-sm font-medium rounded-xl border border-white/8 cursor-not-allowed"
-                >
-                  Continuar
-                </button>
-                <div className="flex items-center justify-center gap-1.5 mt-3">
-                  <svg className="w-3.5 h-3.5 stroke-brand-accent/40 shrink-0" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                  <p className="text-xs text-brand-accent/40 text-center leading-relaxed">
-                    Próximamente podrás seleccionar el método de entrega y pago
-                  </p>
+              {currentStep === "carrito" && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { closeSummary(); handleContinuar(); }}
+                    className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
+                  >
+                    Continuar
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       )}
     </>
-  );
+  )
+}
+
+function StepCircle({
+  number,
+  label,
+  active,
+  completed,
+}: {
+  number: number
+  label: string
+  active: boolean
+  completed: boolean
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div
+        className={`relative flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium transition-all duration-300 ${
+          completed
+            ? "bg-brand-accent text-white scale-100"
+            : active
+              ? "bg-brand-primary text-white scale-110 ring-4 ring-brand-primary/15"
+              : "bg-white text-brand-secondary/40 border-2 border-brand-accent/15 scale-100"
+        }`}
+      >
+        {completed ? (
+          <Check className="w-4 h-4 stroke-[2.5]" />
+        ) : (
+          <span className="font-display text-sm font-semibold">{number}</span>
+        )}
+        {active && (
+          <span className="absolute inset-0 rounded-full animate-ping bg-brand-primary/20" />
+        )}
+      </div>
+      <span
+        className={`text-[10px] font-medium uppercase tracking-wider transition-colors duration-300 ${
+          active
+            ? "text-brand-text font-semibold"
+            : completed
+              ? "text-brand-accent"
+              : "text-brand-secondary/40"
+        }`}
+      >
+        {label}
+      </span>
+    </div>
+  )
+}
+
+function StepLine({ completed }: { completed: boolean }) {
+  return (
+    <div className="w-10 lg:w-16 relative" style={{ height: "32px" }}>
+      <div className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 overflow-hidden rounded-full">
+        <div className="absolute inset-0 bg-brand-accent/10" />
+        <div
+          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
+            completed ? "w-full bg-brand-accent/50" : "w-0"
+          }`}
+        />
+      </div>
+    </div>
+  )
 }
