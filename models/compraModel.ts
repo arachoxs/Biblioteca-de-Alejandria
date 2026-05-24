@@ -16,8 +16,13 @@ function buildQueryOptions(page: number, pageSize: number) {
   return { safePage, safePageSize, from, to };
 }
 
-function applyDateFilters(
-  query: ReturnType<typeof createAdminClient.prototype.from>,
+type DateFilterQuery<T> = {
+  gte(column: string, value: string): T;
+  lte(column: string, value: string): T;
+};
+
+function applyDateFilters<T extends DateFilterQuery<T>>(
+  query: T,
   filters?: CompraListParams["filters"]
 ) {
   if (filters?.fechaDesde) {
