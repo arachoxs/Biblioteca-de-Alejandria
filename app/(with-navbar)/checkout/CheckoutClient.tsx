@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, startTransition } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { X, Plus, Minus, BookOpen, ChevronUp, ArrowLeft, Check } from "lucide-react"
@@ -19,6 +19,8 @@ import Alert from "@/components/ui/Alert"
 type CartStatus = "loading" | "loaded" | "error"
 type Step = "carrito" | "envio"
 
+// ── Formatter ──────────────────────────────────────────────────────────────────
+
 function formatPrice(price: number): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -26,6 +28,294 @@ function formatPrice(price: number): string {
     minimumFractionDigits: 0,
   }).format(price)
 }
+
+// ── Shared sub-components ─────────────────────────────────────────────────────
+
+interface PriceSummaryProps {
+  total: number
+  costoEnvio: number
+  envioOpcion: OpcionEnvio | null
+  itemCount: number
+  variant: "desktop" | "mobile"
+}
+
+function PriceSummary({ total, costoEnvio, envioOpcion, itemCount, variant }: PriceSummaryProps) {
+  const totalConEnvio = total + costoEnvio
+
+  return (
+    <>
+      {/* Cart items list */}
+      {variant === "desktop" && (
+        <div className="px-5 lg:px-6 py-4 space-y-3 border-b border-white/8">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-brand-accent/70 bg-white/5 px-2.5 py-1 rounded-full">
+              {itemCount} {itemCount === 1 ? "artículo" : "artículos"}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Line items */}
+      <div className="px-5 lg:px-6 py-4 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-brand-accent/70">Subtotal</span>
+          <span className="text-sm text-white font-medium tabular-nums">
+            {formatPrice(total)}
+          </span>
+        </div>
+
+        {envioOpcion && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-brand-accent/70">Envío</span>
+            <span className={`text-sm font-medium tabular-nums ${envioOpcion.costo > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+              {envioOpcion.costo > 0 ? formatPrice(envioOpcion.costo) : "Gratis"}
+            </span>
+          </div>
+        )}
+
+        <div className="border-t border-white/8 my-2" />
+        <div className="flex items-end justify-between">
+          <span className="text-sm text-brand-accent/70">Total</span>
+          <span className="font-display text-xl lg:text-2xl font-bold text-white tabular-nums leading-none">
+            {formatPrice(totalConEnvio)}
+          </span>
+        </div>
+      </div>
+    </>
+  )
+}
+
+interface CartItemRowProps {
+  group: ReservaAgrupadaItem
+}
+
+function CartItemRow({ group }: CartItemRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-white/80 truncate leading-tight">{group.titulo}</p>
+        <span className="text-xs text-brand-accent/50">{group.copias_reservadas}× {formatPrice(group.precio)}</span>
+      </div>
+      <span className="text-sm font-medium text-white tabular-nums shrink-0">
+        {formatPrice(group.precio * group.copias_reservadas)}
+      </span>
+    </div>
+  )
+}
+
+// ── Step indicator ─────────────────────────────────────────────────────────────
+
+function StepCircle({ number, label, active, completed }: { number: number; label: string; active: boolean; completed: boolean }) {
+  const circleClass = completed
+    ? "bg-brand-accent text-white scale-100"
+    : active
+      ? "bg-brand-primary text-white scale-110 ring-4 ring-brand-primary/15"
+      : "bg-white text-brand-secondary/40 border-2 border-brand-accent/15 scale-100"
+
+  const textClass = active
+    ? "text-brand-text font-semibold"
+    : completed
+      ? "text-brand-accent"
+      : "text-brand-secondary/40"
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className={`relative flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium transition-all duration-300 ${circleClass}`}>
+        {completed ? (
+          <Check className="w-4 h-4 stroke-[2.5]" />
+        ) : (
+          <span className="font-display text-sm font-semibold">{number}</span>
+        )}
+        {active && <span className="absolute inset-0 rounded-full animate-ping bg-brand-primary/20" />}
+      </div>
+      <span className={`text-[10px] font-medium uppercase tracking-wider transition-colors duration-300 ${textClass}`}>
+        {label}
+      </span>
+    </div>
+  )
+}
+
+function StepLine({ completed }: { completed: boolean }) {
+  return (
+    <div className="w-10 lg:w-16 relative" style={{ height: "32px" }}>
+      <div className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 overflow-hidden rounded-full">
+        <div className="absolute inset-0 bg-brand-accent/10" />
+        <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${completed ? "w-full bg-brand-accent/50" : "w-0"}`} />
+      </div>
+    </div>
+  )
+}
+
+// ── Loading skeleton ───────────────────────────────────────────────────────────
+
+function LoadingSkeleton() {
+  return (
+    <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-10 max-lg:pb-24">
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-xl border border-brand-accent/15 p-5 flex gap-5">
+            <div className="w-[72px] aspect-[3/4] shrink-0 bg-brand-accent/8 rounded-lg animate-pulse" />
+            <div className="flex-1 space-y-2.5">
+              <div className="h-5 w-3/4 bg-brand-accent/12 rounded animate-pulse" />
+              <div className="h-4 w-1/2 bg-brand-accent/8 rounded animate-pulse" />
+              <div className="h-4 w-1/4 bg-brand-accent/8 rounded animate-pulse" />
+              <div className="h-9 w-40 bg-brand-accent/8 rounded-lg animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden lg:block">
+        <div className="bg-brand-text rounded-xl overflow-hidden sticky top-24">
+          <div className="p-5 space-y-3">
+            <div className="h-5 w-24 bg-white/10 rounded animate-pulse" />
+            <div className="h-4 w-32 bg-white/8 rounded animate-pulse" />
+            <div className="h-4 w-28 bg-white/8 rounded animate-pulse" />
+            <div className="h-10 w-full bg-white/10 rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Error state ───────────────────────────────────────────────────────────────
+
+function ErrorState({ message, onRetry }: { message: string | null; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
+      <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-5">
+        <X className="w-7 h-7 text-red-400" />
+      </div>
+      <p className="text-brand-secondary mb-4">{message ?? "Error al cargar el carrito."}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="px-5 py-2.5 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-primary/90 transition-colors cursor-pointer"
+      >
+        Reintentar
+      </button>
+    </div>
+  )
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
+      <div className="w-16 h-16 rounded-full bg-brand-bg border border-brand-accent/20 flex items-center justify-center mb-5">
+        <BookOpen className="w-7 h-7 text-brand-accent" />
+      </div>
+      <h2 className="font-display text-xl font-semibold text-brand-text mb-2">No tienes libros reservados</h2>
+      <p className="text-brand-secondary text-sm mb-6 max-w-sm leading-relaxed">
+        Agrega libros a tu carrito desde el catálogo para iniciar el proceso de compra.
+      </p>
+      <Link href="/" className="px-5 py-2.5 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-primary/90 transition-colors">
+        Explorar catálogo
+      </Link>
+    </div>
+  )
+}
+
+// ── Cart item card ─────────────────────────────────────────────────────────────
+
+interface CartItemCardProps {
+  group: ReservaAgrupadaItem
+  isMuting: boolean
+  onIncrement: () => void
+  onDecrement: () => void
+  onRemove: () => void
+  index: number
+}
+
+function CartItemCard({ group, isMuting, onIncrement, onDecrement, onRemove, index }: CartItemCardProps) {
+  const lineTotal = group.precio * group.copias_reservadas
+  const isDecrementDisabled = isMuting || group.copias_reservadas <= 1
+  const isIncrementDisabled = isMuting || group.copias_reservadas >= MAX_RESERVAS_MISMO_LIBRO
+
+  return (
+    <div
+      className={`checkout-fade-in bg-white rounded-xl border border-brand-accent/15 p-4 lg:p-5 transition-all duration-200 relative overflow-hidden ${
+        isMuting ? "opacity-50 scale-[0.98]" : "hover:border-brand-accent/30 hover:shadow-sm"
+      }`}
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      <div className="flex gap-4 lg:gap-5">
+        {/* Book cover */}
+        <div className="w-[64px] lg:w-[80px] aspect-[3/4] shrink-0 rounded-lg overflow-hidden bg-brand-bg shadow-sm shadow-brand-accent/10 ring-1 ring-black/5">
+          {group.imagen ? (
+            <Image src={group.imagen} alt={group.titulo} width={80} height={107} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-brand-primary/8 to-brand-accent/12 flex items-center justify-center">
+              <span className="font-display text-lg font-bold text-brand-accent/40 select-none">{group.titulo.charAt(0)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Book info and controls */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h3 className="font-display text-base lg:text-lg font-semibold text-brand-text leading-tight truncate">{group.titulo}</h3>
+              {group.autor_nombre && (
+                <p className="text-sm text-brand-secondary/70 mt-0.5">{group.autor_nombre}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onRemove}
+              disabled={isMuting}
+              className="shrink-0 p-1.5 rounded-lg text-brand-secondary/25 hover:text-red-500 hover:bg-red-50/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              aria-label="Eliminar este libro"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <p className="text-sm font-medium text-brand-primary/80 mt-2">
+            {formatPrice(group.precio)} <span className="text-brand-secondary/50 text-xs font-normal">c/u</span>
+          </p>
+
+          <div className="flex items-center justify-between mt-3 lg:mt-4">
+            {/* Quantity controls */}
+            <div className="flex items-center gap-0">
+              <button
+                type="button"
+                onClick={onDecrement}
+                disabled={isDecrementDisabled}
+                className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-l-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                aria-label="Disminuir cantidad"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="h-8 lg:h-9 px-3 lg:px-4 flex items-center justify-center border-t border-b border-brand-accent/20 bg-white min-w-[4rem] lg:min-w-[5rem]">
+                <span className="text-sm font-medium text-brand-text tabular-nums">{group.copias_reservadas}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={onIncrement}
+                disabled={isIncrementDisabled}
+                className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-r-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                aria-label="Aumentar cantidad"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Line total */}
+            <span className="font-display text-base lg:text-lg font-semibold text-brand-text tabular-nums">
+              {formatPrice(lineTotal)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export default function CheckoutClient() {
   const [status, setStatus] = useState<CartStatus>("loading")
@@ -38,8 +328,14 @@ export default function CheckoutClient() {
   const [currentStep, setCurrentStep] = useState<Step>("carrito")
   const [envioOpcion, setEnvioOpcion] = useState<OpcionEnvio | null>(null)
 
-  const openSummary = useCallback(() => setSummaryExpanded(true), [])
+  // ── Derived values ──
+  const total = cartData?.reduce((sum, item) => sum + item.precio * item.copias_reservadas, 0) ?? 0
+  const costoEnvio = envioOpcion?.costo ?? 0
+  const totalConEnvio = total + costoEnvio
+  const itemCount = cartData?.reduce((s, g) => s + g.copias_reservadas, 0) ?? 0
 
+  // ── Summary sheet handlers ──
+  const openSummary = useCallback(() => setSummaryExpanded(true), [])
   const closeSummary = useCallback(() => {
     setSheetClosing(true)
     setTimeout(() => {
@@ -48,6 +344,7 @@ export default function CheckoutClient() {
     }, 250)
   }, [])
 
+  // ── Cart fetch ──
   const fetchCart = useCallback(async () => {
     setStatus("loading")
     setErrorMsg(null)
@@ -68,17 +365,15 @@ export default function CheckoutClient() {
   }, [])
 
   useEffect(() => {
-    fetchCart()
+    startTransition(() => {
+      fetchCart()
+    })
   }, [fetchCart])
 
-  async function handleIncrement(id_libro: string) {
-    setCartData(
-      (prev) =>
-        prev?.map((g) =>
-          g.id_libro === id_libro
-            ? { ...g, copias_reservadas: g.copias_reservadas + 1 }
-            : g,
-        ) ?? prev,
+  // ── Cart mutations ──
+  const handleIncrement = useCallback(async (id_libro: string) => {
+    setCartData((prev) =>
+      prev?.map((g) => g.id_libro === id_libro ? { ...g, copias_reservadas: g.copias_reservadas + 1 } : g) ?? prev
     )
     setMutingBooks((prev) => new Set(prev).add(id_libro))
     try {
@@ -97,25 +392,18 @@ export default function CheckoutClient() {
         return next
       })
     }
-  }
+  }, [fetchCart])
 
-  async function handleDecrement(group: ReservaAgrupadaItem) {
+  const handleDecrement = useCallback(async (group: ReservaAgrupadaItem) => {
     const targetId = group.reservas[group.reservas.length - 1]?.id_reserva
     if (!targetId) return
 
-    setCartData(
-      (prev) =>
-        prev
-          ?.map((g) =>
-            g.id_libro === group.id_libro
-              ? {
-                  ...g,
-                  copias_reservadas: g.copias_reservadas - 1,
-                  reservas: g.reservas.slice(0, -1),
-                }
-              : g,
-          )
-          ?.filter((g) => g.copias_reservadas > 0) ?? prev,
+    setCartData((prev) =>
+      prev?.map((g) =>
+        g.id_libro === group.id_libro
+          ? { ...g, copias_reservadas: g.copias_reservadas - 1, reservas: g.reservas.slice(0, -1) }
+          : g
+      )?.filter((g) => g.copias_reservadas > 0) ?? prev
     )
 
     setMutingBooks((prev) => new Set(prev).add(group.id_libro))
@@ -135,9 +423,9 @@ export default function CheckoutClient() {
         return next
       })
     }
-  }
+  }, [fetchCart])
 
-  async function handleRemoveBook(group: ReservaAgrupadaItem) {
+  const handleRemoveBook = useCallback(async (group: ReservaAgrupadaItem) => {
     const ids = group.reservas.map((r) => r.id_reserva)
     if (ids.length === 0) return
 
@@ -160,110 +448,13 @@ export default function CheckoutClient() {
         return next
       })
     }
-  }
+  }, [fetchCart])
 
-  const total =
-    cartData?.reduce(
-      (sum, item) => sum + item.precio * item.copias_reservadas,
-      0,
-    ) ?? 0
+  // ── Conditional renders ──
+  if (status === "loading") return <LoadingSkeleton />
+  if (status === "error") return <ErrorState message={errorMsg} onRetry={fetchCart} />
+  if (!cartData || cartData.length === 0) return <EmptyState />
 
-  const costoEnvio = envioOpcion?.costo ?? 0
-  const totalConEnvio = total + costoEnvio
-  const itemCount = cartData?.reduce((s, g) => s + g.copias_reservadas, 0) ?? 0
-
-  function handleContinuar() {
-    setCurrentStep("envio")
-  }
-
-  function handleVolverAlCarrito() {
-    setCurrentStep("carrito")
-  }
-
-  function handleConfirmarEnvio(opcion: OpcionEnvio) {
-    setEnvioOpcion(opcion)
-  }
-
-  // ── Loading skeleton ──
-  if (status === "loading") {
-    return (
-      <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-10 max-lg:pb-24">
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="bg-white rounded-xl border border-brand-accent/15 p-5 flex gap-5"
-            >
-              <div className="w-[72px] aspect-[3/4] shrink-0 bg-brand-accent/8 rounded-lg animate-pulse" />
-              <div className="flex-1 space-y-2.5">
-                <div className="h-5 w-3/4 bg-brand-accent/12 rounded animate-pulse" />
-                <div className="h-4 w-1/2 bg-brand-accent/8 rounded animate-pulse" />
-                <div className="h-4 w-1/4 bg-brand-accent/8 rounded animate-pulse" />
-                <div className="h-9 w-40 bg-brand-accent/8 rounded-lg animate-pulse" />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="hidden lg:block">
-          <div className="bg-brand-text rounded-xl overflow-hidden sticky top-24">
-            <div className="p-5 space-y-3">
-              <div className="h-5 w-24 bg-white/10 rounded animate-pulse" />
-              <div className="h-4 w-32 bg-white/8 rounded animate-pulse" />
-              <div className="h-4 w-28 bg-white/8 rounded animate-pulse" />
-              <div className="h-10 w-full bg-white/10 rounded-lg animate-pulse" />
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Error state ──
-  if (status === "error") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-        <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-5">
-          <X className="w-7 h-7 text-red-400" />
-        </div>
-        <p className="text-brand-secondary mb-4">
-          {errorMsg ?? "Error al cargar el carrito."}
-        </p>
-        <button
-          type="button"
-          onClick={fetchCart}
-          className="px-5 py-2.5 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-primary/90 transition-colors cursor-pointer"
-        >
-          Reintentar
-        </button>
-      </div>
-    )
-  }
-
-  // ── Empty state ──
-  if (!cartData || cartData.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-        <div className="w-16 h-16 rounded-full bg-brand-bg border border-brand-accent/20 flex items-center justify-center mb-5">
-          <BookOpen className="w-7 h-7 text-brand-accent" />
-        </div>
-        <h2 className="font-display text-xl font-semibold text-brand-text mb-2">
-          No tienes libros reservados
-        </h2>
-        <p className="text-brand-secondary text-sm mb-6 max-w-sm leading-relaxed">
-          Agrega libros a tu carrito desde el catálogo para iniciar el proceso
-          de compra.
-        </p>
-        <Link
-          href="/"
-          className="px-5 py-2.5 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-primary/90 transition-colors"
-        >
-          Explorar catálogo
-        </Link>
-      </div>
-    )
-  }
-
-  // ── Main content ──
   return (
     <>
       {toast && (
@@ -275,156 +466,47 @@ export default function CheckoutClient() {
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-10 max-lg:pb-24">
         {/* ── Left Column ── */}
         <div className="space-y-4">
-          {/* Step header with back button */}
+          {/* Step header */}
           <div className="flex items-center justify-between mb-7 min-h-[2rem]">
-            {currentStep === "carrito" ? (
-              <div />
-            ) : (
+            {currentStep !== "carrito" && (
               <button
                 type="button"
-                onClick={handleVolverAlCarrito}
+                onClick={() => setCurrentStep("carrito")}
                 className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group"
               >
                 <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
                 Volver al carrito
               </button>
             )}
+            {currentStep === "carrito" && <div />}
 
             {/* Step indicator */}
             <div className="flex items-center justify-center gap-0 select-none">
-              <StepCircle
-                number={1}
-                label="Carrito"
-                active={currentStep === "carrito"}
-                completed={currentStep !== "carrito"}
-              />
+              <StepCircle number={1} label="Carrito" active={currentStep === "carrito"} completed={currentStep !== "carrito"} />
               <StepLine completed={currentStep !== "carrito"} />
-              <StepCircle
-                number={2}
-                label="Envío"
-                active={currentStep === "envio"}
-                completed={false}
-              />
+              <StepCircle number={2} label="Envío" active={currentStep === "envio"} completed={false} />
               <StepLine completed={false} />
-              <StepCircle
-                number={3}
-                label="Pago"
-                active={false}
-                completed={false}
-              />
+              <StepCircle number={3} label="Pago" active={false} completed={false} />
             </div>
           </div>
 
+          {/* Step content */}
           {currentStep === "carrito" ? (
             <>
-              {/* Product list */}
-              {(cartData ?? []).map((group, index) => {
-                const isMuting = mutingBooks.has(group.id_libro)
-                const lineTotal = group.precio * group.copias_reservadas
-
-                return (
-                  <div
-                    key={group.id_libro}
-                    className={`checkout-fade-in bg-white rounded-xl border border-brand-accent/15 p-4 lg:p-5 transition-all duration-200 relative overflow-hidden ${
-                      isMuting
-                        ? "opacity-50 scale-[0.98]"
-                        : "hover:border-brand-accent/30 hover:shadow-sm"
-                    }`}
-                    style={{ animationDelay: `${index * 80}ms` }}
-                  >
-                    <div className="flex gap-4 lg:gap-5">
-                      <div className="w-[64px] lg:w-[80px] aspect-[3/4] shrink-0 rounded-lg overflow-hidden bg-brand-bg shadow-sm shadow-brand-accent/10 ring-1 ring-black/5">
-                        {group.imagen ? (
-                          <Image
-                            src={group.imagen}
-                            alt={group.titulo}
-                            width={80}
-                            height={107}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-brand-primary/8 to-brand-accent/12 flex items-center justify-center">
-                            <span className="font-display text-lg font-bold text-brand-accent/40 select-none">
-                              {group.titulo.charAt(0)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <h3 className="font-display text-base lg:text-lg font-semibold text-brand-text leading-tight truncate">
-                              {group.titulo}
-                            </h3>
-                            {group.autor_nombre && (
-                              <p className="text-sm text-brand-secondary/70 mt-0.5">
-                                {group.autor_nombre}
-                              </p>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveBook(group)}
-                            disabled={isMuting}
-                            className="shrink-0 p-1.5 rounded-lg text-brand-secondary/25 hover:text-red-500 hover:bg-red-50/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                            aria-label="Eliminar este libro"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <p className="text-sm font-medium text-brand-primary/80 mt-2">
-                          {formatPrice(group.precio)} <span className="text-brand-secondary/50 text-xs font-normal">c/u</span>
-                        </p>
-
-                        <div className="flex items-center justify-between mt-3 lg:mt-4">
-                          <div className="flex items-center gap-0">
-                            <button
-                              type="button"
-                              onClick={() => handleDecrement(group)}
-                              disabled={isMuting || group.copias_reservadas <= 1}
-                              className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-l-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                              aria-label="Disminuir cantidad"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-
-                            <div className="h-8 lg:h-9 px-3 lg:px-4 flex items-center justify-center border-t border-b border-brand-accent/20 bg-white min-w-[4rem] lg:min-w-[5rem]">
-                              <span className="text-sm font-medium text-brand-text tabular-nums">
-                                {group.copias_reservadas}
-                              </span>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleIncrement(group.id_libro)}
-                              disabled={
-                                isMuting ||
-                                group.copias_reservadas >= MAX_RESERVAS_MISMO_LIBRO
-                              }
-                              className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center rounded-r-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                              aria-label="Aumentar cantidad"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          <span className="font-display text-base lg:text-lg font-semibold text-brand-text tabular-nums">
-                            {formatPrice(lineTotal)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+              {(cartData ?? []).map((group, index) => (
+                <CartItemCard
+                  key={group.id_libro}
+                  group={group}
+                  isMuting={mutingBooks.has(group.id_libro)}
+                  onIncrement={() => handleIncrement(group.id_libro)}
+                  onDecrement={() => handleDecrement(group)}
+                  onRemove={() => handleRemoveBook(group)}
+                  index={index}
+                />
+              ))}
             </>
           ) : (
-            <EnvioStep
-              onConfirm={handleConfirmarEnvio}
-              onBack={handleVolverAlCarrito}
-            />
+            <EnvioStep onConfirm={setEnvioOpcion} onBack={() => setCurrentStep("carrito")} />
           )}
         </div>
 
@@ -432,71 +514,16 @@ export default function CheckoutClient() {
         <div className="hidden lg:block checkout-summary-in">
           <div className="bg-brand-text rounded-xl overflow-hidden sticky top-24 shadow-xl shadow-brand-text/20">
             <div className="px-5 lg:px-6 py-5 border-b border-white/8">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-lg font-semibold text-white tracking-tight">
-                  Resumen
-                </h2>
-                <span className="text-xs font-medium text-brand-accent/70 bg-white/5 px-2.5 py-1 rounded-full">
-                  {itemCount} {itemCount === 1 ? "artículo" : "artículos"}
-                </span>
-              </div>
+              <h2 className="font-display text-lg font-semibold text-white tracking-tight">Resumen</h2>
             </div>
 
-            {currentStep === "carrito" && (
-              <div className="px-5 lg:px-6 py-4 space-y-3 border-b border-white/8">
-                {cartData.map((group) => (
-                  <div key={group.id_libro} className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-white/80 truncate leading-tight">
-                        {group.titulo}
-                      </p>
-                      <span className="text-xs text-brand-accent/50">
-                        {group.copias_reservadas}× {formatPrice(group.precio)}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium text-white tabular-nums shrink-0">
-                      {formatPrice(group.precio * group.copias_reservadas)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="px-5 lg:px-6 py-4 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-brand-accent/70">Subtotal</span>
-                <span className="text-sm text-white font-medium tabular-nums">
-                  {formatPrice(total)}
-                </span>
-              </div>
-
-              {envioOpcion && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-brand-accent/70">Envío</span>
-                  <span
-                    className={`text-sm font-medium tabular-nums ${
-                      envioOpcion.costo > 0 ? "text-amber-400" : "text-emerald-400"
-                    }`}
-                  >
-                    {envioOpcion.costo > 0 ? formatPrice(envioOpcion.costo) : "Gratis"}
-                  </span>
-                </div>
-              )}
-
-              <div className="border-t border-white/8 my-2" />
-              <div className="flex items-end justify-between">
-                <span className="text-sm text-brand-accent/70">Total</span>
-                <span className="font-display text-xl lg:text-2xl font-bold text-white tabular-nums leading-none">
-                  {formatPrice(totalConEnvio)}
-                </span>
-              </div>
-            </div>
+            <PriceSummary total={total} costoEnvio={costoEnvio} envioOpcion={envioOpcion} itemCount={itemCount} variant="desktop" />
 
             <div className="px-5 lg:px-6 pb-6 pt-2">
               {currentStep === "carrito" ? (
                 <button
                   type="button"
-                  onClick={handleContinuar}
+                  onClick={() => setCurrentStep("envio")}
                   className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
                 >
                   Continuar
@@ -530,14 +557,10 @@ export default function CheckoutClient() {
                 <BookOpen className="w-4 h-4 text-brand-accent" />
                 <span className="text-sm text-brand-accent font-medium tabular-nums">{itemCount}</span>
               </div>
-
               <span className="text-xs text-brand-accent/40 hidden sm:inline mx-0.5">·</span>
-
               <div className="flex items-baseline gap-1 min-w-0">
                 <span className="text-xs text-brand-accent/50 leading-none shrink-0 hidden sm:inline">Total</span>
-                <span className="font-display text-base font-bold text-white tabular-nums truncate">
-                  {formatPrice(totalConEnvio)}
-                </span>
+                <span className="font-display text-base font-bold text-white tabular-nums truncate">{formatPrice(totalConEnvio)}</span>
               </div>
             </div>
 
@@ -552,10 +575,9 @@ export default function CheckoutClient() {
                     Ver detalle
                     <ChevronUp className="w-3.5 h-3.5" />
                   </button>
-
                   <button
                     type="button"
-                    onClick={handleContinuar}
+                    onClick={() => setCurrentStep("envio")}
                     className="px-3.5 py-1.5 bg-white text-brand-text text-xs font-medium rounded-lg hover:bg-white/90 transition-all shrink-0 whitespace-nowrap cursor-pointer"
                   >
                     Continuar
@@ -564,7 +586,7 @@ export default function CheckoutClient() {
               ) : (
                 <button
                   type="button"
-                  onClick={handleVolverAlCarrito}
+                  onClick={() => setCurrentStep("carrito")}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
@@ -580,24 +602,16 @@ export default function CheckoutClient() {
       {(summaryExpanded || sheetClosing) && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div
-            className={`absolute inset-0 bg-brand-text/40 backdrop-blur-sm ${
-              sheetClosing ? "sheet-backdrop-out" : "sheet-backdrop-in"
-            }`}
+            className={`absolute inset-0 bg-brand-text/40 backdrop-blur-sm ${sheetClosing ? "sheet-backdrop-out" : "sheet-backdrop-in"}`}
             onClick={closeSummary}
           />
-          <div
-            className={`absolute bottom-0 left-0 right-0 bg-brand-text rounded-t-2xl shadow-xl shadow-brand-text/30 max-h-[75dvh] flex flex-col ${
-              sheetClosing ? "sheet-slide-out" : "sheet-slide-in"
-            }`}
-          >
+          <div className={`absolute bottom-0 left-0 right-0 bg-brand-text rounded-t-2xl shadow-xl shadow-brand-text/30 max-h-[75dvh] flex flex-col ${sheetClosing ? "sheet-slide-out" : "sheet-slide-in"}`}>
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 
             <div className="flex items-center justify-between px-5 py-3 shrink-0">
-              <h2 className="font-display text-lg font-semibold text-white">
-                Resumen
-              </h2>
+              <h2 className="font-display text-lg font-semibold text-white">Resumen</h2>
               <button
                 type="button"
                 onClick={closeSummary}
@@ -611,48 +625,20 @@ export default function CheckoutClient() {
               {currentStep === "carrito" && (
                 <div className="py-3 space-y-3 border-t border-white/8">
                   {cartData.map((group) => (
-                    <div key={group.id_libro} className="flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-white/80 truncate leading-tight">{group.titulo}</p>
-                        <span className="text-xs text-brand-accent/50">{group.copias_reservadas}× {formatPrice(group.precio)}</span>
-                      </div>
-                      <span className="text-sm font-medium text-white tabular-nums shrink-0">{formatPrice(group.precio * group.copias_reservadas)}</span>
-                    </div>
+                    <CartItemRow key={group.id_libro} group={group} />
                   ))}
                 </div>
               )}
 
               <div className="py-4 space-y-2.5 border-t border-white/8">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-brand-accent/70">Subtotal</span>
-                  <span className="text-sm font-medium text-white tabular-nums">{formatPrice(total)}</span>
-                </div>
-
-                {envioOpcion && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-brand-accent/70">Envío</span>
-                    <span
-                      className={`text-sm font-medium tabular-nums ${
-                      envioOpcion.costo > 0 ? "text-amber-400" : "text-emerald-400"
-                    }`}
-                    >
-                      {envioOpcion.costo > 0 ? formatPrice(envioOpcion.costo) : "Gratis"}
-                    </span>
-                  </div>
-                )}
-
-                <div className="border-t border-white/8 my-2" />
-                <div className="flex items-end justify-between">
-                  <span className="text-sm text-brand-accent/70">Total</span>
-                  <span className="font-display text-xl font-bold text-white tabular-nums">{formatPrice(totalConEnvio)}</span>
-                </div>
+                <PriceSummary total={total} costoEnvio={costoEnvio} envioOpcion={envioOpcion} itemCount={itemCount} variant="mobile" />
               </div>
 
               {currentStep === "carrito" && (
                 <div className="pt-2">
                   <button
                     type="button"
-                    onClick={() => { closeSummary(); handleContinuar(); }}
+                    onClick={() => { closeSummary(); setCurrentStep("envio") }}
                     className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
                   >
                     Continuar
@@ -664,66 +650,5 @@ export default function CheckoutClient() {
         </div>
       )}
     </>
-  )
-}
-
-function StepCircle({
-  number,
-  label,
-  active,
-  completed,
-}: {
-  number: number
-  label: string
-  active: boolean
-  completed: boolean
-}) {
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div
-        className={`relative flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium transition-all duration-300 ${
-          completed
-            ? "bg-brand-accent text-white scale-100"
-            : active
-              ? "bg-brand-primary text-white scale-110 ring-4 ring-brand-primary/15"
-              : "bg-white text-brand-secondary/40 border-2 border-brand-accent/15 scale-100"
-        }`}
-      >
-        {completed ? (
-          <Check className="w-4 h-4 stroke-[2.5]" />
-        ) : (
-          <span className="font-display text-sm font-semibold">{number}</span>
-        )}
-        {active && (
-          <span className="absolute inset-0 rounded-full animate-ping bg-brand-primary/20" />
-        )}
-      </div>
-      <span
-        className={`text-[10px] font-medium uppercase tracking-wider transition-colors duration-300 ${
-          active
-            ? "text-brand-text font-semibold"
-            : completed
-              ? "text-brand-accent"
-              : "text-brand-secondary/40"
-        }`}
-      >
-        {label}
-      </span>
-    </div>
-  )
-}
-
-function StepLine({ completed }: { completed: boolean }) {
-  return (
-    <div className="w-10 lg:w-16 relative" style={{ height: "32px" }}>
-      <div className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 overflow-hidden rounded-full">
-        <div className="absolute inset-0 bg-brand-accent/10" />
-        <div
-          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
-            completed ? "w-full bg-brand-accent/50" : "w-0"
-          }`}
-        />
-      </div>
-    </div>
   )
 }

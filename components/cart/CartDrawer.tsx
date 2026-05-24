@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, type JSX } from "react";
+import { useState, useEffect, useCallback, startTransition, type JSX } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -71,7 +71,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   useEffect(() => {
     if (!isOpen) return;
-    fetchCart();
+    startTransition(() => {
+      fetchCart();
+    });
   }, [isOpen, fetchCart]);
 
   useEffect(() => {
@@ -83,6 +85,33 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, animateClose]);
 
+  // ── Helper: with book muting lock ─────────────────────────────────
+  function withMutingLock(
+    bookId: string,
+    action: () => Promise<unknown>,
+    onError: (msg: string) => void,
+  ) {
+    setMutingBooks((prev) => new Set(prev).add(bookId));
+    action()
+      .catch(() => {
+        onError("Error inesperado.");
+        return fetchCart();
+      })
+      .then((result: { success?: boolean; message?: string } | undefined) => {
+        if (result && !result.success) {
+          onError(result.message ?? "Operación fallida.");
+          return fetchCart();
+        }
+      })
+      .finally(() => {
+        setMutingBooks((prev) => {
+          const next = new Set(prev);
+          next.delete(bookId);
+          return next;
+        });
+      });
+  }
+
   async function handleIncrement(id_libro: string) {
     setCartData(
       (prev) =>
@@ -93,7 +122,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         ) ?? prev,
     );
 
-    setMutingBooks((prev) => new Set(prev).add(id_libro));
     try {
       const result = await addCartBookAction(id_libro);
       if (result.success) {
@@ -105,12 +133,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     } catch {
       await fetchCart();
       setToast({ type: "error", message: "Error inesperado." });
-    } finally {
-      setMutingBooks((prev) => {
-        const next = new Set(prev);
-        next.delete(id_libro);
-        return next;
-      });
     }
   }
 
@@ -133,23 +155,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           ?.filter((g) => g.copias_reservadas > 0) ?? prev,
     );
 
-    setMutingBooks((prev) => new Set(prev).add(group.id_libro));
-    try {
-      const result = await cancelCartItemAction(targetId);
-      if (!result.success) {
-        await fetchCart();
-        setToast({ type: "error", message: result.message ?? "No se pudo quitar." });
-      }
-    } catch {
-      await fetchCart();
-      setToast({ type: "error", message: "Error inesperado." });
-    } finally {
-      setMutingBooks((prev) => {
-        const next = new Set(prev);
-        next.delete(group.id_libro);
-        return next;
-      });
-    }
+    withMutingLock(group.id_libro, () => cancelCartItemAction(targetId), (msg) =>
+      setToast({ type: "error", message: msg }),
+    );
   }
 
   async function handleRemoveBook(group: ReservaAgrupadaItem) {
@@ -158,23 +166,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
     setCartData((prev) => prev?.filter((g) => g.id_libro !== group.id_libro) ?? prev);
 
-    setMutingBooks((prev) => new Set(prev).add(group.id_libro));
-    try {
-      const result = await cancelBookReservasAction(ids);
-      if (!result.success) {
-        await fetchCart();
-        setToast({ type: "error", message: result.message ?? "No se pudo eliminar el libro." });
-      }
-    } catch {
-      await fetchCart();
-      setToast({ type: "error", message: "Error inesperado." });
-    } finally {
-      setMutingBooks((prev) => {
-        const next = new Set(prev);
-        next.delete(group.id_libro);
-        return next;
-      });
-    }
+    withMutingLock(group.id_libro, () => cancelBookReservasAction(ids), (msg) =>
+      setToast({ type: "error", message: msg }),
+    );
   }
 
   const total =
@@ -254,14 +248,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       <div className="space-y-2.5">
         {cartData.map((group) => {
           const isMuting = mutingBooks.has(group.id_libro);
+          const itemClasses = [
+            "bg-brand-bg rounded-xl p-4 border border-brand-accent/15 transition-all duration-200",
+            isMuting ? "opacity-50 scale-[0.97]" : "",
+          ].join(" ");
 
           return (
-            <div
-              key={group.id_libro}
-              className={`bg-brand-bg rounded-xl p-4 border border-brand-accent/15 transition-all duration-200 ${
-                isMuting ? "opacity-50 scale-[0.97]" : ""
-              }`}
-            >
+            <div key={group.id_libro} className={itemClasses}>
               {/* Header row: title + remove-all button */}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
