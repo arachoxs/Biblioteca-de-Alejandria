@@ -3,6 +3,26 @@ import "server-only"
 import { createAdminClient } from "@/lib/supabase/server"
 import type { TiendaConDireccion, DisponibilidadLibroTienda } from "@/lib/types/checkout"
 
+type DireccionPlace = { direccion_formateada: string; place_id: string }
+
+function mapTiendaRow(row: { id: string; nombre: string; direccion: unknown }): TiendaConDireccion {
+  const direccion = row.direccion as DireccionPlace
+  return {
+    id: row.id,
+    nombre: row.nombre,
+    direccion_formateada: direccion.direccion_formateada,
+    place_id: direccion.place_id,
+  }
+}
+
+function mapInventarioRow(row: { libro_id: string | null; tienda_id: string | null; stock_disponible: number | null }): DisponibilidadLibroTienda {
+  return {
+    libroId: row.libro_id ?? "",
+    tiendaId: row.tienda_id ?? "",
+    stockDisponible: row.stock_disponible ?? 0,
+  }
+}
+
 export async function getTiendasConDireccion(): Promise<TiendaConDireccion[]> {
   const adminClient = createAdminClient()
 
@@ -18,12 +38,7 @@ export async function getTiendasConDireccion(): Promise<TiendaConDireccion[]> {
     throw error
   }
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    nombre: row.nombre,
-    direccion_formateada: (row.direccion as unknown as { direccion_formateada: string; place_id: string }).direccion_formateada,
-    place_id: (row.direccion as unknown as { direccion_formateada: string; place_id: string }).place_id,
-  }))
+  return (data ?? []).map(mapTiendaRow)
 }
 
 export async function getDisponibilidadMultiTienda(
@@ -46,14 +61,14 @@ export async function getDisponibilidadMultiTienda(
     throw error
   }
 
-  return (data ?? []).map((row) => ({
-    libroId: row.libro_id ?? "",
-    tiendaId: row.tienda_id ?? "",
-    stockDisponible: row.stock_disponible ?? 0,
-  }))
+  return (data ?? []).map(mapInventarioRow)
 }
 
 export async function getUserPlaceId(userId: string): Promise<string | null> {
+  if (!userId?.trim()) {
+    return null
+  }
+
   const adminClient = createAdminClient()
 
   const { data, error } = await adminClient
@@ -68,5 +83,6 @@ export async function getUserPlaceId(userId: string): Promise<string | null> {
     throw error
   }
 
-  return (data?.direccion as unknown as { place_id: string } | undefined)?.place_id ?? null
+  const direccion = data?.direccion as DireccionPlace | undefined
+  return direccion?.place_id ?? null
 }
