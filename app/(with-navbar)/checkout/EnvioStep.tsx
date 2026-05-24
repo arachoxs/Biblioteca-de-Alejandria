@@ -197,6 +197,57 @@ function deriveEnvioOptions(resultado: ResultadoEnvio | null, selectedOption: Op
   return { domicilio, recogidaTraslado, domicilioSelected }
 }
 
+function DomicilioOptionCard({
+  option,
+  userDireccionFormateada,
+  selected,
+  onSelect,
+}: {
+  option: OpcionEnvio
+  userDireccionFormateada: string | null
+  selected: boolean
+  onSelect: () => void
+}) {
+  return (
+    <OptionCard
+      icon={<Home className="w-5 h-5" />}
+      title="Envío a domicilio"
+      description={userDireccionFormateada ? `A tu dirección: ${userDireccionFormateada}` : option.mensaje}
+      selected={selected}
+      costo={option.costo}
+      onSelect={onSelect}
+    />
+  )
+}
+
+function RecogidaOptionsList({
+  opciones,
+  selectedOption,
+  onSelect,
+}: {
+  opciones: OpcionEnvio[]
+  selectedOption: OpcionEnvio | null
+  onSelect: (option: OpcionEnvio) => void
+}) {
+  return (
+    <>
+      {opciones.map((opcion, idx) => (
+        <OptionCard
+          key={`${opcion.tipo}-${opcion.tiendaId ?? idx}`}
+          icon={opcion.tipo === "traslado" ? <Truck className="w-5 h-5" /> : <Store className="w-5 h-5" />}
+          title={opcion.tipo === "traslado" ? `Traslado a ${opcion.tiendaNombre}` : `Recoger en ${opcion.tiendaNombre}`}
+          description={opcion.mensaje}
+          selected={selectedOption?.tiendaId === opcion.tiendaId}
+          costo={opcion.costo}
+          onSelect={() => onSelect(opcion)}
+          badge={opcion.requiereTraslado && opcion.tipo !== "traslado" ? <TrasladoBadge /> : undefined}
+          detail={<OptionDetail opcion={opcion} />}
+        />
+      ))}
+    </>
+  )
+}
+
 function ReadyView({
   resultado,
   selectedOption,
@@ -225,33 +276,21 @@ function ReadyView({
 
       <div className="grid gap-3">
         {domicilio && (
-          <OptionCard
-            icon={<Home className="w-5 h-5" />}
-            title="Envío a domicilio"
-            description={
-              userDireccionFormateada
-                ? `A tu dirección: ${userDireccionFormateada}`
-                : domicilio.mensaje
-            }
+          <DomicilioOptionCard
+            option={domicilio}
+            userDireccionFormateada={userDireccionFormateada}
             selected={domicilioSelected}
-            costo={domicilio.costo}
             onSelect={() => onSelect(domicilio)}
           />
         )}
 
-        {recogidaTraslado.map((opcion, idx) => (
-          <OptionCard
-            key={`${opcion.tipo}-${opcion.tiendaId ?? idx}`}
-            icon={opcion.tipo === "traslado" ? <Truck className="w-5 h-5" /> : <Store className="w-5 h-5" />}
-            title={opcion.tipo === "traslado" ? `Traslado a ${opcion.tiendaNombre}` : `Recoger en ${opcion.tiendaNombre}`}
-            description={opcion.mensaje}
-            selected={selectedOption?.tiendaId === opcion.tiendaId}
-            costo={opcion.costo}
-            onSelect={() => onSelect(opcion)}
-            badge={opcion.requiereTraslado && opcion.tipo !== "traslado" ? <TrasladoBadge /> : undefined}
-            detail={<OptionDetail opcion={opcion} />}
+        {recogidaTraslado.length > 0 && (
+          <RecogidaOptionsList
+            opciones={recogidaTraslado}
+            selectedOption={selectedOption}
+            onSelect={onSelect}
           />
-        ))}
+        )}
       </div>
 
       {userPlaceId && selectedOption?.tiendaPlaceId && (

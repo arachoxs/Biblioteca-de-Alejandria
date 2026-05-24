@@ -368,153 +368,253 @@ export default function CheckoutClient() {
 
   return (
     <>
-      {toast && (
-        <Alert variant={toast.type} onClose={() => setToast(null)}>
-          {toast.message}
-        </Alert>
-      )}
+      {/* ── Main Layout ── */}
+      <CheckoutMainContent
+        cartData={cartData}
+        currentStep={currentStep}
+        mutingBooks={mutingBooks}
+        envioOpcion={envioOpcion}
+        total={total}
+        costoEnvio={costoEnvio}
+        itemCount={itemCount}
+        onSetStep={setCurrentStep}
+        onIncrement={handleIncrement}
+        onDecrement={handleDecrement}
+        onRemove={handleRemoveBook}
+        onConfirmEnvio={setEnvioOpcion}
+      />
 
-      <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-10 max-lg:pb-24">
-        {/* ── Left Column ── */}
-        <div className="space-y-4" id="checkout-scroll-container">
-          {/* Step header */}
-          <div className="flex items-center justify-between mb-7 min-h-[2rem]">
-            {currentStep !== "carrito" && (
+      {/* ── Mobile: Peek bar ── */}
+      <MobilePeekBar
+        itemCount={itemCount}
+        totalConEnvio={totalConEnvio}
+        currentStep={currentStep}
+        onOpenSummary={openSummary}
+        onSetStep={setCurrentStep}
+      />
+
+      {/* ── Mobile: Bottom sheet ── */}
+      <MobileSummarySheet
+        summaryExpanded={summaryExpanded}
+        sheetClosing={sheetClosing}
+        currentStep={currentStep}
+        cartData={cartData}
+        total={total}
+        costoEnvio={costoEnvio}
+        envioOpcion={envioOpcion}
+        itemCount={itemCount}
+        onClose={closeSummary}
+        onSetStep={setCurrentStep}
+      />
+    </>
+  )
+}
+
+function CheckoutMainContent({
+  cartData,
+  currentStep,
+  mutingBooks,
+  envioOpcion,
+  total,
+  costoEnvio,
+  itemCount,
+  onSetStep,
+  onIncrement,
+  onDecrement,
+  onRemove,
+  onConfirmEnvio,
+}: {
+  cartData: ReservaAgrupadaItem[]
+  currentStep: "carrito" | "envio"
+  mutingBooks: Set<string>
+  envioOpcion: OpcionEnvio | null
+  total: number
+  costoEnvio: number
+  itemCount: number
+  onSetStep: (step: "carrito" | "envio") => void
+  onIncrement: (id: string) => void
+  onDecrement: (group: ReservaAgrupadaItem) => void
+  onRemove: (group: ReservaAgrupadaItem) => void
+  onConfirmEnvio: (option: OpcionEnvio) => void
+}) {
+  return (
+    <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-10 max-lg:pb-24">
+      <div className="space-y-4" id="checkout-scroll-container">
+        <div className="flex items-center justify-between mb-7 min-h-[2rem]">
+          {currentStep !== "carrito" && (
+            <button
+              type="button"
+              onClick={() => onSetStep("carrito")}
+              className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+              Volver al carrito
+            </button>
+          )}
+          {currentStep === "carrito" && <div />}
+
+          <div className="flex items-center justify-center gap-0 select-none">
+            <StepCircle number={1} label="Carrito" active={currentStep === "carrito"} completed={currentStep !== "carrito"} />
+            <StepLine completed={currentStep !== "carrito"} />
+            <StepCircle number={2} label="Envío" active={currentStep === "envio"} completed={false} />
+            <StepLine completed={false} />
+            <StepCircle number={3} label="Pago" active={false} completed={false} />
+          </div>
+        </div>
+
+        {currentStep === "carrito" ? (
+          <>
+            {cartData.map((group, index) => (
+              <CartItemCard
+                key={group.id_libro}
+                group={group}
+                isMuting={mutingBooks.has(group.id_libro)}
+                onIncrement={() => onIncrement(group.id_libro)}
+                onDecrement={() => onDecrement(group)}
+                onRemove={() => onRemove(group)}
+                index={index}
+              />
+            ))}
+          </>
+        ) : (
+          <EnvioStep onConfirm={onConfirmEnvio} onBack={() => onSetStep("carrito")} />
+        )}
+      </div>
+
+      <div className="hidden lg:block checkout-summary-in">
+        <div className="bg-brand-text rounded-xl overflow-hidden sticky top-24 shadow-xl shadow-brand-text/20">
+          <div className="px-5 lg:px-6 py-5 border-b border-white/8">
+            <h2 className="font-display text-lg font-semibold text-white tracking-tight">Resumen</h2>
+          </div>
+
+          <PriceSummary total={total} costoEnvio={costoEnvio} envioOpcion={envioOpcion} itemCount={itemCount} variant="desktop" />
+
+          <div className="px-5 lg:px-6 pb-6 pt-2">
+            {currentStep === "carrito" ? (
               <button
                 type="button"
-                onClick={() => setCurrentStep("carrito")}
-                className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group"
+                onClick={() => onSetStep("envio")}
+                className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
               >
-                <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-                Volver al carrito
+                Continuar
               </button>
-            )}
-            {currentStep === "carrito" && <div />}
+            ) : currentStep === "envio" && envioOpcion ? (
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400/80 bg-emerald-400/5 rounded-lg py-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  Método de entrega seleccionado
+                </div>
+                <p className="text-white/70 text-xs mt-2">
+                  {envioOpcion.tipo === "domicilio"
+                    ? "Envío a domicilio"
+                    : envioOpcion.tipo === "traslado"
+                      ? `Traslado a ${envioOpcion.tiendaNombre}`
+                      : `Recogida en ${envioOpcion.tiendaNombre}`}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
-            {/* Step indicator */}
-            <div className="flex items-center justify-center gap-0 select-none">
-              <StepCircle number={1} label="Carrito" active={currentStep === "carrito"} completed={currentStep !== "carrito"} />
-              <StepLine completed={currentStep !== "carrito"} />
-              <StepCircle number={2} label="Envío" active={currentStep === "envio"} completed={false} />
-              <StepLine completed={false} />
-              <StepCircle number={3} label="Pago" active={false} completed={false} />
+function MobilePeekBar({
+  itemCount,
+  totalConEnvio,
+  currentStep,
+  onOpenSummary,
+  onSetStep,
+}: {
+  itemCount: number
+  totalConEnvio: number
+  currentStep: "carrito" | "envio"
+  onOpenSummary: () => void
+  onSetStep: (step: "carrito" | "envio") => void
+}) {
+  return (
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
+      <div className="bg-brand-text border-t border-white/8 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1" onClick={onOpenSummary}>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <BookOpen className="w-4 h-4 text-brand-accent" />
+              <span className="text-sm text-brand-accent font-medium tabular-nums">{itemCount}</span>
+            </div>
+            <span className="text-xs text-brand-accent/40 hidden sm:inline mx-0.5">·</span>
+            <div className="flex items-baseline gap-1 min-w-0">
+              <span className="text-xs text-brand-accent/50 leading-none shrink-0 hidden sm:inline">Total</span>
+              <span className="font-display text-base font-bold text-white tabular-nums truncate">{formatPrice(totalConEnvio)}</span>
             </div>
           </div>
 
-          {/* Step content */}
-          {currentStep === "carrito" ? (
-            <>
-              {(cartData ?? []).map((group, index) => (
-                <CartItemCard
-                  key={group.id_libro}
-                  group={group}
-                  isMuting={mutingBooks.has(group.id_libro)}
-                  onIncrement={() => handleIncrement(group.id_libro)}
-                  onDecrement={() => handleDecrement(group)}
-                  onRemove={() => handleRemoveBook(group)}
-                  index={index}
-                />
-              ))}
-            </>
-          ) : (
-            <EnvioStep onConfirm={setEnvioOpcion} onBack={() => setCurrentStep("carrito")} />
-          )}
-        </div>
-
-        {/* ── Right: Summary panel (desktop) ── */}
-        <div className="hidden lg:block checkout-summary-in">
-          <div className="bg-brand-text rounded-xl overflow-hidden sticky top-24 shadow-xl shadow-brand-text/20">
-            <div className="px-5 lg:px-6 py-5 border-b border-white/8">
-              <h2 className="font-display text-lg font-semibold text-white tracking-tight">Resumen</h2>
-            </div>
-
-            <PriceSummary total={total} costoEnvio={costoEnvio} envioOpcion={envioOpcion} itemCount={itemCount} variant="desktop" />
-
-            <div className="px-5 lg:px-6 pb-6 pt-2">
-              {currentStep === "carrito" ? (
+          <div className="flex items-center gap-1.5 shrink-0">
+            {currentStep === "carrito" ? (
+              <>
                 <button
                   type="button"
-                  onClick={() => setCurrentStep("envio")}
-                  className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
+                  onClick={onOpenSummary}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  Ver detalle
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSetStep("envio")}
+                  className="px-3.5 py-1.5 bg-white text-brand-text text-xs font-medium rounded-lg hover:bg-white/90 transition-all shrink-0 whitespace-nowrap cursor-pointer"
                 >
                   Continuar
                 </button>
-              ) : currentStep === "envio" && envioOpcion ? (
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400/80 bg-emerald-400/5 rounded-lg py-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    Método de entrega seleccionado
-                  </div>
-                  <p className="text-white/70 text-xs mt-2">
-                    {envioOpcion.tipo === "domicilio"
-                      ? "Envío a domicilio"
-                      : envioOpcion.tipo === "traslado"
-                        ? `Traslado a ${envioOpcion.tiendaNombre}`
-                        : `Recogida en ${envioOpcion.tiendaNombre}`}
-                  </p>
-                </div>
-              ) : null}
-            </div>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onSetStep("carrito")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Volver
+              </button>
+            )}
           </div>
         </div>
       </div>
+    </div>
+  )
+}
 
-      {/* ── Mobile: Peek bar ── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
-        <div className="bg-brand-text border-t border-white/8 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1" onClick={openSummary}>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <BookOpen className="w-4 h-4 text-brand-accent" />
-                <span className="text-sm text-brand-accent font-medium tabular-nums">{itemCount}</span>
-              </div>
-              <span className="text-xs text-brand-accent/40 hidden sm:inline mx-0.5">·</span>
-              <div className="flex items-baseline gap-1 min-w-0">
-                <span className="text-xs text-brand-accent/50 leading-none shrink-0 hidden sm:inline">Total</span>
-                <span className="font-display text-base font-bold text-white tabular-nums truncate">{formatPrice(totalConEnvio)}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              {currentStep === "carrito" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={openSummary}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
-                  >
-                    Ver detalle
-                    <ChevronUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep("envio")}
-                    className="px-3.5 py-1.5 bg-white text-brand-text text-xs font-medium rounded-lg hover:bg-white/90 transition-all shrink-0 whitespace-nowrap cursor-pointer"
-                  >
-                    Continuar
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep("carrito")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  Volver
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Mobile: Bottom sheet ── */}
+function MobileSummarySheet({
+  summaryExpanded,
+  sheetClosing,
+  currentStep,
+  cartData,
+  total,
+  costoEnvio,
+  envioOpcion,
+  itemCount,
+  onClose,
+  onSetStep,
+}: {
+  summaryExpanded: boolean
+  sheetClosing: boolean
+  currentStep: "carrito" | "envio"
+  cartData: ReservaAgrupadaItem[]
+  total: number
+  costoEnvio: number
+  envioOpcion: OpcionEnvio | null
+  itemCount: number
+  onClose: () => void
+  onSetStep: (step: "carrito" | "envio") => void
+}) {
+  return (
+    <>
       {(summaryExpanded || sheetClosing) && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div
             className={`absolute inset-0 bg-brand-text/40 backdrop-blur-sm ${sheetClosing ? "sheet-backdrop-out" : "sheet-backdrop-in"}`}
-            onClick={closeSummary}
+            onClick={onClose}
           />
           <div className={`absolute bottom-0 left-0 right-0 bg-brand-text rounded-t-2xl shadow-xl shadow-brand-text/30 max-h-[75dvh] flex flex-col ${sheetClosing ? "sheet-slide-out" : "sheet-slide-in"}`}>
             <div className="flex justify-center pt-3 pb-1 shrink-0">
@@ -525,7 +625,7 @@ export default function CheckoutClient() {
               <h2 className="font-display text-lg font-semibold text-white">Resumen</h2>
               <button
                 type="button"
-                onClick={closeSummary}
+                onClick={onClose}
                 className="w-8 h-8 flex items-center justify-center rounded-full text-brand-accent/60 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -549,7 +649,7 @@ export default function CheckoutClient() {
                 <div className="pt-2">
                   <button
                     type="button"
-                    onClick={() => { closeSummary(); setCurrentStep("envio") }}
+                    onClick={() => { onClose(); onSetStep("envio") }}
                     className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
                   >
                     Continuar

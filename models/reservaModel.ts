@@ -7,6 +7,23 @@ import type {
   ReservaWithDetails,
 } from "@/lib/types/reserva";
 
+// ─── Domain Types ────────────────────────────────────────────────────
+
+interface ActiveReservaFilters {
+  userId: string
+  libroId?: string
+  tiendaId?: string
+}
+
+interface ReservaByIdFilter {
+  id: string
+}
+
+interface ReservaQuery {
+  userId: string
+  libroIds: string[]
+}
+
 // ─── Helpers privados ───────────────────────────────────────────────
 
 /** Obtiene la fecha actual en formato ISO. Centralizado para evitar duplicación. */
@@ -30,12 +47,12 @@ interface ReservaWithCopiaFields {
  */
 function normalizeReservaRow(
   data: ReservaWithCopiaFields | null,
-  libroId: string,
+  libroId: string | undefined,
   tiendaId?: string,
 ): ReservaRow | null {
   if (!data?.copia) return null;
 
-  const matchesLibro = data.copia.id_libro === libroId;
+  const matchesLibro = libroId !== undefined ? data.copia.id_libro === libroId : true;
   const matchesTienda = tiendaId !== undefined
     ? data.copia.id_tienda === tiendaId
     : true;
@@ -306,91 +323,102 @@ export async function getActiveReservasConLibro(
  * se necesitan IDs para validar límites (5 libros, 3 copias mismo libro).
  */
 export async function getActiveReservaBookIds(
-  id_usuario: string,
+  userId: string,
 ): Promise<Map<string, string[]>> {
-  const adminClient = createAdminClient();
-  const now = getNow();
-
-  const { data, error } = await adminClient
-    .from("reserva")
-    .select(
-      `
-      id_copia,
-      copia!inner ( id_libro )
-    `,
-    )
-    .eq("id_usuario", id_usuario)
-    .gt("fecha_expiracion", now);
-
-  if (error) {
-    console.error(
-      "[reservaModel] Error obteniendo IDs de libros de reservas:",
-      error,
-    );
-    throw error;
-  }
-
-  const byLibro = new Map<string, string[]>();
-
-  for (const row of (data ?? []) as {
-    id_copia: string;
-    copia: { id_libro: string } | null;
-  }[]) {
-    const libroId = row.copia?.id_libro;
-    if (!libroId) continue;
-    const existing = byLibro.get(libroId);
-    if (existing) {
-      existing.push(row.id_copia);
-    } else {
-      byLibro.set(libroId, [row.id_copia]);
-    }
-  }
-
-  return byLibro;
+  return queryReservasByUserAndLibroIds({ userId, libroIds: [] })
 }
 
-// ─── Helpers para swap de reservas ──────────────────────────────────
+// ─── Query helpers with domain types ────────────────────────────────
 
-type ActiveReservaQueryMode = "with-tienda" | "without-tienda"
-
-/**
- * Consulta una reserva activa del usuario para un libro,
- * opcionalmente filtrada por tienda.
- *
- *内部使用。Exportado para uso directo en servicios cuando se necesita
- *la misma lógica sin depender del full getActiveReserva*.
- */
-async function queryActiveReservaByLibro(
-  userId: string,
-  libroId: string,
-  mode: ActiveReservaQueryMode,
-  tiendaId?: string,
+async function queryActiveReservaWithFilters(
+  filters: ActiveReservaFilters,
+  useMaybeSingle: boolean = false,
 ): Promise<ReservaRow | null> {
   const adminClient = createAdminClient()
   const now = getNow()
 
-  const selectFields =
-    mode === "with-tienda"
-      ? "id, created_at, fecha_expiracion, id_copia, id_usuario, copia(id, id_libro, id_tienda)"
-      : "id, created_at, fecha_expiracion, id_copia, id_usuario, copia(id, id_libro)"
+  const base = adminClient
+    .from("reserva")
+    .select("id, created_at, fecha_expiracion, id_copia, id_usuario, copia(id, id_libro, id_tienda)")
+    .eq("id_usuario", filters.userId)
+    .gt("fecha_expiracion", now)
+    .limit(1)
+
+  let data: ReservaWithCopiaFields | null = null
+  let error: unknown = null
+
+  if (useMaybeSingle) {
+    const result = await base.maybeSingle()
+    data = result.data
+    error = result.error
+  } else {
+    const result = await base.single()
+    data = result.data
+    error = result.error
+  }
+
+  if (error) {
+    console.error("[reservaModel] Error en queryActiveReservaWithFilters:", error)
+    throw error
+  }
+
+  return normalizeReservaRow(data, filters.libroId, filters.tiendaId)
+}
+
+async function queryActiveReservaOfBook(
+  userId: string,
+  libroId: string,
+): Promise<ReservaRow | null> {
+  const adminClient = createAdminClient()
+  const now = getNow()
 
   const { data, error } = await adminClient
     .from("reserva")
-    .select(selectFields)
+    .select("id, created_at, fecha_expiracion, id_copia, id_usuario, copia(id, id_libro)")
     .eq("id_usuario", userId)
     .gt("fecha_expiracion", now)
     .limit(1)
     .maybeSingle()
 
   if (error) {
-    console.error(
-      `[reservaModel] Error en queryActiveReservaByLibro (mode=${mode}):`,
-      error,
-    )
+    console.error("[reservaModel] Error en queryActiveReservaOfBook:", error)
     throw error
   }
 
-  return normalizeReservaRow(data as ReservaWithCopiaFields | null, libroId, tiendaId)
+  return normalizeReservaRow(data as ReservaWithCopiaFields | null, libroId)
+}
+
+async function queryReservasByUserAndLibroIds(
+  filters: ReservaQuery,
+): Promise<Map<string, string[]>> {
+  const adminClient = createAdminClient()
+  const now = getNow()
+
+  const { data, error } = await adminClient
+    .from("reserva")
+    .select("id_copia, copia!inner ( id_libro )")
+    .eq("id_usuario", filters.userId)
+    .gt("fecha_expiracion", now)
+
+  if (error) {
+    console.error("[reservaModel] Error en queryReservasByUserAndLibroIds:", error)
+    throw error
+  }
+
+  const byLibro = new Map<string, string[]>()
+
+  for (const row of (data ?? []) as { id_copia: string; copia: { id_libro: string } | null }[]) {
+    const libroId = row.copia?.id_libro
+    if (!libroId) continue
+    const existing = byLibro.get(libroId)
+    if (existing) {
+      existing.push(row.id_copia)
+    } else {
+      byLibro.set(libroId, [row.id_copia])
+    }
+  }
+
+  return byLibro
 }
 
 /**
@@ -402,7 +430,7 @@ export async function getActiveReservaForLibroAtTienda(
   libroId: string,
   tiendaId: string,
 ): Promise<ReservaRow | null> {
-  return queryActiveReservaByLibro(userId, libroId, "with-tienda", tiendaId)
+  return queryActiveReservaWithFilters({ userId, libroId, tiendaId }, true)
 }
 
 /**
@@ -412,18 +440,23 @@ export async function getActiveReservaOfLibro(
   userId: string,
   libroId: string,
 ): Promise<ReservaRow | null> {
-  return queryActiveReservaByLibro(userId, libroId, "without-tienda")
+  return queryActiveReservaOfBook(userId, libroId)
 }
 
 // ─── Conteos para reglas de negocio ─────────────────────────────────
+
+interface CountReservasFilters {
+  userId: string
+  copiaIds?: string[]
+}
 
 /**
  * Cuenta cuántas reservas activas (no expiradas) tiene un usuario.
  */
 export async function countReservasActivasByUser(
-  id_usuario: string,
+  filters: CountReservasFilters,
 ): Promise<number> {
-  return queryActiveReservas(id_usuario);
+  return queryActiveReservas(filters.userId, filters.copiaIds)
 }
 
 /**
@@ -433,11 +466,10 @@ export async function countReservasActivasByUser(
  * El servicio debe resolver los IDs de copia antes de llamar a esta función.
  */
 export async function countReservasByUserAndCopias(
-  id_usuario: string,
-  copiaIds: string[],
+  filters: CountReservasFilters,
 ): Promise<number> {
-  if (copiaIds.length === 0) return 0;
-  return queryActiveReservas(id_usuario, copiaIds);
+  if (!filters.copiaIds || filters.copiaIds.length === 0) return 0
+  return queryActiveReservas(filters.userId, filters.copiaIds)
 }
 
 // ─── Batch de expiración ────────────────────────────────────────────

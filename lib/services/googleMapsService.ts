@@ -41,13 +41,26 @@ export async function getDistanciaOrigenDestino(
 
   if (destinationPlaceIds.length === 0) return []
 
+  const url = buildDistanceMatrixUrl(originPlaceId, destinationPlaceIds, apiKey)
+  const data = await fetchDistanceMatrixData(url)
+
+  return parseDistanceElements(data)
+}
+
+function buildDistanceMatrixUrl(
+  originPlaceId: string,
+  destinationPlaceIds: string[],
+  apiKey: string,
+): string {
   const originsParam = `place_id:${originPlaceId}`
   const destinationsParam = destinationPlaceIds
     .map((id) => `place_id:${id}`)
     .join("|")
 
-  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${originsParam}&destinations=${destinationsParam}&key=${apiKey}&language=es`
+  return `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${originsParam}&destinations=${destinationsParam}&key=${apiKey}&language=es`
+}
 
+async function fetchDistanceMatrixData(url: string): Promise<DistanceMatrixResponse> {
   const response = await fetch(url)
 
   if (!response.ok) {
@@ -66,6 +79,10 @@ export async function getDistanciaOrigenDestino(
     )
   }
 
+  return data
+}
+
+function parseDistanceElements(data: DistanceMatrixResponse): DistanceResult[] {
   const elements = data.rows[0]?.elements ?? []
   return elements.map(mapElement)
 }

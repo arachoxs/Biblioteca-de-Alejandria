@@ -12,17 +12,35 @@ interface UseCartMutationsOptions {
   onCartRefresh: () => Promise<void>
 }
 
+async function executeCartMutation<T>(
+  bookId: string,
+  mutation: () => Promise<{ success: boolean; message?: string }>,
+  onError: (message: string) => void,
+  onCartRefresh: () => Promise<void>,
+): Promise<void> {
+  try {
+    const result = await mutation()
+    if (!result.success) {
+      await onCartRefresh()
+      onError(result.message ?? "Operación fallida.")
+    }
+  } catch {
+    await onCartRefresh()
+    onError("Error inesperado.")
+  }
+}
+
 export function useCartMutations({ onError, onCartRefresh }: UseCartMutationsOptions) {
   const [mutingBooks, setMutingBooks] = useState<MutingState>(new Set())
 
-  const handleIncrement = useCallback(
-    async (id_libro: string) => {
-      setMutingBooks((prev) => new Set(prev).add(id_libro))
+  const withMutingBook = useCallback(
+    async (bookId: string, mutation: () => Promise<{ success: boolean; message?: string }>) => {
+      setMutingBooks((prev) => new Set(prev).add(bookId))
       try {
-        const result = await addCartBookAction(id_libro)
+        const result = await mutation()
         if (!result.success) {
           await onCartRefresh()
-          onError(result.message ?? "No se pudo agregar una copia.")
+          onError(result.message ?? "Operación fallida.")
         }
       } catch {
         await onCartRefresh()
@@ -30,12 +48,19 @@ export function useCartMutations({ onError, onCartRefresh }: UseCartMutationsOpt
       } finally {
         setMutingBooks((prev) => {
           const next = new Set(prev)
-          next.delete(id_libro)
+          next.delete(bookId)
           return next
         })
       }
     },
     [onCartRefresh, onError],
+  )
+
+  const handleIncrement = useCallback(
+    async (id_libro: string) => {
+      await withMutingBook(id_libro, () => addCartBookAction(id_libro))
+    },
+    [withMutingBook],
   )
 
   const handleDecrement = useCallback(
@@ -45,26 +70,9 @@ export function useCartMutations({ onError, onCartRefresh }: UseCartMutationsOpt
         onError("No se encontró reserva.")
         return
       }
-
-      setMutingBooks((prev) => new Set(prev).add(group.id_libro))
-      try {
-        const result = await cancelCartItemAction(targetId)
-        if (!result.success) {
-          await onCartRefresh()
-          onError(result.message ?? "No se pudo quitar la copia.")
-        }
-      } catch {
-        await onCartRefresh()
-        onError("Error inesperado.")
-      } finally {
-        setMutingBooks((prev) => {
-          const next = new Set(prev)
-          next.delete(group.id_libro)
-          return next
-        })
-      }
+      await withMutingBook(group.id_libro, () => cancelCartItemAction(targetId))
     },
-    [onCartRefresh, onError],
+    [withMutingBook, onError],
   )
 
   const handleRemoveBook = useCallback(
@@ -74,26 +82,9 @@ export function useCartMutations({ onError, onCartRefresh }: UseCartMutationsOpt
         onError("No hay reservas.")
         return
       }
-
-      setMutingBooks((prev) => new Set(prev).add(group.id_libro))
-      try {
-        const result = await cancelBookReservasAction(ids)
-        if (!result.success) {
-          await onCartRefresh()
-          onError(result.message ?? "No se pudieron eliminar los libros.")
-        }
-      } catch {
-        await onCartRefresh()
-        onError("Error inesperado.")
-      } finally {
-        setMutingBooks((prev) => {
-          const next = new Set(prev)
-          next.delete(group.id_libro)
-          return next
-        })
-      }
+      await withMutingBook(group.id_libro, () => cancelBookReservasAction(ids))
     },
-    [onCartRefresh, onError],
+    [withMutingBook, onError],
   )
 
   return {
