@@ -217,19 +217,6 @@ function ReadyView({
   const nearest = resultado?.tiendaMasCercana
   const { domicilio, recogidaTraslado, domicilioSelected } = deriveEnvioOptions(resultado, selectedOption)
 
-  const handleSelect = useCallback(
-    (option: OpcionEnvio) => {
-      onSelect(option)
-    },
-    [onSelect],
-  )
-
-  useEffect(() => {
-    if (!domicilioSelected) return
-    const container = document.getElementById("checkout-scroll-container")
-    container?.scrollTo({ top: container.scrollHeight, behavior: "smooth" })
-  }, [domicilioSelected])
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {nearest && <NearestStoreCard nearest={nearest} />}
@@ -248,7 +235,7 @@ function ReadyView({
             }
             selected={domicilioSelected}
             costo={domicilio.costo}
-            onSelect={() => handleSelect(domicilio)}
+            onSelect={() => onSelect(domicilio)}
           />
         )}
 
@@ -260,7 +247,7 @@ function ReadyView({
             description={opcion.mensaje}
             selected={selectedOption?.tiendaId === opcion.tiendaId}
             costo={opcion.costo}
-            onSelect={() => handleSelect(opcion)}
+            onSelect={() => onSelect(opcion)}
             badge={opcion.requiereTraslado && opcion.tipo !== "traslado" ? <TrasladoBadge /> : undefined}
             detail={<OptionDetail opcion={opcion} />}
           />
@@ -271,27 +258,41 @@ function ReadyView({
         <RouteMap userPlaceId={userPlaceId} selectedOption={selectedOption} />
       )}
 
-      <div className="flex items-center gap-3 pt-2" id="continue-button-container">
-        <button
-          type="button"
-          onClick={onBack}
-          className="px-5 py-3 text-sm font-medium text-brand-secondary/50 hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer"
-        >
-          Volver
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={!selectedOption}
-          className="flex-1 px-5 py-3 bg-brand-primary text-white text-sm font-medium rounded-xl hover:bg-brand-primary/90 active:scale-[0.98] transition-all disabled:bg-brand-accent/30 disabled:text-white/40 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer"
-        >
-          {selectedOption
-            ? selectedOption.tipo === "domicilio"
-              ? "Confirmar envío a domicilio"
-              : "Continuar"
-            : "Selecciona un método de entrega"}
-        </button>
-      </div>
+      <CheckoutActionsFooter selectedOption={selectedOption} onBack={onBack} onConfirm={onConfirm} />
+    </div>
+  )
+}
+
+function CheckoutActionsFooter({
+  selectedOption,
+  onBack,
+  onConfirm,
+}: {
+  selectedOption: OpcionEnvio | null
+  onBack: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <div className="flex items-center gap-3 pt-2" id="continue-button-container">
+      <button
+        type="button"
+        onClick={onBack}
+        className="px-5 py-3 text-sm font-medium text-brand-secondary/50 hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer"
+      >
+        Volver
+      </button>
+      <button
+        type="button"
+        onClick={onConfirm}
+        disabled={!selectedOption}
+        className="flex-1 px-5 py-3 bg-brand-primary text-white text-sm font-medium rounded-xl hover:bg-brand-primary/90 active:scale-[0.98] transition-all disabled:bg-brand-accent/30 disabled:text-white/40 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer"
+      >
+        {selectedOption
+          ? selectedOption.tipo === "domicilio"
+            ? "Confirmar envío a domicilio"
+            : "Continuar"
+          : "Selecciona un método de entrega"}
+      </button>
     </div>
   )
 }

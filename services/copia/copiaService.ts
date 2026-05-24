@@ -322,38 +322,63 @@ export async function createCopias(
   }
 }
 
-export async function transferCopias(
-  input: TransferCopiasInput,
-): Promise<CopiaActionResponse> {
-  const roleCheck = await requireAdminRole()
-  if (!roleCheck.success) return roleCheck
+interface TransferValidationResult {
+  ok: true
+  store: NonNullable<Awaited<ReturnType<typeof getActiveTiendaById>>>
+  copyIds: string[]
+}
+interface TransferValidationError {
+  ok: false
+  error: CopiaActionResponse
+}
 
+async function validateTransferInput(input: TransferCopiasInput): Promise<TransferValidationResult | TransferValidationError> {
   const copyIds = toUniqueIds(input.ids)
-
   const store = await getActiveTiendaById(input.id_tienda)
   if (!store) {
     return {
-      success: false,
-      errors: {
-        id_tienda: "La tienda destino no existe o fue eliminada.",
+      ok: false,
+      error: {
+        success: false,
+        errors: { id_tienda: "La tienda destino no existe o fue eliminada." },
+        message: "La tienda destino no existe o fue eliminada.",
       },
-      message: "La tienda destino no existe o fue eliminada.",
     }
   }
+  return { ok: true, store, copyIds }
+}
 
+async function checkCopiasNotAlreadyAtStore(
+  copyIds: string[],
+  store: NonNullable<Awaited<ReturnType<typeof getActiveTiendaById>>>,
+): Promise<CopiaActionResponse | null> {
   const copiasInfo = await getCopiasByIdsModel(copyIds)
-  const tiendasSet = new Set(copiasInfo.map((copy) => copy.id_tienda))
-
+  const tiendasSet = new Set(copiasInfo.map((c) => c.id_tienda))
   if (tiendasSet.has(store.id)) {
     return {
       success: false,
       errors: {
         id_tienda: "Algunas de las copias ya pertenecen a la tienda destino.",
       },
-      message:
-        "No se pudieron trasladar las copias porque algunas ya pertenecen a la tienda destino.",
+      message: "No se pudieron trasladar las copias porque algunas ya pertenecen a la tienda destino.",
     }
   }
+  return null
+}
+
+export async function transferCopias(
+  input: TransferCopiasInput,
+): Promise<CopiaActionResponse> {
+  const roleCheck = await requireAdminRole()
+  if (!roleCheck.success) return roleCheck
+
+  const validation = await validateTransferInput(input)
+  if (!validation.ok) return validation.error
+
+  const { store, copyIds } = validation
+
+  const duplicateError = await checkCopiasNotAlreadyAtStore(copyIds, store)
+  if (duplicateError) return duplicateError
 
   let transferidos: string[] = []
   let fallidos: string[] = []
@@ -365,25 +390,18 @@ export async function transferCopias(
   } catch (error) {
     return {
       success: false,
-      errors: {
-        form: getErrorMessage(error),
-      },
+      errors: { form: getErrorMessage(error) },
       message: getErrorMessage(error),
     }
   }
 
   if (fallidos.length > 0) {
-    console.warn(
-      `[copiaService] ${fallidos.length} copia(s) no fueron trasladadas (no estaban disponibles):`,
-      fallidos,
-    )
+    console.warn(`[copiaService] ${fallidos.length} copia(s) no fueron trasladadas:`, fallidos)
   }
   if (transferidos.length === 0) {
     return {
       success: false,
-      errors: {
-        form: "Ninguna de las copias estaba disponible para trasladar.",
-      },
+      errors: { form: "Ninguna de las copias estaba disponible para trasladar." },
       message: "No se pudieron trasladar las copias seleccionadas.",
     }
   }

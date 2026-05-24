@@ -4,18 +4,14 @@ import { useState, useEffect, useCallback, startTransition } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { X, Plus, Minus, BookOpen, ChevronUp, ArrowLeft, Check } from "lucide-react"
-import {
-  getCartAction,
-  cancelCartItemAction,
-  addCartBookAction,
-  cancelBookReservasAction,
-} from "../cartActions"
+import { getCartAction } from "../cartActions"
 import type { ReservaAgrupadaItem } from "@/lib/types/reserva"
 import { MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/reserva"
 import type { OpcionEnvio } from "@/lib/types/checkout"
 import EnvioStep from "./EnvioStep"
 import Alert from "@/components/ui/Alert"
 import { useCheckoutState, useCartSummary, useSummarySheet } from "@/hooks/useCheckout"
+import { useCartMutations } from "@/hooks/useCartMutations"
 
 type CartStatus = "loading" | "loaded" | "error"
 
@@ -356,84 +352,14 @@ export default function CheckoutClient() {
   // ── Cart mutations ──
   const [mutingBooks, setMutingBooks] = useState<Set<string>>(new Set())
 
-  const handleIncrement = useCallback(async (id_libro: string) => {
-    setCartData((prev) =>
-      prev?.map((g) => g.id_libro === id_libro ? { ...g, copias_reservadas: g.copias_reservadas + 1 } : g) ?? prev
-    )
-    setMutingBooks((prev) => new Set(prev).add(id_libro))
-    try {
-      const result = await addCartBookAction(id_libro)
-      if (!result.success) {
-        await fetchCart()
-        setToast({ type: "error", message: result.message ?? "No se pudo agregar una copia." })
-      }
-    } catch {
-      await fetchCart()
-      setToast({ type: "error", message: "Error inesperado." })
-    } finally {
-      setMutingBooks((prev) => {
-        const next = new Set(prev)
-        next.delete(id_libro)
-        return next
-      })
-    }
-  }, [fetchCart])
+  const showError = useCallback((message: string) => {
+    setToast({ type: "error", message })
+  }, [])
 
-  const handleDecrement = useCallback(async (group: ReservaAgrupadaItem) => {
-    const targetId = group.reservas[group.reservas.length - 1]?.id_reserva
-    if (!targetId) return
-
-    setCartData((prev) =>
-      prev?.map((g) =>
-        g.id_libro === group.id_libro
-          ? { ...g, copias_reservadas: g.copias_reservadas - 1, reservas: g.reservas.slice(0, -1) }
-          : g
-      )?.filter((g) => g.copias_reservadas > 0) ?? prev
-    )
-
-    setMutingBooks((prev) => new Set(prev).add(group.id_libro))
-    try {
-      const result = await cancelCartItemAction(targetId)
-      if (!result.success) {
-        await fetchCart()
-        setToast({ type: "error", message: result.message ?? "No se pudo quitar la copia." })
-      }
-    } catch {
-      await fetchCart()
-      setToast({ type: "error", message: "Error inesperado." })
-    } finally {
-      setMutingBooks((prev) => {
-        const next = new Set(prev)
-        next.delete(group.id_libro)
-        return next
-      })
-    }
-  }, [fetchCart])
-
-  const handleRemoveBook = useCallback(async (group: ReservaAgrupadaItem) => {
-    const ids = group.reservas.map((r) => r.id_reserva)
-    if (ids.length === 0) return
-
-    setCartData((prev) => prev?.filter((g) => g.id_libro !== group.id_libro) ?? prev)
-
-    setMutingBooks((prev) => new Set(prev).add(group.id_libro))
-    try {
-      const result = await cancelBookReservasAction(ids)
-      if (!result.success) {
-        await fetchCart()
-        setToast({ type: "error", message: result.message ?? "No se pudieron eliminar los libros." })
-      }
-    } catch {
-      await fetchCart()
-      setToast({ type: "error", message: "Error inesperado." })
-    } finally {
-      setMutingBooks((prev) => {
-        const next = new Set(prev)
-        next.delete(group.id_libro)
-        return next
-      })
-    }
-  }, [fetchCart])
+  const { handleIncrement, handleDecrement, handleRemoveBook } = useCartMutations({
+    onError: showError,
+    onCartRefresh: fetchCart,
+  })
 
   // ── Conditional renders ──
   if (status === "loading") return <LoadingSkeleton />

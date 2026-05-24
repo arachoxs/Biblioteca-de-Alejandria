@@ -18,6 +18,16 @@ export interface DistanceResult {
   duracionMin: number
 }
 
+function mapElement(el: DistanceMatrixRow["elements"][number]): DistanceResult {
+  if (el.status !== "OK") {
+    return { distanciaKm: Infinity, duracionMin: Infinity }
+  }
+  return {
+    distanciaKm: Math.round(((el.distance?.value ?? 0) / 1000) * 10) / 10,
+    duracionMin: Math.round(((el.duration?.value ?? 0) / 60) * 10) / 10,
+  }
+}
+
 export async function getDistanciaOrigenDestino(
   originPlaceId: string,
   destinationPlaceIds: string[],
@@ -38,12 +48,9 @@ export async function getDistanciaOrigenDestino(
 
   const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${originsParam}&destinations=${destinationsParam}&key=${apiKey}&language=es`
 
-  console.log("[googleMapsService] URL (key hidden):", url.replace(apiKey, "***"))
-
   const response = await fetch(url)
 
   if (!response.ok) {
-    console.error("[googleMapsService] HTTP error:", response.status, response.statusText)
     throw new Error(
       `Distance Matrix devolvió ${response.status}: ${response.statusText}`,
     )
@@ -54,24 +61,13 @@ export async function getDistanciaOrigenDestino(
   if (data.status !== "OK") {
     const errorMsg =
       (data as unknown as { error_message?: string }).error_message ?? ""
-    console.error("[googleMapsService] API error:", data.status, errorMsg)
     throw new Error(
       `Distance Matrix error: ${data.status}${errorMsg ? ` — ${errorMsg}` : ""}`,
     )
   }
 
-  console.log("[googleMapsService] Success:", JSON.stringify(data))
   const elements = data.rows[0]?.elements ?? []
-
-  return elements.map((el) => {
-    if (el.status !== "OK") {
-      return { distanciaKm: Infinity, duracionMin: Infinity }
-    }
-    return {
-      distanciaKm: Math.round(((el.distance?.value ?? 0) / 1000) * 10) / 10,
-      duracionMin: Math.round(((el.duration?.value ?? 0) / 60) * 10) / 10,
-    }
-  })
+  return elements.map(mapElement)
 }
 
 export function calcularCostoEnvio(distanciaKm: number): number {

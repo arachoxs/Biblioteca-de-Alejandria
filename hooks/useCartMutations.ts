@@ -7,20 +7,26 @@ import { getCartAction } from "@/app/(with-navbar)/cartActions"
 
 type MutingState = Set<string>
 
-export function useCartMutations() {
-  const [mutingBooks, setMutingBooks] = useState<MutingState>(new Set())
+interface UseCartMutationsOptions {
+  onError: (message: string) => void
+  onCartRefresh: () => Promise<void>
+}
 
-  const fetchCart = useCallback(async () => {
-    const result = await getCartAction()
-    return result
-  }, [])
+export function useCartMutations({ onError, onCartRefresh }: UseCartMutationsOptions) {
+  const [mutingBooks, setMutingBooks] = useState<MutingState>(new Set())
 
   const handleIncrement = useCallback(
     async (id_libro: string) => {
       setMutingBooks((prev) => new Set(prev).add(id_libro))
       try {
         const result = await addCartBookAction(id_libro)
-        return result
+        if (!result.success) {
+          await onCartRefresh()
+          onError(result.message ?? "No se pudo agregar una copia.")
+        }
+      } catch {
+        await onCartRefresh()
+        onError("Error inesperado.")
       } finally {
         setMutingBooks((prev) => {
           const next = new Set(prev)
@@ -29,18 +35,27 @@ export function useCartMutations() {
         })
       }
     },
-    [],
+    [onCartRefresh, onError],
   )
 
   const handleDecrement = useCallback(
     async (group: ReservaAgrupadaItem) => {
       const targetId = group.reservas[group.reservas.length - 1]?.id_reserva
-      if (!targetId) return { success: false, message: "No se encontró reserva." }
+      if (!targetId) {
+        onError("No se encontró reserva.")
+        return
+      }
 
       setMutingBooks((prev) => new Set(prev).add(group.id_libro))
       try {
         const result = await cancelCartItemAction(targetId)
-        return result
+        if (!result.success) {
+          await onCartRefresh()
+          onError(result.message ?? "No se pudo quitar la copia.")
+        }
+      } catch {
+        await onCartRefresh()
+        onError("Error inesperado.")
       } finally {
         setMutingBooks((prev) => {
           const next = new Set(prev)
@@ -49,18 +64,27 @@ export function useCartMutations() {
         })
       }
     },
-    [],
+    [onCartRefresh, onError],
   )
 
   const handleRemoveBook = useCallback(
     async (group: ReservaAgrupadaItem) => {
       const ids = group.reservas.map((r) => r.id_reserva)
-      if (ids.length === 0) return { success: false, message: "No hay reservas." }
+      if (ids.length === 0) {
+        onError("No hay reservas.")
+        return
+      }
 
       setMutingBooks((prev) => new Set(prev).add(group.id_libro))
       try {
         const result = await cancelBookReservasAction(ids)
-        return result
+        if (!result.success) {
+          await onCartRefresh()
+          onError(result.message ?? "No se pudieron eliminar los libros.")
+        }
+      } catch {
+        await onCartRefresh()
+        onError("Error inesperado.")
       } finally {
         setMutingBooks((prev) => {
           const next = new Set(prev)
@@ -69,7 +93,7 @@ export function useCartMutations() {
         })
       }
     },
-    [],
+    [onCartRefresh, onError],
   )
 
   return {
@@ -77,6 +101,5 @@ export function useCartMutations() {
     handleIncrement,
     handleDecrement,
     handleRemoveBook,
-    fetchCart,
   }
 }

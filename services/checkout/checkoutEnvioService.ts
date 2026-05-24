@@ -113,13 +113,18 @@ type ClasificacionLibros = {
   libroTitulosMap: Map<string, string>
 }
 
+interface ClasificacionConfig {
+  libroIds: string[]
+  libroTitulosMap: Map<string, string>
+  nearestStoreId: string
+  nearestAvailableBooks: Set<string>
+  userId: string
+}
+
 async function clasificarLibrosParaTienda(
-  libroIds: string[],
-  libroTitulosMap: Map<string, string>,
-  nearestStoreId: string,
-  nearestAvailableBooks: Set<string>,
-  userId: string,
+  config: ClasificacionConfig,
 ): Promise<ClasificacionLibros> {
+  const { libroIds, libroTitulosMap, nearestStoreId, nearestAvailableBooks, userId } = config
   const swappedBooks: SwappedBook[] = []
   const needsTrasladoLibros: string[] = []
 
@@ -163,13 +168,16 @@ type TiendaConDistancia = {
   duracionMin: number
 }
 
-function construirOpcionesEnvio(
-  nearestStore: TiendaConDistancia,
-  libroIds: string[],
-  clasificacion: ClasificacionLibros,
-  tiendasConTodosLosLibros: string[],
-  tiendasConDistancia: TiendaConDistancia[],
-): OpcionEnvio[] {
+interface OpcionesBuildConfig {
+  nearestStore: TiendaConDistancia
+  libroIds: string[]
+  clasificacion: ClasificacionLibros
+  tiendasConTodosLosLibros: string[]
+  tiendasConDistancia: TiendaConDistancia[]
+}
+
+function construirOpcionesEnvio(config: OpcionesBuildConfig): OpcionEnvio[] {
+  const { nearestStore, libroIds, clasificacion, tiendasConTodosLosLibros, tiendasConDistancia } = config
   const opciones: OpcionEnvio[] = []
   const { swappedBooks, needsTrasladoLibros, libroTitulosMap } = clasificacion
 
@@ -288,13 +296,13 @@ export async function calcularOpcionesEnvio(
   const nearestDisponibilidad = await getDisponibilidadMultiTienda(libroIds, [nearestStore.id])
   const nearestAvailableBooks = new Set(nearestDisponibilidad.map((d) => d.libroId))
 
-  const clasificacion = await clasificarLibrosParaTienda(
+  const clasificacion = await clasificarLibrosParaTienda({
     libroIds,
     libroTitulosMap,
-    nearestStore.id,
+    nearestStoreId: nearestStore.id,
     nearestAvailableBooks,
-    user.id,
-  )
+    userId: user.id,
+  })
 
   const allTiendaIds = tiendas.map((t) => t.id)
   const allDisponibilidad = await getDisponibilidadMultiTienda(libroIds, allTiendaIds)
@@ -308,13 +316,13 @@ export async function calcularOpcionesEnvio(
     }
   }
 
-  const opciones = construirOpcionesEnvio(
+  const opciones = construirOpcionesEnvio({
     nearestStore,
     libroIds,
     clasificacion,
     tiendasConTodosLosLibros,
     tiendasConDistancia,
-  )
+  })
 
   return { tiendaMasCercana: nearestStore, opciones }
 }

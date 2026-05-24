@@ -550,69 +550,52 @@ export async function getCopiaIdsByLibro(
 
 /**
  * Obtiene los IDs de copias disponibles (estado = "disponible")
- * de un libro, hasta un límite opcional.
+ * de un libro, opcionalmente filtradas por tienda.
  */
 export async function getAvailableCopiaIdsByLibro(
   id_libro: string,
   limit?: number,
 ): Promise<string[]> {
-  const adminClient = createAdminClient();
-
-  let query = buildCopiaFilterQuery(
-    adminClient.from("copia").select("id"),
-    "copia",
-    { id_libro, estado: "disponible" },
-  ).order("id", { ascending: true });
-
-  if (limit !== undefined && limit > 0) {
-    query = query.limit(limit);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error(
-      "[copiaModel] Error obteniendo copias disponibles por libro:",
-      error,
-    );
-    throw error;
-  }
-
-  return (data ?? []).map((c: { id: string }) => c.id);
+  return queryDisponibilidad({ id_libro, estado: "disponible", limit })
 }
 
-/**
- * Obtiene los IDs de copias disponibles (estado = "disponible")
- * de un libro en una tienda específica.
- */
 export async function getAvailableCopiaIdsByLibroAtStore(
   id_libro: string,
   id_tienda: string,
   limit?: number,
 ): Promise<string[]> {
-  const adminClient = createAdminClient();
+  return queryDisponibilidad({ id_libro, id_tienda, estado: "disponible", limit })
+}
+
+async function queryDisponibilidad(options: {
+  id_libro: string
+  id_tienda?: string
+  estado: "disponible"
+  limit?: number
+}): Promise<string[]> {
+  const adminClient = createAdminClient()
 
   let query = buildCopiaFilterQuery(
     adminClient.from("copia").select("id"),
     "copia",
-    { id_libro, id_tienda, estado: "disponible" },
-  ).order("id", { ascending: true });
+    options,
+  ).order("id", { ascending: true })
 
-  if (limit !== undefined && limit > 0) {
-    query = query.limit(limit);
+  if (options.limit !== undefined && options.limit > 0) {
+    query = query.limit(options.limit)
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query
 
   if (error) {
     console.error(
-      "[copiaModel] Error obteniendo copias disponibles por libro y tienda:",
+      "[copiaModel] Error en queryDisponibilidad:",
       error,
-    );
-    throw error;
+    )
+    throw error
   }
 
-  return (data ?? []).map((c: { id: string }) => c.id);
+  return (data ?? []).map((c: { id: string }) => c.id)
 }
 
 export async function countAvailableCopiasByLibro(
