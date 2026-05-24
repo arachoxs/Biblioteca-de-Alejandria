@@ -97,9 +97,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         onError("Error inesperado.");
         return fetchCart();
       })
-      .then((result: { success?: boolean; message?: string } | undefined) => {
-        if (result && !result.success) {
-          onError(result.message ?? "Operación fallida.");
+      .then((result: unknown) => {
+        const r = result as { success?: boolean; message?: string } | undefined
+        if (r && !r.success) {
+          onError(r.message ?? "Operación fallida.");
           return fetchCart();
         }
       })

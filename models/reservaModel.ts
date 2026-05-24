@@ -79,7 +79,8 @@ async function buildBasicQuery<T = ReservaRow>(
   client: ReturnType<typeof createAdminClient>,
   options: BasicQueryOptions,
 ): Promise<T | null> {
-  let builder = client.from("reserva");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let builder: any = client.from("reserva");
 
   if (options.selectColumns !== null) {
     builder = builder.select(options.selectColumns);

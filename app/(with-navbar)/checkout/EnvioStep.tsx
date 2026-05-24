@@ -43,7 +43,8 @@ function getBrowserLocation(): Promise<{ lat: number; lng: number } | null> {
 async function resolvePlaceId(): Promise<string | undefined> {
   const browserLoc = await getBrowserLocation()
   if (!browserLoc) return undefined
-  return getProfileAddressAction()
+  const placeId = await getProfileAddressAction()
+  return placeId ?? undefined
 }
 
 export default function EnvioStep({
@@ -295,7 +296,7 @@ function ReadyView({
   )
 }
 
-function NearestStoreCard({ nearest }: { nearest: ResultadoEnvio["tiendaMasCercana"] }) {
+function NearestStoreCard({ nearest }: { nearest: NonNullable<ResultadoEnvio["tiendaMasCercana"]> }) {
   return (
     <div className="relative bg-gradient-to-r from-brand-primary/[0.04] to-transparent rounded-2xl border border-brand-primary/10 overflow-hidden checkout-fade-in">
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-brand-primary/40 to-brand-accent/20" />
