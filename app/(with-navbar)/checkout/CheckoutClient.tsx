@@ -465,7 +465,7 @@ export default function CheckoutClient() {
 
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-10 max-lg:pb-24">
         {/* ── Left Column ── */}
-        <div className="space-y-4">
+        <div className="space-y-4" id="checkout-scroll-container">
           {/* Step header */}
           <div className="flex items-center justify-between mb-7 min-h-[2rem]">
             {currentStep !== "carrito" && (

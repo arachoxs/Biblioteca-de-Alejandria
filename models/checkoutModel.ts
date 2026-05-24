@@ -86,3 +86,31 @@ export async function getUserPlaceId(userId: string): Promise<string | null> {
   const direccion = data?.direccion as DireccionPlace | undefined
   return direccion?.place_id ?? null
 }
+
+export async function getUserFullAddress(
+  userId: string,
+): Promise<{ placeId: string | null; direccionFormateada: string | null }> {
+  if (!userId?.trim()) {
+    return { placeId: null, direccionFormateada: null }
+  }
+
+  const adminClient = createAdminClient()
+
+  const { data, error } = await adminClient
+    .from("usuario")
+    .select("id_direccion, direccion!inner(place_id, direccion_formateada)")
+    .eq("id", userId)
+    .is("deleted_at", null)
+    .maybeSingle()
+
+  if (error) {
+    console.error("[checkoutModel] Error al obtener dirección completa del usuario:", error)
+    throw error
+  }
+
+  const direccion = data?.direccion as DireccionPlace | undefined
+  return {
+    placeId: direccion?.place_id ?? null,
+    direccionFormateada: direccion?.direccion_formateada ?? null,
+  }
+}

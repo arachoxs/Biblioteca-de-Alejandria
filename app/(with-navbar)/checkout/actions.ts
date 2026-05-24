@@ -5,7 +5,7 @@ import {
   ejecutarTraslados,
 } from "@/services/checkout/checkoutEnvioService"
 import { getCurrentUser } from "@/models/authModel"
-import { getUserPlaceId } from "@/models/checkoutModel"
+import { getUserPlaceId, getUserFullAddress } from "@/models/checkoutModel"
 import type { ResultadoEnvio } from "@/lib/types/checkout"
 
 export async function calcularEnvioAction(
@@ -27,6 +27,20 @@ export async function getProfileAddressAction(): Promise<string | null> {
   } catch (error) {
     console.error("[getProfileAddressAction]", error)
     return null
+  }
+}
+
+export async function getProfileFullAddressAction(): Promise<{
+  placeId: string | null
+  direccionFormateada: string | null
+}> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { placeId: null, direccionFormateada: null }
+    return getUserFullAddress(user.id)
+  } catch (error) {
+    console.error("[getProfileFullAddressAction]", error)
+    return { placeId: null, direccionFormateada: null }
   }
 }
 

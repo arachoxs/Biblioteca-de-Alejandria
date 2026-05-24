@@ -11,7 +11,7 @@ import {
   Check,
   Clock,
 } from "lucide-react"
-import { calcularEnvioAction, getProfileAddressAction } from "./actions"
+import { calcularEnvioAction, getProfileAddressAction, getProfileFullAddressAction } from "./actions"
 import type { ResultadoEnvio, OpcionEnvio } from "@/lib/types/checkout"
 
 type EnvioStepStatus = "loading" | "gathering-location" | "ready" | "error"
@@ -58,6 +58,7 @@ export default function EnvioStep({
   const [selectedOption, setSelectedOption] = useState<OpcionEnvio | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [userPlaceId, setUserPlaceId] = useState<string | null>(null)
+  const [userDireccionFormateada, setUserDireccionFormateada] = useState<string | null>(null)
 
   const fetchOptions = useCallback(async (placeId?: string) => {
     setStatus("loading")
@@ -83,6 +84,9 @@ export default function EnvioStep({
       setStatus("gathering-location")
       const placeId = await resolvePlaceId()
       if (placeId) {
+        setUserPlaceId(placeId)
+        const fullAddr = await getProfileFullAddressAction()
+        setUserDireccionFormateada(fullAddr.direccionFormateada)
         await fetchOptions(placeId)
       } else {
         setErrorMsg(
@@ -115,7 +119,7 @@ export default function EnvioStep({
     )
   }
 
-  return <ReadyView resultado={resultado} selectedOption={selectedOption} userPlaceId={userPlaceId} onSelect={setSelectedOption} onBack={onBack} onConfirm={handleConfirm} />
+  return <ReadyView resultado={resultado} selectedOption={selectedOption} userPlaceId={userPlaceId} userDireccionFormateada={userDireccionFormateada} onSelect={setSelectedOption} onBack={onBack} onConfirm={handleConfirm} />
 }
 
 function LoadingSkeleton({ status }: { status: "loading" | "gathering-location" }) {
@@ -188,6 +192,7 @@ function ReadyView({
   resultado,
   selectedOption,
   userPlaceId,
+  userDireccionFormateada,
   onSelect,
   onBack,
   onConfirm,
@@ -195,6 +200,7 @@ function ReadyView({
   resultado: ResultadoEnvio | null
   selectedOption: OpcionEnvio | null
   userPlaceId: string | null
+  userDireccionFormateada: string | null
   onSelect: (option: OpcionEnvio) => void
   onBack: () => void
   onConfirm: () => void
@@ -204,6 +210,24 @@ function ReadyView({
   const domicilio = opciones.find((o) => o.tipo === "domicilio")
   const recogidaTraslado = opciones.filter((o) => o.tipo !== "domicilio")
   const domicilioSelected = selectedOption?.tipo === "domicilio"
+
+  const handleSelect = useCallback(
+    (option: OpcionEnvio) => {
+      onSelect(option)
+    },
+    [onSelect],
+  )
+
+  useEffect(() => {
+    if (domicilioSelected) {
+      const scrollContainer = document.getElementById("checkout-scroll-container")
+      if (scrollContainer) {
+        scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: "smooth" })
+      } else {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
+      }
+    }
+  }, [domicilioSelected])
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -216,10 +240,14 @@ function ReadyView({
           <OptionCard
             icon={<Home className="w-5 h-5" />}
             title="Envío a domicilio"
-            description={domicilio.mensaje}
+            description={
+              userDireccionFormateada
+                ? `A tu dirección: ${userDireccionFormateada}`
+                : domicilio.mensaje
+            }
             selected={domicilioSelected}
             costo={domicilio.costo}
-            onSelect={() => onSelect(domicilio)}
+            onSelect={() => handleSelect(domicilio)}
           />
         )}
 
@@ -231,7 +259,7 @@ function ReadyView({
             description={opcion.mensaje}
             selected={selectedOption?.tiendaId === opcion.tiendaId}
             costo={opcion.costo}
-            onSelect={() => onSelect(opcion)}
+            onSelect={() => handleSelect(opcion)}
             badge={opcion.requiereTraslado && opcion.tipo !== "traslado" ? <TrasladoBadge /> : undefined}
             detail={<OptionDetail opcion={opcion} />}
           />
@@ -242,7 +270,7 @@ function ReadyView({
         <RouteMap userPlaceId={userPlaceId} selectedOption={selectedOption} />
       )}
 
-      <div className="flex items-center gap-3 pt-2">
+      <div className="flex items-center gap-3 pt-2" id="continue-button-container">
         <button
           type="button"
           onClick={onBack}
