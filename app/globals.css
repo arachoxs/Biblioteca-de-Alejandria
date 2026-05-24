@@ -91,3 +91,73 @@
   animation: cartBackdropIn 0.3s ease-out both;
 }
 
+/* ── Checkout page animations ─────────────────────────────────────── */
+@keyframes checkoutFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes checkoutScaleBadge {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes priceUpdate {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.checkout-fade-in {
+  animation: checkoutFadeUp 0.5s ease-out both;
+}
+
+.checkout-summary-in {
+  animation: checkoutFadeUp 0.6s 0.1s ease-out both;
+}
+
+.checkout-badge-in {
+  animation: checkoutScaleBadge 0.3s ease-out both;
+}
+
+.price-pulse {
+  animation: priceUpdate 0.25s ease-out;
+}
+
+/* ── Bottom sheet animations ──────────────────────────────────────── */
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes sheetSlideDown {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+
+@keyframes sheetBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sheetBackdropOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.sheet-slide-in {
+  animation: sheetSlideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.sheet-slide-out {
+  animation: sheetSlideDown 0.25s ease-in both;
+}
+
+.sheet-backdrop-in {
+  animation: sheetBackdropIn 0.25s ease-out both;
+}
+
+.sheet-backdrop-out {
+  animation: sheetBackdropOut 0.2s ease-in both;
+}
+

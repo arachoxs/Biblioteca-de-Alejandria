@@ -7,7 +7,68 @@ import type {
   ReservaWithDetails,
 } from "@/lib/types/reserva";
 
+// ─── Domain Types ────────────────────────────────────────────────────
+
+interface ActiveReservaFilters {
+  userId: string
+  libroId?: string
+  tiendaId?: string
+}
+
+interface ReservaByIdFilter {
+  id: string
+}
+
+interface ReservaQuery {
+  userId: string
+  libroIds: string[]
+}
+
 // ─── Helpers privados ───────────────────────────────────────────────
+
+/** Obtiene la fecha actual en formato ISO. Centralizado para evitar duplicación. */
+function getNow(): string {
+  return new Date().toISOString();
+}
+
+/** Tipos para результат consultas con copia joineada */
+interface ReservaWithCopiaFields {
+  id: string;
+  created_at: string;
+  fecha_expiracion: string;
+  id_copia: string;
+  id_usuario: string;
+  copia: { id: string; id_libro: string; id_tienda?: string } | null;
+}
+
+/**
+ * Normaliza el resultado de una consulta de reserva con copia join,
+ * extrayendo solo los campos de ReservaRow.
+ */
+function normalizeReservaRow(
+  data: ReservaWithCopiaFields | null,
+  libroId: string | undefined,
+  tiendaId?: string,
+): ReservaRow | null {
+  if (!data?.copia) return null;
+
+  const matchesLibro = libroId !== undefined ? data.copia.id_libro === libroId : true;
+  const matchesTienda = tiendaId !== undefined
+    ? data.copia.id_tienda === tiendaId
+    : true;
+
+  if (matchesLibro && matchesTienda) {
+    return {
+      id: data.id,
+      created_at: data.created_at,
+      fecha_expiracion: data.fecha_expiracion,
+      id_copia: data.id_copia,
+      id_usuario: data.id_usuario,
+    };
+  }
+
+  return null;
+}
 
 interface BasicQueryOptions {
   /** Columnas a seleccionar (string de columnas). `null` = ejecuta delete(). */
@@ -76,7 +137,7 @@ async function queryActiveReservas(
   copiaIds?: string[],
 ): Promise<number> {
   const adminClient = createAdminClient();
-  const now = new Date().toISOString();
+  const now = getNow();
 
   let query = adminClient
     .from("reserva")
@@ -207,7 +268,7 @@ export async function getActiveReservasConLibro(
   id_usuario: string,
 ): Promise<ReservaWithDetails[]> {
   const adminClient = createAdminClient();
-  const now = new Date().toISOString();
+  const now = getNow();
 
   const { data, error } = await adminClient
     .from("reserva")
@@ -227,7 +288,10 @@ export async function getActiveReservasConLibro(
           titulo,
           isbn,
           precio,
-          autor ( nombre )
+          autor ( nombre ),
+          noticias (
+            imagenes
+          )
         ),
         tienda (
           id,
@@ -259,58 +323,140 @@ export async function getActiveReservasConLibro(
  * se necesitan IDs para validar límites (5 libros, 3 copias mismo libro).
  */
 export async function getActiveReservaBookIds(
-  id_usuario: string,
+  userId: string,
 ): Promise<Map<string, string[]>> {
-  const adminClient = createAdminClient();
-  const now = new Date().toISOString();
+  return queryReservasByUserAndLibroIds({ userId, libroIds: [] })
+}
+
+// ─── Query helpers with domain types ────────────────────────────────
+
+async function queryActiveReservaWithFilters(
+  filters: ActiveReservaFilters,
+  useMaybeSingle: boolean = false,
+): Promise<ReservaRow | null> {
+  const adminClient = createAdminClient()
+  const now = getNow()
+
+  const base = adminClient
+    .from("reserva")
+    .select("id, created_at, fecha_expiracion, id_copia, id_usuario, copia(id, id_libro, id_tienda)")
+    .eq("id_usuario", filters.userId)
+    .gt("fecha_expiracion", now)
+    .limit(1)
+
+  let data: ReservaWithCopiaFields | null = null
+  let error: unknown = null
+
+  if (useMaybeSingle) {
+    const result = await base.maybeSingle()
+    data = result.data
+    error = result.error
+  } else {
+    const result = await base.single()
+    data = result.data
+    error = result.error
+  }
+
+  if (error) {
+    console.error("[reservaModel] Error en queryActiveReservaWithFilters:", error)
+    throw error
+  }
+
+  return normalizeReservaRow(data, filters.libroId, filters.tiendaId)
+}
+
+async function queryActiveReservaOfBook(
+  userId: string,
+  libroId: string,
+): Promise<ReservaRow | null> {
+  const adminClient = createAdminClient()
+  const now = getNow()
 
   const { data, error } = await adminClient
     .from("reserva")
-    .select(
-      `
-      id_copia,
-      copia!inner ( id_libro )
-    `,
-    )
-    .eq("id_usuario", id_usuario)
-    .gt("fecha_expiracion", now);
+    .select("id, created_at, fecha_expiracion, id_copia, id_usuario, copia(id, id_libro)")
+    .eq("id_usuario", userId)
+    .gt("fecha_expiracion", now)
+    .limit(1)
+    .maybeSingle()
 
   if (error) {
-    console.error(
-      "[reservaModel] Error obteniendo IDs de libros de reservas:",
-      error,
-    );
-    throw error;
+    console.error("[reservaModel] Error en queryActiveReservaOfBook:", error)
+    throw error
   }
 
-  const byLibro = new Map<string, string[]>();
+  return normalizeReservaRow(data as ReservaWithCopiaFields | null, libroId)
+}
 
-  for (const row of (data ?? []) as {
-    id_copia: string;
-    copia: { id_libro: string } | null;
-  }[]) {
-    const libroId = row.copia?.id_libro;
-    if (!libroId) continue;
-    const existing = byLibro.get(libroId);
+async function queryReservasByUserAndLibroIds(
+  filters: ReservaQuery,
+): Promise<Map<string, string[]>> {
+  const adminClient = createAdminClient()
+  const now = getNow()
+
+  const { data, error } = await adminClient
+    .from("reserva")
+    .select("id_copia, copia!inner ( id_libro )")
+    .eq("id_usuario", filters.userId)
+    .gt("fecha_expiracion", now)
+
+  if (error) {
+    console.error("[reservaModel] Error en queryReservasByUserAndLibroIds:", error)
+    throw error
+  }
+
+  const byLibro = new Map<string, string[]>()
+
+  for (const row of (data ?? []) as { id_copia: string; copia: { id_libro: string } | null }[]) {
+    const libroId = row.copia?.id_libro
+    if (!libroId) continue
+    const existing = byLibro.get(libroId)
     if (existing) {
-      existing.push(row.id_copia);
+      existing.push(row.id_copia)
     } else {
-      byLibro.set(libroId, [row.id_copia]);
+      byLibro.set(libroId, [row.id_copia])
     }
   }
 
-  return byLibro;
+  return byLibro
+}
+
+/**
+ * Verifica si el usuario ya tiene una reserva activa para un libro específico
+ * en una tienda específica.
+ */
+export async function getActiveReservaForLibroAtTienda(
+  userId: string,
+  libroId: string,
+  tiendaId: string,
+): Promise<ReservaRow | null> {
+  return queryActiveReservaWithFilters({ userId, libroId, tiendaId }, true)
+}
+
+/**
+ * Obtiene la reserva activa del usuario para un libro específico (cualquier tienda).
+ */
+export async function getActiveReservaOfLibro(
+  userId: string,
+  libroId: string,
+): Promise<ReservaRow | null> {
+  return queryActiveReservaOfBook(userId, libroId)
 }
 
 // ─── Conteos para reglas de negocio ─────────────────────────────────
+
+interface CountReservasFilters {
+  userId: string
+  copiaIds?: string[]
+}
 
 /**
  * Cuenta cuántas reservas activas (no expiradas) tiene un usuario.
  */
 export async function countReservasActivasByUser(
-  id_usuario: string,
+  filters: CountReservasFilters,
 ): Promise<number> {
-  return queryActiveReservas(id_usuario);
+  return queryActiveReservas(filters.userId, filters.copiaIds)
 }
 
 /**
@@ -320,11 +466,10 @@ export async function countReservasActivasByUser(
  * El servicio debe resolver los IDs de copia antes de llamar a esta función.
  */
 export async function countReservasByUserAndCopias(
-  id_usuario: string,
-  copiaIds: string[],
+  filters: CountReservasFilters,
 ): Promise<number> {
-  if (copiaIds.length === 0) return 0;
-  return queryActiveReservas(id_usuario, copiaIds);
+  if (!filters.copiaIds || filters.copiaIds.length === 0) return 0
+  return queryActiveReservas(filters.userId, filters.copiaIds)
 }
 
 // ─── Batch de expiración ────────────────────────────────────────────
@@ -337,7 +482,7 @@ export async function getReservasExpiradas(): Promise<
   Pick<ReservaRow, "id" | "id_copia">[]
 > {
   const adminClient = createAdminClient();
-  const now = new Date().toISOString();
+  const now = getNow();
 
   const { data, error } = await adminClient
     .from("reserva")

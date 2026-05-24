@@ -26,6 +26,7 @@ export interface ReservaCopiaInfo {
     isbn: string;
     precio: number;
     autor: { nombre: string } | null;
+    noticias?: Array<{ imagenes: string[] | null }>;
   } | null;
   tienda: {
     id: string;
@@ -41,6 +42,7 @@ export interface ReservaAgrupadaItem {
   precio: number;
   autor_nombre: string | null;
   copias_reservadas: number;
+  imagen?: string;
   fecha_expiracion_mas_cercana: string;
   reservas: Array<{
     id_reserva: string;

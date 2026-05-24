@@ -31,6 +31,10 @@ import type {
 } from "@/lib/types/reserva";
 import * as rules from "@/services/rules/reservaRules";
 
+// ─── Constantes de cálculo ────────────────────────────────────────
+
+const SIN_LIMITE_LIBRO_DIFERENTE = Infinity;
+
 // ─── Operaciones de cliente ────────────────────────────────────────
 
 /**
@@ -208,17 +212,7 @@ export async function getRemainingSlots(
     ).length;
 
     const byLibro = await getActiveReservaBookIds(user.id);
-    const copiasDeEsteLibro = byLibro.get(id_libro)?.length ?? 0;
-    const tieneEsteLibro = copiasDeEsteLibro > 0;
-    const maxPorDiferentes = tieneEsteLibro
-      ? Infinity
-      : MAX_RESERVAS_DIFERENTES - byLibro.size;
-
-    const maxPorMismoLibro = MAX_RESERVAS_MISMO_LIBRO - copiasDeEsteLibro;
-    const puedeAgregar = maxPorDiferentes > 0;
-    const efectivo = puedeAgregar
-      ? Math.min(maxPorMismoLibro, disponiblesFisicas)
-      : 0;
+    const slotsInfo = calculateRemainingSlots(byLibro, id_libro, disponiblesFisicas);
 
     return {
       success: true,
@@ -228,11 +222,11 @@ export async function getRemainingSlots(
         autor_nombre: libro.autor_nombre ?? null,
         isbn: libro.isbn,
         precio: libro.precio,
-        copias_ya_reservadas: copiasDeEsteLibro,
-        max_por_limite: Math.max(0, maxPorMismoLibro),
+        copias_ya_reservadas: slotsInfo.copiasDeEsteLibro,
+        max_por_limite: slotsInfo.maxPorMismoLibro,
         disponibles_fisicas: disponiblesFisicas,
-        efectivo: Math.max(0, efectivo),
-        puede_agregar: puedeAgregar,
+        efectivo: slotsInfo.efectivo,
+        puede_agregar: slotsInfo.puedeAgregar,
       },
     };
   } catch (error) {
@@ -343,30 +337,6 @@ export async function cleanExpiredReservas(): Promise<ReservaActionResponse> {
 // ─── Internos ───────────────────────────────────────────────────────
 
 /**
- * Limpieza interna de expiradas, sin retorno.
- * Se llama antes de crear una reserva para liberar slots.
- */
-async function cleanExpiredReservasInternal(): Promise<void> {
-  await cleanExpiredReservas();
-}
-
-/**
- * Rollback seguro: intenta devolver la copia a "disponible".
- * Si falla, solo loguea el error para no interrumpir el flujo.
- */
-async function safeRollback(id_copia: string): Promise<void> {
-  try {
-    await updateCopiaEstadoIf(id_copia, "reservado", "disponible");
-  } catch (error) {
-    console.error(
-      "[reservaService] Error en rollback de copia:",
-      id_copia,
-      error,
-    );
-  }
-}
-
-/**
  * Valida que el usuario no exceda los límites al crear una reserva:
  * 1. Máximo de libros diferentes (MAX_RESERVAS_DIFERENTES)
  * 2. Máximo de copias del mismo libro (MAX_RESERVAS_MISMO_LIBRO)
@@ -411,47 +381,69 @@ function groupReservationsByLibro(
   }, []);
 }
 
+/**
+ * Obtiene la primera imagen disponible de un libro.
+ */
+function getFirstImage(libro: ReservaCopiaInfo["libro"]): string | undefined {
+  return libro?.noticias?.[0]?.imagenes?.[0];
+}
+
+/**
+ * Acumula una reserva en el grupo correspondiente del libro.
+ * Mutación intencional para optimizar rendimiento del reduce.
+ */
 function accumulateGroup(
   acc: ReservaAgrupadaItem[],
   libro: NonNullable<ReservaCopiaInfo["libro"]>,
-  r: ReservaWithDetails,
+  reserva: ReservaWithDetails,
 ): ReservaAgrupadaItem[] {
   const existing = acc.find((item) => item.id_libro === libro.id);
 
   if (existing) {
-    existing.copias_reservadas++;
-    if (r.fecha_expiracion < existing.fecha_expiracion_mas_cercana) {
-      existing.fecha_expiracion_mas_cercana = r.fecha_expiracion;
-    }
-    existing.reservas.push({
-      id_reserva: r.id,
-      id_copia: r.id_copia,
-      codigo_seq: r.copia?.codigo_seq ?? null,
-      nombre_tienda: r.copia?.tienda?.nombre ?? null,
-      fecha_expiracion: r.fecha_expiracion,
-    });
+    updateExistingGroupEntry(existing, reserva);
   } else {
-    acc.push({
-      id_libro: libro.id,
-      titulo: libro.titulo,
-      isbn: libro.isbn,
-      precio: libro.precio,
-      autor_nombre: libro.autor?.nombre ?? null,
-      copias_reservadas: 1,
-      fecha_expiracion_mas_cercana: r.fecha_expiracion,
-      reservas: [
-        {
-          id_reserva: r.id,
-          id_copia: r.id_copia,
-          codigo_seq: r.copia?.codigo_seq ?? null,
-          nombre_tienda: r.copia?.tienda?.nombre ?? null,
-          fecha_expiracion: r.fecha_expiracion,
-        },
-      ],
-    });
+    acc.push(createNewGroupEntry(libro, reserva));
   }
 
   return acc;
+}
+
+function updateExistingGroupEntry(
+  existing: ReservaAgrupadaItem,
+  reserva: ReservaWithDetails,
+): void {
+  existing.copias_reservadas++;
+  if (reserva.fecha_expiracion < existing.fecha_expiracion_mas_cercana) {
+    existing.fecha_expiracion_mas_cercana = reserva.fecha_expiracion;
+  }
+  existing.reservas.push(formatReservaItem(reserva));
+}
+
+function createNewGroupEntry(
+  libro: NonNullable<ReservaCopiaInfo["libro"]>,
+  reserva: ReservaWithDetails,
+): ReservaAgrupadaItem {
+  return {
+    id_libro: libro.id,
+    titulo: libro.titulo,
+    isbn: libro.isbn,
+    precio: libro.precio,
+    autor_nombre: libro.autor?.nombre ?? null,
+    copias_reservadas: 1,
+    imagen: getFirstImage(libro),
+    fecha_expiracion_mas_cercana: reserva.fecha_expiracion,
+    reservas: [formatReservaItem(reserva)],
+  };
+}
+
+function formatReservaItem(reserva: ReservaWithDetails): ReservaAgrupadaItem["reservas"][0] {
+  return {
+    id_reserva: reserva.id,
+    id_copia: reserva.id_copia,
+    codigo_seq: reserva.copia?.codigo_seq ?? null,
+    nombre_tienda: reserva.copia?.tienda?.nombre ?? null,
+    fecha_expiracion: reserva.fecha_expiracion,
+  };
 }
 
 /**
@@ -485,6 +477,43 @@ async function validateReservationLimits(
   }
 
   return null;
+}
+
+/**
+ * Calcula los slots restantes para reservar un libro.
+ * Extraído de getRemainingSlots para reducir CC.
+ */
+function calculateRemainingSlots(
+  byLibro: Map<string, string[]>,
+  id_libro: string,
+  disponiblesFisicas: number,
+): {
+  copiasDeEsteLibro: number;
+  maxPorMismoLibro: number;
+  maxPorDiferentes: number;
+  puedeAgregar: boolean;
+  efectivo: number;
+} {
+  const copiasDeEsteLibro = byLibro.get(id_libro)?.length ?? 0;
+  const tieneEsteLibro = copiasDeEsteLibro > 0;
+
+  const maxPorDiferentes = tieneEsteLibro
+    ? SIN_LIMITE_LIBRO_DIFERENTE
+    : MAX_RESERVAS_DIFERENTES - byLibro.size;
+
+  const maxPorMismoLibro = MAX_RESERVAS_MISMO_LIBRO - copiasDeEsteLibro;
+  const puedeAgregar = maxPorDiferentes > 0;
+  const efectivo = puedeAgregar
+    ? Math.min(maxPorMismoLibro, disponiblesFisicas)
+    : 0;
+
+  return {
+    copiasDeEsteLibro,
+    maxPorMismoLibro: Math.max(0, maxPorMismoLibro),
+    maxPorDiferentes,
+    puedeAgregar,
+    efectivo: Math.max(0, efectivo),
+  };
 }
 
 /**
@@ -528,4 +557,28 @@ async function claimAndCreateReservas(
   }
 
   return null;
+}
+
+/**
+ * Rollback seguro: intenta devolver la copia a "disponible".
+ * Si falla, solo loguea el error para no interrumpir el flujo.
+ */
+async function safeRollback(id_copia: string): Promise<void> {
+  try {
+    await updateCopiaEstadoIf(id_copia, "reservado", "disponible");
+  } catch (error) {
+    console.error(
+      "[reservaService] Error en rollback de copia:",
+      id_copia,
+      error,
+    );
+  }
+}
+
+/**
+ * Limpieza interna de expiradas, sin retorno.
+ * Se llama antes de crear una reserva para liberar slots.
+ */
+async function cleanExpiredReservasInternal(): Promise<void> {
+  await cleanExpiredReservas();
 }
