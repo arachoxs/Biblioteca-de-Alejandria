@@ -378,7 +378,30 @@ export async function transferCopias(
     }
 
     try {
-      await transferCopiasModel(copyIds, input.id_tienda);
+      const { transferidos, fallidos } = await transferCopiasModel(copyIds, input.id_tienda);
+      if (fallidos.length > 0) {
+        console.warn(
+          `[copiaService] ${fallidos.length} copia(s) no fueron trasladadas (no estaban disponibles):`,
+          fallidos,
+        );
+      }
+      if (transferidos.length === 0) {
+        return {
+          success: false,
+          errors: {
+            form: "Ninguna de las copias estaba disponible para trasladar.",
+          },
+          message: "No se pudieron trasladar las copias seleccionadas.",
+        };
+      }
+      await logTransferCopiasAudit(transferidos, store);
+      return {
+        success: true,
+        message:
+          transferidos.length === 1
+            ? "Copia trasladada exitosamente."
+            : `${transferidos.length} copias trasladadas exitosamente.`,
+      };
     } catch (error) {
       return {
         success: false,
@@ -388,18 +411,6 @@ export async function transferCopias(
         message: getErrorMessage(error),
       };
     }
-
-    await logTransferCopiasAudit(copyIds, store);
-
-    // El traslado no cambia la disponibilidad global del libro, solo su tienda.
-    // Por eso no se genera histórico de stock en esta operación.
-    return {
-      success: true,
-      message:
-        copyIds.length === 1
-          ? "Copia trasladada exitosamente."
-          : `${copyIds.length} copias trasladadas exitosamente.`,
-    };
   } catch (error: unknown) {
     console.error(
       "[copiaServices] Error inesperado al trasladar copias:",

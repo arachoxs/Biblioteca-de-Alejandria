@@ -8,6 +8,8 @@ import {
   Loader2,
   Navigation,
   Home,
+  Check,
+  Clock,
 } from "lucide-react"
 import { calcularEnvioAction, getProfileAddressAction } from "./actions"
 import type { ResultadoEnvio, OpcionEnvio } from "@/lib/types/checkout"
@@ -252,11 +254,29 @@ export default function EnvioStep({
             costo={opcion.costo}
             onSelect={() => setSelectedOption(opcion)}
             badge={
-              opcion.requiereTraslado && (
+              opcion.requiereTraslado && opcion.tipo !== "traslado" ? (
                 <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/50">
                   Traslado requerido
                 </span>
-              )
+              ) : undefined
+            }
+            detail={
+              <div className="mt-2 space-y-1">
+                {opcion.swappedBooks && opcion.swappedBooks.length > 0 && (
+                  <div className="flex items-start gap-1.5 text-xs text-emerald-600">
+                    <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>{opcion.swappedBooks.length} libro(s) optimizados para pickup</span>
+                  </div>
+                )}
+                {opcion.trasladoDetalle && (
+                  <div className="flex items-start gap-1.5 text-xs text-amber-600">
+                    <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      {opcion.trasladoDetalle.libroIds.length} libro(s) llegará(n) en {opcion.trasladoDetalle.diasLaborales} días hábiles
+                    </span>
+                  </div>
+                )}
+              </div>
             }
           />
         ))}
@@ -313,7 +333,7 @@ export default function EnvioStep({
           {selectedOption
             ? selectedOption.tipo === "domicilio"
               ? "Confirmar envío a domicilio"
-              : `Confirmar ${selectedOption.tipo === "traslado" ? "traslado" : "recogida"}`
+              : "Continuar"
             : "Selecciona un método de entrega"}
         </button>
       </div>
@@ -329,6 +349,7 @@ function OptionCard({
   costo,
   onSelect,
   badge,
+  detail,
 }: {
   icon: React.ReactNode
   title: string
@@ -337,6 +358,7 @@ function OptionCard({
   costo: number
   onSelect: () => void
   badge?: React.ReactNode
+  detail?: React.ReactNode
 }) {
   return (
     <button
@@ -368,6 +390,7 @@ function OptionCard({
           <p className="text-sm text-brand-secondary/70 mt-1 leading-relaxed">
             {description}
           </p>
+          {detail}
         </div>
         <div className="shrink-0 mt-0.5">
           {costo > 0 ? (

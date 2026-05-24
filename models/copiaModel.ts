@@ -184,11 +184,11 @@ export async function updateCopiaEstadoIfBatch(
 export async function transferCopias(
   ids: string[],
   id_tienda: string,
-): Promise<void> {
+): Promise<{ transferidos: string[]; fallidos: string[] }> {
   const adminClient = createAdminClient();
 
   const { data: updatedRows, error } = await buildCopiaFilterQuery(
-    adminClient.from("copia").update({ id_tienda }),
+    adminClient.from("copia").update({ id_tienda }).eq("estado", "disponible"),
     "copia",
     { ids },
   ).select("id");
@@ -198,9 +198,17 @@ export async function transferCopias(
     throw error;
   }
 
-  if ((updatedRows ?? []).length !== ids.length) {
-    throw new Error("No se pudieron trasladar todas las copias solicitadas.");
+  const transferredIds = (updatedRows ?? []).map((row) => row.id);
+  const fallidos = ids.filter((id) => !transferredIds.includes(id));
+
+  if (fallidos.length > 0) {
+    console.warn(
+      `[copiaModel] ${fallidos.length} copia(s) no pudieron ser trasladadas (no estaban disponibles):`,
+      fallidos,
+    );
   }
+
+  return { transferidos: transferredIds, fallidos };
 }
 
 async function getCopiasForTransferByQuantity(
@@ -565,6 +573,40 @@ export async function getAvailableCopiaIdsByLibro(
   if (error) {
     console.error(
       "[copiaModel] Error obteniendo copias disponibles por libro:",
+      error,
+    );
+    throw error;
+  }
+
+  return (data ?? []).map((c: { id: string }) => c.id);
+}
+
+/**
+ * Obtiene los IDs de copias disponibles (estado = "disponible")
+ * de un libro en una tienda específica.
+ */
+export async function getAvailableCopiaIdsByLibroAtStore(
+  id_libro: string,
+  id_tienda: string,
+  limit?: number,
+): Promise<string[]> {
+  const adminClient = createAdminClient();
+
+  let query = buildCopiaFilterQuery(
+    adminClient.from("copia").select("id"),
+    "copia",
+    { id_libro, id_tienda, estado: "disponible" },
+  ).order("id", { ascending: true });
+
+  if (limit !== undefined && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error(
+      "[copiaModel] Error obteniendo copias disponibles por libro y tienda:",
       error,
     );
     throw error;

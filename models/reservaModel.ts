@@ -305,6 +305,135 @@ export async function getActiveReservaBookIds(
   return byLibro;
 }
 
+// ─── Helpers para swap de reservas ──────────────────────────────────
+
+/**
+ * Verifica si el usuario ya tiene una reserva activa para un libro específico
+ * en una tienda específica.
+ *
+ * Usa .limit(1) + .maybeSingle() porque la consulta puede devolver múltiples
+ * filas (el usuario tiene varias reservas). El limit reduce a 1 fila.
+ */
+export async function getActiveReservaForLibroAtTienda(
+  userId: string,
+  libroId: string,
+  tiendaId: string,
+): Promise<ReservaRow | null> {
+  const adminClient = createAdminClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await adminClient
+    .from("reserva")
+    .select(
+      `
+      id,
+      created_at,
+      fecha_expiracion,
+      id_copia,
+      id_usuario,
+      copia (
+        id,
+        id_libro,
+        id_tienda
+      )
+    `,
+    )
+    .eq("id_usuario", userId)
+    .gt("fecha_expiracion", now)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "[reservaModel] Error verificando reserva activa por libro y tienda:",
+      error,
+    );
+    throw error;
+  }
+
+  if (!data) return null;
+
+  const reserva = data as unknown as ReservaRow & {
+    copia: { id: string; id_libro: string; id_tienda: string } | null;
+  };
+
+  if (
+    reserva.copia &&
+    reserva.copia.id_libro === libroId &&
+    reserva.copia.id_tienda === tiendaId
+  ) {
+    return {
+      id: reserva.id,
+      created_at: reserva.created_at,
+      fecha_expiracion: reserva.fecha_expiracion,
+      id_copia: reserva.id_copia,
+      id_usuario: reserva.id_usuario,
+    } as ReservaRow;
+  }
+
+  return null;
+}
+
+/**
+ * Obtiene la reserva activa del usuario para un libro específico (cualquier tienda).
+ *
+ * Usa .limit(1) + .maybeSingle() porque la consulta puede devolver múltiples
+ * filas. El limit reduce a 1 fila.
+ */
+export async function getActiveReservaOfLibro(
+  userId: string,
+  libroId: string,
+): Promise<ReservaRow | null> {
+  const adminClient = createAdminClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await adminClient
+    .from("reserva")
+    .select(
+      `
+      id,
+      created_at,
+      fecha_expiracion,
+      id_copia,
+      id_usuario,
+      copia (
+        id,
+        id_libro
+      )
+    `,
+    )
+    .eq("id_usuario", userId)
+    .gt("fecha_expiracion", now)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "[reservaModel] Error obteniendo reserva activa por libro:",
+      error,
+    );
+    throw error;
+  }
+
+  if (!data) return null;
+
+  const reserva = data as unknown as ReservaRow & {
+    copia: { id: string; id_libro: string } | null;
+  };
+
+  if (reserva.copia && reserva.copia.id_libro === libroId) {
+    return {
+      id: reserva.id,
+      created_at: reserva.created_at,
+      fecha_expiracion: reserva.fecha_expiracion,
+      id_copia: reserva.id_copia,
+      id_usuario: reserva.id_usuario,
+    } as ReservaRow;
+  }
+
+  return null;
+}
+
 // ─── Conteos para reglas de negocio ─────────────────────────────────
 
 /**
