@@ -107,32 +107,167 @@ async function performSwapIfNeeded(
 
 // ─── Calcular Opciones ──────────────────────────────────────────────
 
+type ClasificacionLibros = {
+  swappedBooks: SwappedBook[]
+  needsTrasladoLibros: string[]
+  libroTitulosMap: Map<string, string>
+}
+
+async function clasificarLibrosParaTienda(
+  libroIds: string[],
+  libroTitulosMap: Map<string, string>,
+  nearestStoreId: string,
+  nearestAvailableBooks: Set<string>,
+  userId: string,
+): Promise<ClasificacionLibros> {
+  const swappedBooks: SwappedBook[] = []
+  const needsTrasladoLibros: string[] = []
+
+  for (const libroId of libroIds) {
+    const hasReservaAtNearest = await getActiveReservaForLibroAtTienda(
+      userId,
+      libroId,
+      nearestStoreId,
+    )
+
+    if (hasReservaAtNearest) continue
+
+    if (nearestAvailableBooks.has(libroId)) {
+      const titulo = libroTitulosMap.get(libroId) ?? ""
+      const result = await performSwapIfNeeded(userId, libroId, titulo, nearestStoreId)
+
+      if (result.swapped && result.oldCopiaId && result.newCopiaId) {
+        swappedBooks.push({
+          libroId,
+          titulo,
+          oldCopiaId: result.oldCopiaId,
+          newCopiaId: result.newCopiaId,
+        })
+      } else {
+        needsTrasladoLibros.push(libroId)
+      }
+    } else {
+      needsTrasladoLibros.push(libroId)
+    }
+  }
+
+  return { swappedBooks, needsTrasladoLibros, libroTitulosMap }
+}
+
+type TiendaConDistancia = {
+  id: string
+  nombre: string
+  direccion_formateada: string
+  place_id: string
+  distanciaKm: number
+  duracionMin: number
+}
+
+function construirOpcionesEnvio(
+  nearestStore: TiendaConDistancia,
+  libroIds: string[],
+  clasificacion: ClasificacionLibros,
+  tiendasConTodosLosLibros: string[],
+  tiendasConDistancia: TiendaConDistancia[],
+): OpcionEnvio[] {
+  const opciones: OpcionEnvio[] = []
+  const { swappedBooks, needsTrasladoLibros, libroTitulosMap } = clasificacion
+
+  const costoDomicilio = calcularCostoEnvio(nearestStore.distanciaKm)
+  opciones.push({
+    tipo: "domicilio",
+    tiendaId: null,
+    tiendaNombre: null,
+    tiendaPlaceId: null,
+    tiendaDireccion: null,
+    costo: costoDomicilio,
+    mensaje:
+      costoDomicilio === 0
+        ? "Envío gratuito (menos de 5 km)"
+        : `Costo de envío: $${costoDomicilio.toLocaleString("es-CO")} COP`,
+    requiereTraslado: needsTrasladoLibros.length > 0,
+  })
+
+  if (needsTrasladoLibros.length === 0) {
+    const readyCount = libroIds.length - swappedBooks.length
+    const swappedCount = swappedBooks.length
+    opciones.push({
+      tipo: "recogida",
+      tiendaId: nearestStore.id,
+      tiendaNombre: nearestStore.nombre,
+      tiendaPlaceId: nearestStore.place_id,
+      tiendaDireccion: nearestStore.direccion_formateada,
+      costo: 0,
+      mensaje:
+        swappedCount > 0
+          ? `${readyCount} libros listos, ${swappedCount} intercambiados en ${nearestStore.nombre} (${nearestStore.distanciaKm} km)`
+          : `Recoge en ${nearestStore.nombre} (${nearestStore.distanciaKm} km - ${nearestStore.duracionMin} min)`,
+      requiereTraslado: false,
+      swappedBooks: swappedBooks.length > 0 ? swappedBooks : undefined,
+    })
+  } else {
+    const readyCount = libroIds.length - needsTrasladoLibros.length
+    opciones.push({
+      tipo: "recogida",
+      tiendaId: nearestStore.id,
+      tiendaNombre: nearestStore.nombre,
+      tiendaPlaceId: nearestStore.place_id,
+      tiendaDireccion: nearestStore.direccion_formateada,
+      costo: 0,
+      mensaje: `${readyCount} libros listos, ${needsTrasladoLibros.length} en tránsito (3-5 días hábiles)`,
+      requiereTraslado: true,
+      swappedBooks: swappedBooks.length > 0 ? swappedBooks : undefined,
+      trasladoDetalle: {
+        libroIds: needsTrasladoLibros,
+        titulos: needsTrasladoLibros.map((id) => libroTitulosMap.get(id) ?? ""),
+        diasLaborales: 3,
+        costo: costoDomicilio,
+      },
+    })
+  }
+
+  for (const tiendaId of tiendasConTodosLosLibros) {
+    if (tiendaId === nearestStore.id) continue
+    const tiendaData = tiendasConDistancia.find((t) => t.id === tiendaId)
+    if (!tiendaData) continue
+    opciones.push({
+      tipo: "recogida",
+      tiendaId: tiendaData.id,
+      tiendaNombre: tiendaData.nombre,
+      tiendaPlaceId: tiendaData.place_id,
+      tiendaDireccion: tiendaData.direccion_formateada,
+      costo: 0,
+      mensaje: `Recoge en ${tiendaData.nombre} (${tiendaData.distanciaKm} km - ${tiendaData.duracionMin} min)`,
+      requiereTraslado: false,
+    })
+  }
+
+  return opciones
+}
+
 export async function calcularOpcionesEnvio(
   userPlaceId?: string,
 ): Promise<ResultadoEnvio> {
   const user = await getCurrentUser()
-  if (!user) {
-    return { tiendaMasCercana: null, opciones: [] }
-  }
+  if (!user) return { tiendaMasCercana: null, opciones: [] }
 
   const resolvedPlaceId = userPlaceId ?? (await getUserPlaceId(user.id))
-  if (!resolvedPlaceId) {
-    return { tiendaMasCercana: null, opciones: [] }
-  }
+  if (!resolvedPlaceId) return { tiendaMasCercana: null, opciones: [] }
 
   const tiendas = await getTiendasConDireccion()
-  if (tiendas.length === 0) {
-    return { tiendaMasCercana: null, opciones: [] }
-  }
+  if (tiendas.length === 0) return { tiendaMasCercana: null, opciones: [] }
 
   const distances = await getDistanciaOrigenDestino(
     resolvedPlaceId,
     tiendas.map((t) => t.place_id),
   )
 
-  const tiendasConDistancia = tiendas
+  const tiendasConDistancia: TiendaConDistancia[] = tiendas
     .map((t, i) => ({
-      ...t,
+      id: t.id,
+      nombre: t.nombre,
+      direccion_formateada: t.direccion_formateada,
+      place_id: t.place_id,
       distanciaKm: distances[i]?.distanciaKm ?? Infinity,
       duracionMin: distances[i]?.duracionMin ?? Infinity,
     }))
@@ -150,162 +285,38 @@ export async function calcularOpcionesEnvio(
     }
   }
 
-  const nearestDisponibilidad = await getDisponibilidadMultiTienda(libroIds, [
+  const nearestDisponibilidad = await getDisponibilidadMultiTienda(libroIds, [nearestStore.id])
+  const nearestAvailableBooks = new Set(nearestDisponibilidad.map((d) => d.libroId))
+
+  const clasificacion = await clasificarLibrosParaTienda(
+    libroIds,
+    libroTitulosMap,
     nearestStore.id,
-  ])
-
-  const nearestAvailableBooks = new Set(
-    nearestDisponibilidad.map((d) => d.libroId),
+    nearestAvailableBooks,
+    user.id,
   )
-
-  // Clasificar libros: ready (ya tiene reserva en nearest) vs needsSwap vs needsTraslado
-  const swappedBooks: SwappedBook[] = [];
-  const needsTrasladoLibros: string[] = [];
-
-  for (const libroId of libroIds) {
-    // ¿Ya tiene reserva activa en la tienda nearest?
-    const hasReservaAtNearest = await getActiveReservaForLibroAtTienda(
-      user.id,
-      libroId,
-      nearestStore.id,
-    );
-
-    if (hasReservaAtNearest) {
-      // Ya tiene reserva en nearest, está "ready"
-      continue;
-    }
-
-    // ¿Hay copia disponible en nearest?
-    if (nearestAvailableBooks.has(libroId)) {
-      // Intentamos swap
-      const titulo = libroTitulosMap.get(libroId) ?? "";
-      const result = await performSwapIfNeeded(
-        user.id,
-        libroId,
-        titulo,
-        nearestStore.id,
-      );
-
-      if (result.swapped && result.oldCopiaId && result.newCopiaId) {
-        swappedBooks.push({
-          libroId,
-          titulo,
-          oldCopiaId: result.oldCopiaId,
-          newCopiaId: result.newCopiaId,
-        });
-      } else {
-        // Swap falló, necesita traslado
-        needsTrasladoLibros.push(libroId);
-      }
-    } else {
-      // No hay copia disponible en nearest, necesita traslado
-      needsTrasladoLibros.push(libroId);
-    }
-  }
 
   const allTiendaIds = tiendas.map((t) => t.id)
-  const allDisponibilidad = await getDisponibilidadMultiTienda(
-    libroIds,
-    allTiendaIds,
-  )
+  const allDisponibilidad = await getDisponibilidadMultiTienda(libroIds, allTiendaIds)
 
   const tiendasConTodosLosLibros: string[] = []
   for (const tienda of tiendas) {
-    const disponiblesEnTienda = allDisponibilidad.filter(
-      (d) => d.tiendaId === tienda.id,
-    )
+    const disponiblesEnTienda = allDisponibilidad.filter((d) => d.tiendaId === tienda.id)
     const disponiblesSet = new Set(disponiblesEnTienda.map((d) => d.libroId))
     if (libroIds.every((id) => disponiblesSet.has(id))) {
       tiendasConTodosLosLibros.push(tienda.id)
     }
   }
 
-  const opciones: OpcionEnvio[] = []
+  const opciones = construirOpcionesEnvio(
+    nearestStore,
+    libroIds,
+    clasificacion,
+    tiendasConTodosLosLibros,
+    tiendasConDistancia,
+  )
 
-  const costoDomicilio = calcularCostoEnvio(nearestStore.distanciaKm)
-  const domicilioMsg =
-    costoDomicilio === 0
-      ? "Envío gratuito (menos de 5 km)"
-      : `Costo de envío: $${costoDomicilio.toLocaleString("es-CO")} COP`
-
-  opciones.push({
-    tipo: "domicilio",
-    tiendaId: null,
-    tiendaNombre: null,
-    tiendaPlaceId: null,
-    tiendaDireccion: null,
-    costo: costoDomicilio,
-    mensaje: domicilioMsg,
-    requiereTraslado: needsTrasladoLibros.length > 0,
-  })
-
-  // Opción de recogida/pickup
-  if (needsTrasladoLibros.length === 0) {
-    // Todos los libros están ready (ya sea por reserva existente o por swap)
-    const readyCount = libroIds.length - swappedBooks.length;
-    const swappedCount = swappedBooks.length;
-    const mensaje = swappedCount > 0
-      ? `${readyCount} libros listos, ${swappedCount} intercambiados en ${nearestStore.nombre} (${nearestStore.distanciaKm} km)`
-      : `Recoge en ${nearestStore.nombre} (${nearestStore.distanciaKm} km - ${nearestStore.duracionMin} min)`;
-
-    opciones.push({
-      tipo: "recogida",
-      tiendaId: nearestStore.id,
-      tiendaNombre: nearestStore.nombre,
-      tiendaPlaceId: nearestStore.place_id,
-      tiendaDireccion: nearestStore.direccion_formateada,
-      costo: 0,
-      mensaje,
-      requiereTraslado: false,
-      swappedBooks: swappedBooks.length > 0 ? swappedBooks : undefined,
-    })
-  } else {
-    // Algunos libros necesitan traslado
-    const readyCount = libroIds.length - needsTrasladoLibros.length;
-    const trasladoTitulos = needsTrasladoLibros.map((id) => libroTitulosMap.get(id) ?? "");
-    const costoTraslado = calcularCostoEnvio(nearestStore.distanciaKm);
-
-    opciones.push({
-      tipo: "recogida",
-      tiendaId: nearestStore.id,
-      tiendaNombre: nearestStore.nombre,
-      tiendaPlaceId: nearestStore.place_id,
-      tiendaDireccion: nearestStore.direccion_formateada,
-      costo: 0,
-      mensaje: `${readyCount} libros listos, ${needsTrasladoLibros.length} en tránsito (3-5 días hábiles)`,
-      requiereTraslado: true,
-      swappedBooks: swappedBooks.length > 0 ? swappedBooks : undefined,
-      trasladoDetalle: {
-        libroIds: needsTrasladoLibros,
-        titulos: trasladoTitulos,
-        diasLaborales: 3,
-        costo: costoTraslado,
-      },
-    })
-  }
-
-  for (const tiendaId of tiendasConTodosLosLibros) {
-    if (tiendaId !== nearestStore.id) {
-      const tiendaData = tiendasConDistancia.find((t) => t.id === tiendaId)
-      if (tiendaData) {
-        opciones.push({
-          tipo: "recogida",
-          tiendaId: tiendaData.id,
-          tiendaNombre: tiendaData.nombre,
-          tiendaPlaceId: tiendaData.place_id,
-          tiendaDireccion: tiendaData.direccion_formateada,
-          costo: 0,
-          mensaje: `Recoge en ${tiendaData.nombre} (${tiendaData.distanciaKm} km - ${tiendaData.duracionMin} min)`,
-          requiereTraslado: false,
-        })
-      }
-    }
-  }
-
-  return {
-    tiendaMasCercana: nearestStore,
-    opciones,
-  }
+  return { tiendaMasCercana: nearestStore, opciones }
 }
 
 export async function ejecutarTraslados(

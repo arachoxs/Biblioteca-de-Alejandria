@@ -189,6 +189,14 @@ function ErrorView({
   )
 }
 
+function deriveEnvioOptions(resultado: ResultadoEnvio | null, selectedOption: OpcionEnvio | null) {
+  const opciones = resultado?.opciones ?? []
+  const domicilio = opciones.find((o) => o.tipo === "domicilio")
+  const recogidaTraslado = opciones.filter((o) => o.tipo !== "domicilio")
+  const domicilioSelected = selectedOption?.tipo === "domicilio"
+  return { domicilio, recogidaTraslado, domicilioSelected }
+}
+
 function ReadyView({
   resultado,
   selectedOption,
@@ -207,10 +215,7 @@ function ReadyView({
   onConfirm: () => void
 }) {
   const nearest = resultado?.tiendaMasCercana
-  const opciones = resultado?.opciones ?? []
-  const domicilio = opciones.find((o) => o.tipo === "domicilio")
-  const recogidaTraslado = opciones.filter((o) => o.tipo !== "domicilio")
-  const domicilioSelected = selectedOption?.tipo === "domicilio"
+  const { domicilio, recogidaTraslado, domicilioSelected } = deriveEnvioOptions(resultado, selectedOption)
 
   const handleSelect = useCallback(
     (option: OpcionEnvio) => {
@@ -220,14 +225,9 @@ function ReadyView({
   )
 
   useEffect(() => {
-    if (domicilioSelected) {
-      const scrollContainer = document.getElementById("checkout-scroll-container")
-      if (scrollContainer) {
-        scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: "smooth" })
-      } else {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
-      }
-    }
+    if (!domicilioSelected) return
+    const container = document.getElementById("checkout-scroll-container")
+    container?.scrollTo({ top: container.scrollHeight, behavior: "smooth" })
   }, [domicilioSelected])
 
   return (

@@ -351,95 +351,68 @@ export async function getActiveReservaBookIds(
 
 // ─── Helpers para swap de reservas ──────────────────────────────────
 
+type ActiveReservaQueryMode = "with-tienda" | "without-tienda"
+
+/**
+ * Consulta una reserva activa del usuario para un libro,
+ * opcionalmente filtrada por tienda.
+ *
+ *内部使用。Exportado para uso directo en servicios cuando se necesita
+ *la misma lógica sin depender del full getActiveReserva*.
+ */
+async function queryActiveReservaByLibro(
+  userId: string,
+  libroId: string,
+  mode: ActiveReservaQueryMode,
+  tiendaId?: string,
+): Promise<ReservaRow | null> {
+  const adminClient = createAdminClient()
+  const now = getNow()
+
+  const selectFields =
+    mode === "with-tienda"
+      ? "id, created_at, fecha_expiracion, id_copia, id_usuario, copia(id, id_libro, id_tienda)"
+      : "id, created_at, fecha_expiracion, id_copia, id_usuario, copia(id, id_libro)"
+
+  const { data, error } = await adminClient
+    .from("reserva")
+    .select(selectFields)
+    .eq("id_usuario", userId)
+    .gt("fecha_expiracion", now)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error(
+      `[reservaModel] Error en queryActiveReservaByLibro (mode=${mode}):`,
+      error,
+    )
+    throw error
+  }
+
+  return normalizeReservaRow(data as ReservaWithCopiaFields | null, libroId, tiendaId)
+}
+
 /**
  * Verifica si el usuario ya tiene una reserva activa para un libro específico
  * en una tienda específica.
- *
- * Usa .limit(1) + .maybeSingle() porque la consulta puede devolver múltiples
- * filas (el usuario tiene varias reservas). El limit reduce a 1 fila.
  */
 export async function getActiveReservaForLibroAtTienda(
   userId: string,
   libroId: string,
   tiendaId: string,
 ): Promise<ReservaRow | null> {
-  const adminClient = createAdminClient();
-  const now = getNow();
-
-  const { data, error } = await adminClient
-    .from("reserva")
-    .select(
-      `
-      id,
-      created_at,
-      fecha_expiracion,
-      id_copia,
-      id_usuario,
-      copia (
-        id,
-        id_libro,
-        id_tienda
-      )
-    `,
-    )
-    .eq("id_usuario", userId)
-    .gt("fecha_expiracion", now)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error(
-      "[reservaModel] Error verificando reserva activa por libro y tienda:",
-      error,
-    );
-    throw error;
-  }
-
-  return normalizeReservaRow(data as ReservaWithCopiaFields | null, libroId, tiendaId);
+  return queryActiveReservaByLibro(userId, libroId, "with-tienda", tiendaId)
 }
 
 /**
  * Obtiene la reserva activa del usuario para un libro específico (cualquier tienda).
- *
- * Usa .limit(1) + .maybeSingle() porque la consulta puede devolver múltiples
- * filas. El limit reduce a 1 fila.
  */
 export async function getActiveReservaOfLibro(
   userId: string,
   libroId: string,
 ): Promise<ReservaRow | null> {
-  const adminClient = createAdminClient();
-  const now = getNow();
-
-  const { data, error } = await adminClient
-    .from("reserva")
-    .select(
-      `
-      id,
-      created_at,
-      fecha_expiracion,
-      id_copia,
-      id_usuario,
-      copia (
-        id,
-        id_libro
-      )
-    `,
-    )
-    .eq("id_usuario", userId)
-    .gt("fecha_expiracion", now)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error(
-      "[reservaModel] Error obteniendo reserva activa por libro:",
-      error,
-    );
-    throw error;
-  }
-
-  return normalizeReservaRow(data as ReservaWithCopiaFields | null, libroId);
+  return queryActiveReservaByLibro(userId, libroId, "without-tienda")
 }
 
 // ─── Conteos para reglas de negocio ─────────────────────────────────

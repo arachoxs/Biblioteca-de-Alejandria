@@ -15,9 +15,9 @@ import { MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/reserva"
 import type { OpcionEnvio } from "@/lib/types/checkout"
 import EnvioStep from "./EnvioStep"
 import Alert from "@/components/ui/Alert"
+import { useCheckoutState, useCartSummary, useSummarySheet } from "@/hooks/useCheckout"
 
 type CartStatus = "loading" | "loaded" | "error"
-type Step = "carrito" | "envio"
 
 // ── Formatter ──────────────────────────────────────────────────────────────────
 
@@ -321,28 +321,11 @@ export default function CheckoutClient() {
   const [status, setStatus] = useState<CartStatus>("loading")
   const [cartData, setCartData] = useState<ReservaAgrupadaItem[] | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [mutingBooks, setMutingBooks] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState<{ type: "error"; message: string } | null>(null)
-  const [summaryExpanded, setSummaryExpanded] = useState(false)
-  const [sheetClosing, setSheetClosing] = useState(false)
-  const [currentStep, setCurrentStep] = useState<Step>("carrito")
-  const [envioOpcion, setEnvioOpcion] = useState<OpcionEnvio | null>(null)
 
-  // ── Derived values ──
-  const total = cartData?.reduce((sum, item) => sum + item.precio * item.copias_reservadas, 0) ?? 0
-  const costoEnvio = envioOpcion?.costo ?? 0
-  const totalConEnvio = total + costoEnvio
-  const itemCount = cartData?.reduce((s, g) => s + g.copias_reservadas, 0) ?? 0
-
-  // ── Summary sheet handlers ──
-  const openSummary = useCallback(() => setSummaryExpanded(true), [])
-  const closeSummary = useCallback(() => {
-    setSheetClosing(true)
-    setTimeout(() => {
-      setSheetClosing(false)
-      setSummaryExpanded(false)
-    }, 250)
-  }, [])
+  const { currentStep, setCurrentStep, envioOpcion, setEnvioOpcion } = useCheckoutState()
+  const { summaryExpanded, sheetClosing, openSummary, closeSummary } = useSummarySheet()
+  const { total, costoEnvio, totalConEnvio, itemCount } = useCartSummary(cartData, envioOpcion)
 
   // ── Cart fetch ──
   const fetchCart = useCallback(async () => {
@@ -371,6 +354,8 @@ export default function CheckoutClient() {
   }, [fetchCart])
 
   // ── Cart mutations ──
+  const [mutingBooks, setMutingBooks] = useState<Set<string>>(new Set())
+
   const handleIncrement = useCallback(async (id_libro: string) => {
     setCartData((prev) =>
       prev?.map((g) => g.id_libro === id_libro ? { ...g, copias_reservadas: g.copias_reservadas + 1 } : g) ?? prev

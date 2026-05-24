@@ -325,82 +325,81 @@ export async function createCopias(
 export async function transferCopias(
   input: TransferCopiasInput,
 ): Promise<CopiaActionResponse> {
-  const roleCheck = await requireAdminRole();
-  if (!roleCheck.success) return roleCheck;
+  const roleCheck = await requireAdminRole()
+  if (!roleCheck.success) return roleCheck
 
-  const copyIds = toUniqueIds(input.ids);
+  const copyIds = toUniqueIds(input.ids)
 
-  try {
-    const store = await getActiveTiendaById(input.id_tienda);
-    if (!store) {
-      return {
-        success: false,
-        errors: {
-          id_tienda: "La tienda destino no existe o fue eliminada.",
-        },
-        message: "La tienda destino no existe o fue eliminada.",
-      };
-    }
-
-    const copiasInfo = await getCopiasByIdsModel(copyIds);
-
-    const tiendasSet = new Set(copiasInfo.map((copy) => copy.id_tienda));
-
-    if (tiendasSet.has(store.id)) {
-      return {
-        success: false,
-        errors: {
-          id_tienda: "Algunas de las copias ya pertenecen a la tienda destino.",
-        },
-        message:
-          "No se pudieron trasladar las copias porque algunas ya pertenecen a la tienda destino.",
-      };
-    }
-
-    try {
-      const { transferidos, fallidos } = await transferCopiasModel(copyIds, input.id_tienda);
-      if (fallidos.length > 0) {
-        console.warn(
-          `[copiaService] ${fallidos.length} copia(s) no fueron trasladadas (no estaban disponibles):`,
-          fallidos,
-        );
-      }
-      if (transferidos.length === 0) {
-        return {
-          success: false,
-          errors: {
-            form: "Ninguna de las copias estaba disponible para trasladar.",
-          },
-          message: "No se pudieron trasladar las copias seleccionadas.",
-        };
-      }
-      await logTransferCopiasAudit(transferidos, store);
-      return {
-        success: true,
-        message:
-          transferidos.length === 1
-            ? "Copia trasladada exitosamente."
-            : `${transferidos.length} copias trasladadas exitosamente.`,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        errors: {
-          form: getErrorMessage(error),
-        },
-        message: getErrorMessage(error),
-      };
-    }
-  } catch (error: unknown) {
-    console.error(
-      "[copiaServices] Error inesperado al trasladar copias:",
-      error,
-    );
+  const store = await getActiveTiendaById(input.id_tienda)
+  if (!store) {
     return {
       success: false,
-      errors: { form: getErrorMessage(error) },
-      message: "No se pudieron trasladar las copias.",
-    };
+      errors: {
+        id_tienda: "La tienda destino no existe o fue eliminada.",
+      },
+      message: "La tienda destino no existe o fue eliminada.",
+    }
+  }
+
+  const copiasInfo = await getCopiasByIdsModel(copyIds)
+  const tiendasSet = new Set(copiasInfo.map((copy) => copy.id_tienda))
+
+  if (tiendasSet.has(store.id)) {
+    return {
+      success: false,
+      errors: {
+        id_tienda: "Algunas de las copias ya pertenecen a la tienda destino.",
+      },
+      message:
+        "No se pudieron trasladar las copias porque algunas ya pertenecen a la tienda destino.",
+    }
+  }
+
+  let transferidos: string[] = []
+  let fallidos: string[] = []
+
+  try {
+    const result = await transferCopiasModel(copyIds, input.id_tienda)
+    transferidos = result.transferidos
+    fallidos = result.fallidos
+  } catch (error) {
+    return {
+      success: false,
+      errors: {
+        form: getErrorMessage(error),
+      },
+      message: getErrorMessage(error),
+    }
+  }
+
+  if (fallidos.length > 0) {
+    console.warn(
+      `[copiaService] ${fallidos.length} copia(s) no fueron trasladadas (no estaban disponibles):`,
+      fallidos,
+    )
+  }
+  if (transferidos.length === 0) {
+    return {
+      success: false,
+      errors: {
+        form: "Ninguna de las copias estaba disponible para trasladar.",
+      },
+      message: "No se pudieron trasladar las copias seleccionadas.",
+    }
+  }
+
+  try {
+    await logTransferCopiasAudit(transferidos, store)
+  } catch (auditError) {
+    console.warn("[copiaService] Audit log failed after successful transfer:", auditError)
+  }
+
+  return {
+    success: true,
+    message:
+      transferidos.length === 1
+        ? "Copia trasladada exitosamente."
+        : `${transferidos.length} copias trasladadas exitosamente.`,
   }
 }
 
