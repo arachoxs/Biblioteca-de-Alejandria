@@ -121,12 +121,20 @@ interface ClasificacionConfig {
   userId: string
 }
 
+interface TrasladoConfig {
+  needsTrasladoLibros: string[]
+  libroTitulosMap: Map<string, string>
+  libroIds: string[]
+}
+
 async function clasificarLibrosParaTienda(
   config: ClasificacionConfig,
 ): Promise<ClasificacionLibros> {
   const { libroIds, libroTitulosMap, nearestStoreId, nearestAvailableBooks, userId } = config
   const swappedBooks: SwappedBook[] = []
   const needsTrasladoLibros: string[] = []
+
+  const clasificacion = { swappedBooks, needsTrasladoLibros, libroTitulosMap }
 
   for (const libroId of libroIds) {
     const hasReservaAtNearest = await getActiveReservaForLibroAtTienda(
@@ -142,7 +150,7 @@ async function clasificarLibrosParaTienda(
     if (bookNeedsTransfer) {
       needsTrasladoLibros.push(libroId)
     } else {
-      await attemptBookSwap(userId, libroId, libroTitulosMap, nearestStoreId, { swappedBooks, needsTrasladoLibros })
+      await attemptBookSwap(userId, libroId, nearestStoreId, clasificacion)
     }
   }
 
@@ -152,22 +160,21 @@ async function clasificarLibrosParaTienda(
 async function attemptBookSwap(
   userId: string,
   libroId: string,
-  libroTitulosMap: Map<string, string>,
   nearestStoreId: string,
-  swapResult: { swappedBooks: SwappedBook[]; needsTrasladoLibros: string[] },
+  clasificacion: ClasificacionLibros,
 ): Promise<void> {
-  const titulo = libroTitulosMap.get(libroId) ?? ""
+  const titulo = clasificacion.libroTitulosMap.get(libroId) ?? ""
   const result = await performSwapIfNeeded(userId, libroId, titulo, nearestStoreId)
 
   if (isSwapSuccessful(result)) {
-    swapResult.swappedBooks.push({
+    clasificacion.swappedBooks.push({
       libroId,
       titulo,
       oldCopiaId: result.oldCopiaId,
       newCopiaId: result.newCopiaId,
     })
   } else {
-    swapResult.needsTrasladoLibros.push(libroId)
+    clasificacion.needsTrasladoLibros.push(libroId)
   }
 }
 
@@ -286,11 +293,9 @@ function buildRecogidaOptionReady(
 function buildRecogidaOptionTraslado(
   nearestStore: TiendaConDistancia,
   swappedBooks: SwappedBook[],
-  needsTrasladoLibros: string[],
-  libroTitulosMap: Map<string, string>,
-  libroIds: string[],
+  config: TrasladoConfig,
 ): OpcionEnvio {
-  const readyCount = libroIds.length - needsTrasladoLibros.length
+  const readyCount = config.libroIds.length - config.needsTrasladoLibros.length
   const costoDomicilio = calcularCostoEnvio(nearestStore.distanciaKm)
   return {
     tipo: "recogida",
@@ -299,12 +304,12 @@ function buildRecogidaOptionTraslado(
     tiendaPlaceId: nearestStore.place_id,
     tiendaDireccion: nearestStore.direccion_formateada,
     costo: 0,
-    mensaje: `${readyCount} libros listos, ${needsTrasladoLibros.length} en tránsito (3-5 días hábiles)`,
+    mensaje: `${readyCount} libros listos, ${config.needsTrasladoLibros.length} en tránsito (3-5 días hábiles)`,
     requiereTraslado: true,
     swappedBooks: swappedBooks.length > 0 ? swappedBooks : undefined,
     trasladoDetalle: {
-      libroIds: needsTrasladoLibros,
-      titulos: needsTrasladoLibros.map((id) => libroTitulosMap.get(id) ?? ""),
+      libroIds: config.needsTrasladoLibros,
+      titulos: config.needsTrasladoLibros.map((id) => config.libroTitulosMap.get(id) ?? ""),
       diasLaborales: 3,
       costo: costoDomicilio,
     },
@@ -339,9 +344,7 @@ function construirOpcionesEnvio(config: OpcionesBuildConfig): OpcionEnvio[] {
     opciones.push(buildRecogidaOptionTraslado(
       nearestStore,
       swappedBooks,
-      needsTrasladoLibros,
-      libroTitulosMap,
-      libroIds,
+      { needsTrasladoLibros, libroTitulosMap, libroIds },
     ))
   }
 
