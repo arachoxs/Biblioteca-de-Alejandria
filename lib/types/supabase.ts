@@ -91,6 +91,7 @@ export type Database = {
           fecha: string
           id: string
           id_promocion: number | null
+          id_usuario: string
           subtotal: number
           total: number
         }
@@ -98,6 +99,7 @@ export type Database = {
           fecha: string
           id?: string
           id_promocion?: number | null
+          id_usuario?: string
           subtotal: number
           total: number
         }
@@ -105,6 +107,7 @@ export type Database = {
           fecha?: string
           id?: string
           id_promocion?: number | null
+          id_usuario?: string
           subtotal?: number
           total?: number
         }
@@ -114,6 +117,13 @@ export type Database = {
             columns: ["id_promocion"]
             isOneToOne: false
             referencedRelation: "promocion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_id_usuario_fkey"
+            columns: ["id_usuario"]
+            isOneToOne: false
+            referencedRelation: "usuario"
             referencedColumns: ["id"]
           },
         ]
