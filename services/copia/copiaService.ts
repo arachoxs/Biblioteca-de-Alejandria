@@ -55,14 +55,11 @@ import {
 import { getCurrentUser } from "@/models/authModel";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
+import { getErrorMessage } from "@/lib/services/errors";
 
 function toUniqueIds(ids: OneOrManyCopyIds): string[] {
   const source = Array.isArray(ids) ? ids : [ids];
   return Array.from(new Set(source));
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Error desconocido";
 }
 
 function aggregateInventarioRows(
@@ -189,8 +186,6 @@ async function syncHistoricoForBooks(libroIds: string[]): Promise<void> {
 }
 
 // ─── Audit helpers ─────────────────────────────────────────────────
-// Encapsulan getCurrentUser() + if (!actor) para no añadir ramas
-// de complejidad ciclomática a las funciones de escritura.
 
 async function logCreateCopiasAudit(
   input: CreateCopiasInput,
@@ -250,14 +245,6 @@ async function logDeleteCopiasAudit(copyIds: string[]): Promise<void> {
 
 // ─── Escritura ─────────────────────────────────────────────────────
 
-/**
- * Crea una o varias copias de un libro.
- * Las nuevas copias de inventario se asignan siempre a la bodega principal.
- *
- * Complejidad ciclomática: 8
- *   if roleCheck · if !libro · if !defaultStore
- *   if !result · catch historico · ternary mensaje · catch externo
- */
 export async function createCopias(
   input: CreateCopiasInput,
 ): Promise<CopiaActionResponse> {
@@ -335,13 +322,6 @@ export async function createCopias(
   }
 }
 
-/**
- * Traslada una o varias copias a una tienda destino.
- *
- * Complejidad ciclomática: 7
- *   if roleCheck · if !store · if copias faltantes
- *   if !result · ternary mensaje · catch externo
- */
 export async function transferCopias(
   input: TransferCopiasInput,
 ): Promise<CopiaActionResponse> {
@@ -362,9 +342,9 @@ export async function transferCopias(
       };
     }
 
-    const copiasInfo = await getInfos(copyIds);
+    const copiasInfo = await getCopiasByIdsModel(copyIds);
 
-    const tiendasSet = getTiendasSet(copiasInfo);
+    const tiendasSet = new Set(copiasInfo.map((copy) => copy.id_tienda));
 
     if (tiendasSet.has(store.id)) {
       return {
@@ -453,7 +433,10 @@ export async function transferCopiasByQuantity(
     };
   }
 
-  const stockError = checkStockSufficiency(availableCopies ?? 0, safeQuantity);
+  const stockError = getTransferCopiasByQuantityStockError({
+    availableCount: availableCopies ?? 0,
+    requestedQuantity: safeQuantity,
+  });
   if (stockError) return stockError;
 
   let transferredIds: string[];
@@ -491,13 +474,6 @@ export async function transferCopiasByQuantity(
   };
 }
 
-/**
- * Realiza eliminación lógica de una o varias copias.
- *
- * Complejidad ciclomática: 7
- *   if roleCheck · if copias faltantes · if inválidas
- *   if !result · catch historico · catch externo
- */
 export async function deleteCopias(
   input: DeleteCopiasInput,
 ): Promise<CopiaActionResponse> {
@@ -507,7 +483,7 @@ export async function deleteCopias(
   const copyIds = toUniqueIds(input.ids);
 
   try {
-    const copiasInfo = await getInfos(copyIds);
+    const copiasInfo = await getCopiasByIdsModel(copyIds);
 
     if (copiasInfo.length !== copyIds.length) {
       return {
@@ -518,7 +494,6 @@ export async function deleteCopias(
       };
     }
 
-    // b. validar estado eliminable
     const invalidCopias = copiasInfo.filter(
       (copy) => copy.estado !== "disponible",
     );
@@ -536,7 +511,6 @@ export async function deleteCopias(
       };
     }
 
-    // c. eliminación lógica en una operación de modelo
     try {
       await softDeleteCopias(copyIds);
     } catch (error) {
@@ -580,9 +554,6 @@ export async function deleteCopias(
 
 // ─── Lectura ───────────────────────────────────────────────────────
 
-/**
- * Obtiene una copia por ID junto con el nombre de la tienda.
- */
 export async function getCopiaInfoById(
   copiaId: string,
 ): Promise<CopiaDataResponse> {
@@ -618,10 +589,6 @@ export async function getCopiaInfoById(
   }
 }
 
-/**
- * Lista el inventario por libro, con filtro opcional por tienda.
- * Si no hay tienda seleccionada, agrega el stock de todas las tiendas.
- */
 export async function fetchInventario(
   page: number = 1,
   pageSize: number = 10,
@@ -653,9 +620,6 @@ export async function fetchInventario(
   }
 }
 
-/**
- * Obtiene el detalle de copias de un libro (todas las copias activas).
- */
 export async function fetchInventarioCopiasByLibro(
   libroId: string,
   page: number = 1,
@@ -676,34 +640,13 @@ export async function fetchInventarioCopiasByLibro(
       };
     }
 
-    const normalizedSearchTerm = searchTerm?.trim();
-    let copySearchTerm: string | undefined;
-    let storeFilterIdFromSearch: string | undefined;
-
-    const isCodigoCopia = /^COP-\d{6}$/i.test(normalizedSearchTerm ?? "");
-
-    if (normalizedSearchTerm?.length) {
-      copySearchTerm = normalizedSearchTerm;
-    }
-
-    if (!isCodigoCopia && normalizedSearchTerm?.length) {
-      // También intentamos buscar una tienda que coincida, por si el usuario
-      // escribió un nombre de tienda.
-      const storesByTerm = await getTiendas(1, 5, normalizedSearchTerm);
-
-      const exactMatch = storesByTerm.data.find(
-        (store) =>
-          store.nombre.toLocaleLowerCase() ===
-          normalizedSearchTerm.toLocaleLowerCase(),
-      );
-
-      storeFilterIdFromSearch = exactMatch?.id;
-    }
+    const { copySearchTerm, storeFilterId: storeFilterIdFromSearch } =
+      parseSearchTermForCopias(searchTerm, storeFilterId);
 
     const finalStoreFilterId = storeFilterId ?? storeFilterIdFromSearch;
 
     const copySearchTermForQuery =
-      storeFilterIdFromSearch && normalizedSearchTerm
+      storeFilterIdFromSearch && searchTerm?.trim()
         ? undefined
         : copySearchTerm;
 
@@ -749,9 +692,6 @@ export async function fetchInventarioCopiasByLibro(
   }
 }
 
-/**
- * Opciones de tiendas activas para filtros y formularios de inventario.
- */
 export async function fetchInventarioStoreOptions(): Promise<InventarioOptionsResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
@@ -789,9 +729,6 @@ export async function fetchInventarioStoreOptions(): Promise<InventarioOptionsRe
   }
 }
 
-/**
- * Opciones de libros activos para formularios de inventario.
- */
 export async function fetchInventarioBookOptions(
   searchTerm?: string,
 ): Promise<InventarioOptionsResponse> {
@@ -823,14 +760,7 @@ export async function fetchInventarioBookOptions(
   }
 }
 
-//helpers
-async function getInfos(copiaIds: string[]): Promise<CopiaRow[]> {
-  return getCopiasByIdsModel(copiaIds);
-}
-
-function getTiendasSet(copiasInfo: CopiaRow[]): Set<string> {
-  return new Set(copiasInfo.map((copy) => copy.id_tienda));
-}
+// ─── Helper functions ──────────────────────────────────────────────
 
 interface TransferEntitiesValidation {
   success: boolean;
@@ -855,13 +785,25 @@ async function validateTransferEntities(
   return { success: true, destinationStore };
 }
 
-function checkStockSufficiency(
-  availableCount: number,
-  safeQuantity: number,
-): CopiaActionResponse | null {
-  const stockValidationError = getTransferCopiasByQuantityStockError({
-    availableCount,
-    requestedQuantity: safeQuantity,
-  });
-  return stockValidationError;
+interface ParsedSearchTerm {
+  copySearchTerm: string | undefined;
+  storeFilterId: string | undefined;
+}
+
+function parseSearchTermForCopias(
+  searchTerm?: string,
+  storeFilterId?: string,
+): ParsedSearchTerm {
+  const normalizedSearchTerm = searchTerm?.trim();
+
+  if (!normalizedSearchTerm?.length) {
+    return { copySearchTerm: undefined, storeFilterId: undefined };
+  }
+
+  const isCodigoCopia = /^COP-\d{6}$/i.test(normalizedSearchTerm);
+  if (isCodigoCopia) {
+    return { copySearchTerm: normalizedSearchTerm, storeFilterId: undefined };
+  }
+
+  return { copySearchTerm: normalizedSearchTerm, storeFilterId: undefined };
 }
