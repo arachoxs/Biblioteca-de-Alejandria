@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from "react"
 import type { OpcionEnvio } from "@/lib/types/checkout"
 import type { ReservaAgrupadaItem } from "@/lib/types/reserva"
 
-type Step = "carrito" | "envio" | "pago"
+type Step = "carrito" | "envio" | "pago" | "confirmacion"
 
 export function useCheckoutState() {
   const [currentStep, setCurrentStep] = useState<Step>("carrito")
@@ -22,12 +22,15 @@ export function useCheckoutState() {
     [],
   )
 
+  const goToConfirmacion = useCallback(() => setCurrentStep("confirmacion"), [])
+
   return {
     currentStep,
     envioOpcion,
     goToEnvio,
     goToCarrito,
     goToPago,
+    goToConfirmacion,
   }
 }
 

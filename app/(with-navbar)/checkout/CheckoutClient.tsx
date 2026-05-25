@@ -8,10 +8,12 @@ import Alert from "@/components/ui/Alert"
 import { getCartAction } from "../cartActions"
 import type { ReservaAgrupadaItem } from "@/lib/types/reserva"
 import { MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/reserva"
-import type { OpcionEnvio } from "@/lib/types/checkout"
+import type { OpcionEnvio, TarjetaPaymentAllocation } from "@/lib/types/checkout"
 import EnvioStep from "./EnvioStep"
 import PagoStep from "./PagoStep"
+import ConfirmacionStep from "./ConfirmacionStep"
 import { useCheckoutState, useCartSummary, useSummarySheet } from "@/hooks/useCheckout"
+import type { Step } from "@/hooks/useCheckout"
 import { useCartMutations } from "@/hooks/useCartMutations"
 
 type CartStatus = "loading" | "loaded" | "error"
@@ -41,7 +43,6 @@ function PriceSummary({ total, costoEnvio, envioOpcion, itemCount, variant }: Pr
 
   return (
     <>
-      {/* Cart items list */}
       {variant === "desktop" && (
         <div className="px-5 lg:px-6 py-4 space-y-3 border-b border-white/8">
           <div className="flex items-center justify-between">
@@ -52,7 +53,6 @@ function PriceSummary({ total, costoEnvio, envioOpcion, itemCount, variant }: Pr
         </div>
       )}
 
-      {/* Line items */}
       <div className="px-5 lg:px-6 py-4 space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="text-sm text-brand-accent/70">Subtotal</span>
@@ -64,7 +64,7 @@ function PriceSummary({ total, costoEnvio, envioOpcion, itemCount, variant }: Pr
         {envioOpcion && (
           <div className="flex items-center justify-between">
             <span className="text-sm text-brand-accent/70">Envío</span>
-            <span className={`text-sm font-medium tabular-nums ${envioOpcion.costo > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+            <span className={`text-sm font-medium tabular-nums ${envioOpcion.costo > 0 ? "text-brand-accent" : "text-success"}`}>
               {envioOpcion.costo > 0 ? formatPrice(envioOpcion.costo) : "Gratis"}
             </span>
           </div>
@@ -180,8 +180,8 @@ function LoadingSkeleton() {
 function ErrorState({ message, onRetry }: { message: string | null; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-      <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-5">
-        <X className="w-7 h-7 text-red-400" />
+      <div className="w-16 h-16 rounded-full bg-brand-text/5 flex items-center justify-center mb-5">
+        <X className="w-7 h-7 text-danger" />
       </div>
       <p className="text-brand-secondary mb-4">{message ?? "Error al cargar el carrito."}</p>
       <button
@@ -238,7 +238,6 @@ function CartItemCard({ group, isMuting, onIncrement, onDecrement, onRemove, ind
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <div className="flex gap-4 lg:gap-5">
-        {/* Book cover */}
         <div className="w-[64px] lg:w-[80px] aspect-[3/4] shrink-0 rounded-lg overflow-hidden bg-brand-bg shadow-sm shadow-brand-accent/10 ring-1 ring-black/5">
           {group.imagen ? (
             <Image src={group.imagen} alt={group.titulo} width={80} height={107} className="w-full h-full object-cover" />
@@ -249,7 +248,6 @@ function CartItemCard({ group, isMuting, onIncrement, onDecrement, onRemove, ind
           )}
         </div>
 
-        {/* Book info and controls */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -262,7 +260,7 @@ function CartItemCard({ group, isMuting, onIncrement, onDecrement, onRemove, ind
               type="button"
               onClick={onRemove}
               disabled={isMuting}
-              className="shrink-0 p-1.5 rounded-lg text-brand-secondary/25 hover:text-red-500 hover:bg-red-50/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              className="shrink-0 p-1.5 rounded-lg text-brand-secondary/25 hover:text-danger hover:bg-danger/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Eliminar este libro"
             >
               <X className="w-4 h-4" />
@@ -274,7 +272,6 @@ function CartItemCard({ group, isMuting, onIncrement, onDecrement, onRemove, ind
           </p>
 
           <div className="flex items-center justify-between mt-3 lg:mt-4">
-            {/* Quantity controls */}
             <div className="flex items-center gap-0">
               <button
                 type="button"
@@ -301,7 +298,6 @@ function CartItemCard({ group, isMuting, onIncrement, onDecrement, onRemove, ind
               </button>
             </div>
 
-            {/* Line total */}
             <span className="font-display text-base lg:text-lg font-semibold text-brand-text tabular-nums">
               {formatPrice(lineTotal)}
             </span>
@@ -318,12 +314,13 @@ export default function CheckoutClient() {
   const [status, setStatus] = useState<CartStatus>("loading")
   const [cartData, setCartData] = useState<ReservaAgrupadaItem[] | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [paymentAllocations, setPaymentAllocations] = useState<TarjetaPaymentAllocation[]>([])
+  const [confirming, setConfirming] = useState(false)
 
-  const { currentStep, envioOpcion, goToEnvio, goToCarrito, goToPago } = useCheckoutState()
+  const { currentStep, envioOpcion, goToEnvio, goToCarrito, goToPago, goToConfirmacion } = useCheckoutState()
   const { summaryExpanded, sheetClosing, openSummary, closeSummary } = useSummarySheet()
   const { total, costoEnvio, totalConEnvio, itemCount } = useCartSummary(cartData, envioOpcion)
 
-  // ── Cart fetch ──
   const fetchCart = useCallback(async () => {
     setStatus("loading")
     setErrorMsg(null)
@@ -349,7 +346,6 @@ export default function CheckoutClient() {
     })
   }, [fetchCart])
 
-  // ── Cart mutations ──
   const [showErrorMsg, setShowErrorMsg] = useState<string | null>(null)
 
   const showError = useCallback((message: string) => {
@@ -361,7 +357,6 @@ export default function CheckoutClient() {
     onCartRefresh: fetchCart,
   })
 
-  // ── Conditional renders ──
   if (status === "loading") return <LoadingSkeleton />
   if (status === "error") return <ErrorState message={errorMsg} onRetry={fetchCart} />
   if (!cartData || cartData.length === 0) return <EmptyState />
@@ -373,7 +368,6 @@ export default function CheckoutClient() {
           {showErrorMsg}
         </Alert>
       )}
-      {/* ── Main Layout ── */}
       <CheckoutMainContent
         cartData={cartData}
         currentStep={currentStep}
@@ -383,15 +377,19 @@ export default function CheckoutClient() {
         costoEnvio={costoEnvio}
         totalConEnvio={totalConEnvio}
         itemCount={itemCount}
+        paymentAllocations={paymentAllocations}
+        confirming={confirming}
+        setConfirming={setConfirming}
+        setPaymentAllocations={setPaymentAllocations}
         onGoToEnvio={goToEnvio}
         onGoToCarrito={goToCarrito}
         onGoToPago={goToPago}
+        onGoToConfirmacion={goToConfirmacion}
         onIncrement={handleIncrement}
         onDecrement={handleDecrement}
         onRemove={handleRemoveBook}
       />
 
-      {/* ── Mobile: Peek bar ── */}
       <MobilePeekBar
         itemCount={itemCount}
         totalConEnvio={totalConEnvio}
@@ -399,9 +397,9 @@ export default function CheckoutClient() {
         onOpenSummary={openSummary}
         onGoToEnvio={goToEnvio}
         onGoToCarrito={goToCarrito}
+        onGoToPago={goToPago}
       />
 
-      {/* ── Mobile: Bottom sheet ── */}
       <MobileSummarySheet
         summaryExpanded={summaryExpanded}
         sheetClosing={sheetClosing}
@@ -418,15 +416,14 @@ export default function CheckoutClient() {
   )
 }
 
-type Step = "carrito" | "envio" | "pago"
-
 interface CheckoutStepNavProps {
   currentStep: Step
   onGoToEnvio: () => void
   onGoToCarrito: () => void
+  onGoToPago: () => void
 }
 
-function CheckoutStepNav({ currentStep, onGoToEnvio, onGoToCarrito }: CheckoutStepNavProps) {
+function CheckoutStepNav({ currentStep, onGoToEnvio, onGoToCarrito, onGoToPago }: CheckoutStepNavProps) {
   return (
     <div className="flex items-center justify-between mb-7 min-h-[2rem]">
       {currentStep === "envio" && (
@@ -449,14 +446,26 @@ function CheckoutStepNav({ currentStep, onGoToEnvio, onGoToCarrito }: CheckoutSt
           Volver al envío
         </button>
       )}
+      {currentStep === "confirmacion" && (
+        <button
+          type="button"
+          onClick={onGoToPago}
+          className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          Volver al pago
+        </button>
+      )}
       {currentStep === "carrito" && <div />}
 
       <div className="flex items-center justify-center gap-0 select-none">
         <StepCircle number={1} label="Carrito" active={currentStep === "carrito"} completed={currentStep !== "carrito"} />
         <StepLine completed={currentStep !== "carrito"} />
-        <StepCircle number={2} label="Envío" active={currentStep === "envio"} completed={currentStep === "pago"} />
-        <StepLine completed={currentStep === "pago"} />
-        <StepCircle number={3} label="Pago" active={currentStep === "pago"} completed={false} />
+        <StepCircle number={2} label="Envío" active={currentStep === "envio"} completed={currentStep === "pago" || currentStep === "confirmacion"} />
+        <StepLine completed={currentStep === "pago" || currentStep === "confirmacion"} />
+        <StepCircle number={3} label="Pago" active={currentStep === "pago"} completed={currentStep === "confirmacion"} />
+        <StepLine completed={currentStep === "confirmacion"} />
+        <StepCircle number={4} label="Confirmar" active={currentStep === "confirmacion"} completed={false} />
       </div>
     </div>
   )
@@ -471,6 +480,18 @@ interface CheckoutSidebarProps {
   itemCount: number
   onGoToEnvio: () => void
   onGoToPago: (opcion: OpcionEnvio) => boolean
+}
+
+function SidebarBadge({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-center">
+      <div className="flex items-center justify-center gap-1.5 text-xs text-success bg-success/5 rounded-lg py-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-success" />
+        {label}
+      </div>
+      <p className="text-white/70 text-xs mt-2">{value}</p>
+    </div>
+  )
 }
 
 function CheckoutSidebar({
@@ -510,8 +531,8 @@ function CheckoutSidebar({
           )}
           {currentStep === "envio" && envioOpcion && (
             <div className="text-center">
-              <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400/80 bg-emerald-400/5 rounded-lg py-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <div className="flex items-center justify-center gap-1.5 text-xs text-success bg-success/5 rounded-lg py-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-success" />
                 Método de entrega seleccionado
               </div>
               <p className="text-white/70 text-xs mt-2">{tipoTexto}</p>
@@ -525,20 +546,37 @@ function CheckoutSidebar({
             </div>
           )}
           {currentStep === "pago" && (
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400/80 bg-emerald-400/5 rounded-lg py-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Listo para pagar
-              </div>
-              <p className="text-white/70 text-xs mt-2">
-                {formatPrice(totalConEnvio)} en {envioOpcion?.tipo ?? "envío"}
-              </p>
-            </div>
+            <SidebarBadge label="Pago configurado" value={`${formatPrice(totalConEnvio)} · ${envioOpcion?.tipo ?? "envío"}`} />
+          )}
+          {currentStep === "confirmacion" && (
+            <SidebarBadge label="Listo para confirmar" value={formatPrice(totalConEnvio)} />
           )}
         </div>
       </div>
     </div>
   )
+}
+
+interface CheckoutMainContentProps {
+  cartData: ReservaAgrupadaItem[]
+  currentStep: Step
+  mutingBooks: Set<string>
+  envioOpcion: OpcionEnvio | null
+  total: number
+  costoEnvio: number
+  totalConEnvio: number
+  itemCount: number
+  paymentAllocations: TarjetaPaymentAllocation[]
+  confirming: boolean
+  setConfirming: (v: boolean) => void
+  setPaymentAllocations: (allocations: TarjetaPaymentAllocation[]) => void
+  onGoToEnvio: () => void
+  onGoToCarrito: () => void
+  onGoToPago: (opcion: OpcionEnvio) => boolean
+  onGoToConfirmacion: () => void
+  onIncrement: (id: string) => void
+  onDecrement: (group: ReservaAgrupadaItem) => void
+  onRemove: (group: ReservaAgrupadaItem) => void
 }
 
 function CheckoutMainContent({
@@ -550,28 +588,18 @@ function CheckoutMainContent({
   costoEnvio,
   totalConEnvio,
   itemCount,
+  paymentAllocations,
+  confirming,
+  setConfirming,
+  setPaymentAllocations,
   onGoToEnvio,
   onGoToCarrito,
   onGoToPago,
+  onGoToConfirmacion,
   onIncrement,
   onDecrement,
   onRemove,
-}: {
-  cartData: ReservaAgrupadaItem[]
-  currentStep: "carrito" | "envio" | "pago"
-  mutingBooks: Set<string>
-  envioOpcion: OpcionEnvio | null
-  total: number
-  costoEnvio: number
-  totalConEnvio: number
-  itemCount: number
-  onGoToEnvio: () => void
-  onGoToCarrito: () => void
-  onGoToPago: (opcion: OpcionEnvio) => boolean
-  onIncrement: (id: string) => void
-  onDecrement: (group: ReservaAgrupadaItem) => void
-  onRemove: (group: ReservaAgrupadaItem) => void
-}) {
+}: CheckoutMainContentProps) {
   return (
     <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-10 max-lg:pb-24">
       <div className="space-y-4" id="checkout-scroll-container">
@@ -579,6 +607,7 @@ function CheckoutMainContent({
           currentStep={currentStep}
           onGoToEnvio={onGoToEnvio}
           onGoToCarrito={onGoToCarrito}
+          onGoToPago={onGoToPago}
         />
 
         {currentStep === "carrito" ? (
@@ -602,13 +631,24 @@ function CheckoutMainContent({
             }}
             onBack={onGoToCarrito}
           />
-        ) : (
+        ) : currentStep === "pago" ? (
           <PagoStep
             totalAmount={totalConEnvio}
-            onConfirm={() => {}}
+            onConfirm={(allocations) => {
+              setPaymentAllocations(allocations)
+              onGoToConfirmacion()
+            }}
             onBack={onGoToEnvio}
           />
-        )}
+        ) : currentStep === "confirmacion" ? (
+          <ConfirmacionStep
+            envioOpcion={envioOpcion}
+            paymentAllocations={paymentAllocations}
+            totalConEnvio={totalConEnvio}
+            onBack={onGoToPago}
+            onConfirm={() => setConfirming(true)}
+          />
+        ) : null}
       </div>
 
       <CheckoutSidebar
@@ -632,13 +672,15 @@ function MobilePeekBar({
   onOpenSummary,
   onGoToEnvio,
   onGoToCarrito,
+  onGoToPago,
 }: {
   itemCount: number
   totalConEnvio: number
-  currentStep: "carrito" | "envio" | "pago"
+  currentStep: Step
   onOpenSummary: () => void
   onGoToEnvio: () => void
   onGoToCarrito: () => void
+  onGoToPago: () => void
 }) {
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
@@ -693,6 +735,15 @@ function MobilePeekBar({
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Volver
               </button>
+            ) : currentStep === "confirmacion" ? (
+              <button
+                type="button"
+                onClick={onGoToPago}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Volver
+              </button>
             ) : null}
           </div>
         </div>
@@ -715,7 +766,7 @@ function MobileSummarySheet({
 }: {
   summaryExpanded: boolean
   sheetClosing: boolean
-  currentStep: "carrito" | "envio" | "pago"
+  currentStep: Step
   cartData: ReservaAgrupadaItem[]
   total: number
   costoEnvio: number
