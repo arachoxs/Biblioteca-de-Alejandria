@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback, startTransition } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { X, Plus, Minus, BookOpen, ChevronUp, ArrowLeft, Check } from "lucide-react"
+import Alert from "@/components/ui/Alert"
 import { getCartAction } from "../cartActions"
 import type { ReservaAgrupadaItem } from "@/lib/types/reserva"
 import { MAX_RESERVAS_MISMO_LIBRO } from "@/lib/types/reserva"
 import type { OpcionEnvio } from "@/lib/types/checkout"
 import EnvioStep from "./EnvioStep"
-import Alert from "@/components/ui/Alert"
+import PagoStep from "./PagoStep"
 import { useCheckoutState, useCartSummary, useSummarySheet } from "@/hooks/useCheckout"
 import { useCartMutations } from "@/hooks/useCartMutations"
 
@@ -317,9 +318,8 @@ export default function CheckoutClient() {
   const [status, setStatus] = useState<CartStatus>("loading")
   const [cartData, setCartData] = useState<ReservaAgrupadaItem[] | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ type: "error"; message: string } | null>(null)
 
-  const { currentStep, setCurrentStep, envioOpcion, setEnvioOpcion } = useCheckoutState()
+  const { currentStep, envioOpcion, goToEnvio, goToCarrito, goToPago } = useCheckoutState()
   const { summaryExpanded, sheetClosing, openSummary, closeSummary } = useSummarySheet()
   const { total, costoEnvio, totalConEnvio, itemCount } = useCartSummary(cartData, envioOpcion)
 
@@ -350,13 +350,13 @@ export default function CheckoutClient() {
   }, [fetchCart])
 
   // ── Cart mutations ──
-  const [mutingBooks, setMutingBooks] = useState<Set<string>>(new Set())
+  const [showErrorMsg, setShowErrorMsg] = useState<string | null>(null)
 
   const showError = useCallback((message: string) => {
-    setToast({ type: "error", message })
+    setShowErrorMsg(message)
   }, [])
 
-  const { handleIncrement, handleDecrement, handleRemoveBook } = useCartMutations({
+  const { mutingBooks, handleIncrement, handleDecrement, handleRemoveBook } = useCartMutations({
     onError: showError,
     onCartRefresh: fetchCart,
   })
@@ -368,6 +368,11 @@ export default function CheckoutClient() {
 
   return (
     <>
+      {showErrorMsg && (
+        <Alert variant="error" onClose={() => setShowErrorMsg(null)}>
+          {showErrorMsg}
+        </Alert>
+      )}
       {/* ── Main Layout ── */}
       <CheckoutMainContent
         cartData={cartData}
@@ -376,12 +381,14 @@ export default function CheckoutClient() {
         envioOpcion={envioOpcion}
         total={total}
         costoEnvio={costoEnvio}
+        totalConEnvio={totalConEnvio}
         itemCount={itemCount}
-        onSetStep={setCurrentStep}
+        onGoToEnvio={goToEnvio}
+        onGoToCarrito={goToCarrito}
+        onGoToPago={goToPago}
         onIncrement={handleIncrement}
         onDecrement={handleDecrement}
         onRemove={handleRemoveBook}
-        onConfirmEnvio={setEnvioOpcion}
       />
 
       {/* ── Mobile: Peek bar ── */}
@@ -390,7 +397,8 @@ export default function CheckoutClient() {
         totalConEnvio={totalConEnvio}
         currentStep={currentStep}
         onOpenSummary={openSummary}
-        onSetStep={setCurrentStep}
+        onGoToEnvio={goToEnvio}
+        onGoToCarrito={goToCarrito}
       />
 
       {/* ── Mobile: Bottom sheet ── */}
@@ -404,9 +412,132 @@ export default function CheckoutClient() {
         envioOpcion={envioOpcion}
         itemCount={itemCount}
         onClose={closeSummary}
-        onSetStep={setCurrentStep}
+        onGoToEnvio={goToEnvio}
       />
     </>
+  )
+}
+
+type Step = "carrito" | "envio" | "pago"
+
+interface CheckoutStepNavProps {
+  currentStep: Step
+  onGoToEnvio: () => void
+  onGoToCarrito: () => void
+}
+
+function CheckoutStepNav({ currentStep, onGoToEnvio, onGoToCarrito }: CheckoutStepNavProps) {
+  return (
+    <div className="flex items-center justify-between mb-7 min-h-[2rem]">
+      {currentStep === "envio" && (
+        <button
+          type="button"
+          onClick={onGoToCarrito}
+          className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          Volver al carrito
+        </button>
+      )}
+      {currentStep === "pago" && (
+        <button
+          type="button"
+          onClick={onGoToEnvio}
+          className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          Volver al envío
+        </button>
+      )}
+      {currentStep === "carrito" && <div />}
+
+      <div className="flex items-center justify-center gap-0 select-none">
+        <StepCircle number={1} label="Carrito" active={currentStep === "carrito"} completed={currentStep !== "carrito"} />
+        <StepLine completed={currentStep !== "carrito"} />
+        <StepCircle number={2} label="Envío" active={currentStep === "envio"} completed={currentStep === "pago"} />
+        <StepLine completed={currentStep === "pago"} />
+        <StepCircle number={3} label="Pago" active={currentStep === "pago"} completed={false} />
+      </div>
+    </div>
+  )
+}
+
+interface CheckoutSidebarProps {
+  currentStep: Step
+  envioOpcion: OpcionEnvio | null
+  total: number
+  costoEnvio: number
+  totalConEnvio: number
+  itemCount: number
+  onGoToEnvio: () => void
+  onGoToPago: (opcion: OpcionEnvio) => boolean
+}
+
+function CheckoutSidebar({
+  currentStep,
+  envioOpcion,
+  total,
+  costoEnvio,
+  totalConEnvio,
+  itemCount,
+  onGoToEnvio,
+  onGoToPago,
+}: CheckoutSidebarProps) {
+  const tipoTexto =
+    !envioOpcion ? "envío" :
+    envioOpcion.tipo === "domicilio" ? "Envío a domicilio" :
+    envioOpcion.tipo === "traslado" ? `Traslado a ${envioOpcion.tiendaNombre}` :
+    `Recogida en ${envioOpcion.tiendaNombre}`
+
+  return (
+    <div className="hidden lg:block checkout-summary-in">
+      <div className="bg-brand-text rounded-xl overflow-hidden sticky top-24 shadow-xl shadow-brand-text/20">
+        <div className="px-5 lg:px-6 py-5 border-b border-white/8">
+          <h2 className="font-display text-lg font-semibold text-white tracking-tight">Resumen</h2>
+        </div>
+
+        <PriceSummary total={total} costoEnvio={costoEnvio} envioOpcion={envioOpcion} itemCount={itemCount} variant="desktop" />
+
+        <div className="px-5 lg:px-6 pb-6 pt-2">
+          {currentStep === "carrito" && (
+            <button
+              type="button"
+              onClick={onGoToEnvio}
+              className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
+            >
+              Continuar
+            </button>
+          )}
+          {currentStep === "envio" && envioOpcion && (
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400/80 bg-emerald-400/5 rounded-lg py-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Método de entrega seleccionado
+              </div>
+              <p className="text-white/70 text-xs mt-2">{tipoTexto}</p>
+              <button
+                type="button"
+                onClick={() => onGoToPago(envioOpcion)}
+                className="w-full mt-3 py-3 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
+              >
+                Ir a pago
+              </button>
+            </div>
+          )}
+          {currentStep === "pago" && (
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400/80 bg-emerald-400/5 rounded-lg py-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Listo para pagar
+              </div>
+              <p className="text-white/70 text-xs mt-2">
+                {formatPrice(totalConEnvio)} en {envioOpcion?.tipo ?? "envío"}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -417,50 +548,38 @@ function CheckoutMainContent({
   envioOpcion,
   total,
   costoEnvio,
+  totalConEnvio,
   itemCount,
-  onSetStep,
+  onGoToEnvio,
+  onGoToCarrito,
+  onGoToPago,
   onIncrement,
   onDecrement,
   onRemove,
-  onConfirmEnvio,
 }: {
   cartData: ReservaAgrupadaItem[]
-  currentStep: "carrito" | "envio"
+  currentStep: "carrito" | "envio" | "pago"
   mutingBooks: Set<string>
   envioOpcion: OpcionEnvio | null
   total: number
   costoEnvio: number
+  totalConEnvio: number
   itemCount: number
-  onSetStep: (step: "carrito" | "envio") => void
+  onGoToEnvio: () => void
+  onGoToCarrito: () => void
+  onGoToPago: (opcion: OpcionEnvio) => boolean
   onIncrement: (id: string) => void
   onDecrement: (group: ReservaAgrupadaItem) => void
   onRemove: (group: ReservaAgrupadaItem) => void
-  onConfirmEnvio: (option: OpcionEnvio) => void
 }) {
   return (
     <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-10 max-lg:pb-24">
       <div className="space-y-4" id="checkout-scroll-container">
-        <div className="flex items-center justify-between mb-7 min-h-[2rem]">
-          {currentStep !== "carrito" && (
-            <button
-              type="button"
-              onClick={() => onSetStep("carrito")}
-              className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-              Volver al carrito
-            </button>
-          )}
-          {currentStep === "carrito" && <div />}
-
-          <div className="flex items-center justify-center gap-0 select-none">
-            <StepCircle number={1} label="Carrito" active={currentStep === "carrito"} completed={currentStep !== "carrito"} />
-            <StepLine completed={currentStep !== "carrito"} />
-            <StepCircle number={2} label="Envío" active={currentStep === "envio"} completed={false} />
-            <StepLine completed={false} />
-            <StepCircle number={3} label="Pago" active={false} completed={false} />
-          </div>
-        </div>
+        <CheckoutStepNav
+          currentStep={currentStep}
+          onGoToEnvio={onGoToEnvio}
+          onGoToCarrito={onGoToCarrito}
+        />
 
         {currentStep === "carrito" ? (
           <>
@@ -476,46 +595,32 @@ function CheckoutMainContent({
               />
             ))}
           </>
+        ) : currentStep === "envio" ? (
+          <EnvioStep
+            onConfirm={(opcion) => {
+              onGoToPago(opcion)
+            }}
+            onBack={onGoToCarrito}
+          />
         ) : (
-          <EnvioStep onConfirm={onConfirmEnvio} onBack={() => onSetStep("carrito")} />
+          <PagoStep
+            totalAmount={totalConEnvio}
+            onConfirm={() => {}}
+            onBack={onGoToEnvio}
+          />
         )}
       </div>
 
-      <div className="hidden lg:block checkout-summary-in">
-        <div className="bg-brand-text rounded-xl overflow-hidden sticky top-24 shadow-xl shadow-brand-text/20">
-          <div className="px-5 lg:px-6 py-5 border-b border-white/8">
-            <h2 className="font-display text-lg font-semibold text-white tracking-tight">Resumen</h2>
-          </div>
-
-          <PriceSummary total={total} costoEnvio={costoEnvio} envioOpcion={envioOpcion} itemCount={itemCount} variant="desktop" />
-
-          <div className="px-5 lg:px-6 pb-6 pt-2">
-            {currentStep === "carrito" ? (
-              <button
-                type="button"
-                onClick={() => onSetStep("envio")}
-                className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
-              >
-                Continuar
-              </button>
-            ) : currentStep === "envio" && envioOpcion ? (
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400/80 bg-emerald-400/5 rounded-lg py-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Método de entrega seleccionado
-                </div>
-                <p className="text-white/70 text-xs mt-2">
-                  {envioOpcion.tipo === "domicilio"
-                    ? "Envío a domicilio"
-                    : envioOpcion.tipo === "traslado"
-                      ? `Traslado a ${envioOpcion.tiendaNombre}`
-                      : `Recogida en ${envioOpcion.tiendaNombre}`}
-                </p>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
+      <CheckoutSidebar
+        currentStep={currentStep}
+        envioOpcion={envioOpcion}
+        total={total}
+        costoEnvio={costoEnvio}
+        totalConEnvio={totalConEnvio}
+        itemCount={itemCount}
+        onGoToEnvio={onGoToEnvio}
+        onGoToPago={onGoToPago}
+      />
     </div>
   )
 }
@@ -525,13 +630,15 @@ function MobilePeekBar({
   totalConEnvio,
   currentStep,
   onOpenSummary,
-  onSetStep,
+  onGoToEnvio,
+  onGoToCarrito,
 }: {
   itemCount: number
   totalConEnvio: number
-  currentStep: "carrito" | "envio"
+  currentStep: "carrito" | "envio" | "pago"
   onOpenSummary: () => void
-  onSetStep: (step: "carrito" | "envio") => void
+  onGoToEnvio: () => void
+  onGoToCarrito: () => void
 }) {
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
@@ -562,22 +669,31 @@ function MobilePeekBar({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onSetStep("envio")}
+                  onClick={onGoToEnvio}
                   className="px-3.5 py-1.5 bg-white text-brand-text text-xs font-medium rounded-lg hover:bg-white/90 transition-all shrink-0 whitespace-nowrap cursor-pointer"
                 >
                   Continuar
                 </button>
               </>
-            ) : (
+            ) : currentStep === "envio" ? (
               <button
                 type="button"
-                onClick={() => onSetStep("carrito")}
+                onClick={onGoToCarrito}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Volver
               </button>
-            )}
+            ) : currentStep === "pago" ? (
+              <button
+                type="button"
+                onClick={onGoToEnvio}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Volver
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -595,18 +711,18 @@ function MobileSummarySheet({
   envioOpcion,
   itemCount,
   onClose,
-  onSetStep,
+  onGoToEnvio,
 }: {
   summaryExpanded: boolean
   sheetClosing: boolean
-  currentStep: "carrito" | "envio"
+  currentStep: "carrito" | "envio" | "pago"
   cartData: ReservaAgrupadaItem[]
   total: number
   costoEnvio: number
   envioOpcion: OpcionEnvio | null
   itemCount: number
   onClose: () => void
-  onSetStep: (step: "carrito" | "envio") => void
+  onGoToEnvio: () => void
 }) {
   return (
     <>
@@ -649,7 +765,7 @@ function MobileSummarySheet({
                 <div className="pt-2">
                   <button
                     type="button"
-                    onClick={() => { onClose(); onSetStep("envio") }}
+                    onClick={() => { onClose(); onGoToEnvio() }}
                     className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer"
                   >
                     Continuar

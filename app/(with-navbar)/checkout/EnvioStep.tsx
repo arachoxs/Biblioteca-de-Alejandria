@@ -309,7 +309,7 @@ function CheckoutActionsFooter({
 }: {
   selectedOption: OpcionEnvio | null
   onBack: () => void
-  onConfirm: () => void
+  onConfirm: (option: OpcionEnvio) => void
 }) {
   return (
     <div className="flex items-center gap-3 pt-2" id="continue-button-container">
@@ -322,7 +322,7 @@ function CheckoutActionsFooter({
       </button>
       <button
         type="button"
-        onClick={onConfirm}
+        onClick={() => { if (selectedOption) onConfirm(selectedOption) }}
         disabled={!selectedOption}
         className="flex-1 px-5 py-3 bg-brand-primary text-white text-sm font-medium rounded-xl hover:bg-brand-primary/90 active:scale-[0.98] transition-all disabled:bg-brand-accent/30 disabled:text-white/40 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer"
       >
