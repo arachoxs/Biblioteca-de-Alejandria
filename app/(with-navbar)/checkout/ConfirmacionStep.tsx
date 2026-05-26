@@ -128,7 +128,7 @@ export default function ConfirmacionStep({
         <button
           type="button"
           onClick={onBack}
-          className="px-5 py-3 text-sm font-medium text-brand-secondary/50 hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer">
+          className="px-5 py-3 text-sm font-medium text-brand-secondary hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer">
           Volver
         </button>
         <button

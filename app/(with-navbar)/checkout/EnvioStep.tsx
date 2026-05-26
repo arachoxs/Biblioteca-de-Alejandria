@@ -89,8 +89,19 @@ export default function EnvioStep({
       setStatus("gathering-location");
       setErrorMsg(null);
 
+      let profileAddress: Awaited<ReturnType<typeof getProfileFullAddressAction>>;
+      try {
+        profileAddress = await getProfileFullAddressAction();
+      } catch {
+        setErrorMsg("No se pudo obtener la dirección del perfil.");
+        setStatus("error");
+        return;
+      }
+
+      setUserDireccionFormateada(profileAddress.direccionFormateada);
+
       let resolvedPlaceId: string | null = null;
-      let resolvedDireccion: string | null = null;
+      let didUseFallback = false;
 
       const geoPromise = getBrowserLocation();
       const geoTimeout = new Promise<{ lat: number; lng: number } | null>(
@@ -104,26 +115,23 @@ export default function EnvioStep({
           const geocoded = await reverseGeocode(geoResult.lat, geoResult.lng);
           if (geocoded.placeId) {
             resolvedPlaceId = geocoded.placeId;
-            resolvedDireccion = geocoded.direccionFormateada;
           }
-        } catch (err) {
-          console.warn("[EnvioStep] reverseGeocode failed, using fallback address", err);
+        } catch {
         }
       }
 
       if (!resolvedPlaceId) {
-        const fullAddr = await getProfileFullAddressAction();
-        resolvedPlaceId = fullAddr.placeId;
-        resolvedDireccion = fullAddr.direccionFormateada;
+        resolvedPlaceId = profileAddress.placeId;
+        didUseFallback = true;
         setUsedFallbackAddress(true);
       }
 
       setUserPlaceId(resolvedPlaceId);
-      setUserDireccionFormateada(resolvedDireccion);
 
       try {
         const resultado = await calcularEnvioAction(
           resolvedPlaceId ?? undefined,
+          didUseFallback,
         );
         if (resultado.tiendaMasCercana && resultado.opciones.length > 0) {
           setResultado(resultado);
@@ -244,7 +252,7 @@ function ErrorView({
         <button
           type="button"
           onClick={onBack}
-          className="px-5 py-2.5 text-sm font-medium text-brand-secondary/60 hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer">
+          className="px-5 py-2.5 text-sm font-medium text-brand-secondary hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer">
           Volver al carrito
         </button>
       </div>
@@ -409,7 +417,7 @@ function CheckoutActionsFooter({
       <button
         type="button"
         onClick={onBack}
-        className="px-5 py-3 text-sm font-medium text-brand-secondary/50 hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer">
+        className="px-5 py-3 text-sm font-medium text-brand-secondary hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer">
         Volver
       </button>
       <button
