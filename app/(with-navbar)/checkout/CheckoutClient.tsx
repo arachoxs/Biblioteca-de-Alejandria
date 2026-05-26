@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, startTransition } from "react";
+import React, { useState, useEffect, useCallback, startTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -32,6 +32,42 @@ import type { Step } from "@/hooks/useCheckout";
 import { useCartMutations } from "@/hooks/useCartMutations";
 
 type CartStatus = "loading" | "loaded" | "error";
+
+type StepKey = "carrito" | "envio" | "pago" | "confirmacion";
+
+interface StepConfig {
+  number: number;
+  label: string;
+  completed: (current: Step, initial?: Step) => boolean;
+  backTo: StepKey | null;
+}
+
+const STEP_CONFIG: Record<StepKey, StepConfig> = {
+  carrito: {
+    number: 1,
+    label: "Carrito",
+    completed: (current) => current !== "carrito",
+    backTo: null,
+  },
+  envio: {
+    number: 2,
+    label: "Envío",
+    completed: (current) => current === "pago" || current === "confirmacion",
+    backTo: "carrito",
+  },
+  pago: {
+    number: 3,
+    label: "Pago",
+    completed: (current) => current === "confirmacion",
+    backTo: "envio",
+  },
+  confirmacion: {
+    number: 4,
+    label: "Confirmar",
+    completed: () => false,
+    backTo: "pago",
+  },
+} as const;
 
 // ── Formatter ──────────────────────────────────────────────────────────────────
 
@@ -527,9 +563,26 @@ function CheckoutStepNav({
   onGoToEnvio,
   onGoToCarrito,
   onGoToPago,
-}: CheckoutStepNavProps) {
+}: {
+  currentStep: Step;
+  envioOpcion: OpcionEnvio | null;
+  onGoToEnvio: () => void;
+  onGoToCarrito: () => void;
+  onGoToPago: (opcion: OpcionEnvio) => boolean;
+}) {
+  const stepKeys = Object.keys(STEP_CONFIG) as StepKey[];
+
   return (
     <div className="flex items-center justify-between mb-7 min-h-[2rem]">
+      {currentStep === "confirmacion" && (
+        <button
+          type="button"
+          onClick={() => envioOpcion && onGoToPago(envioOpcion)}
+          className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group">
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          Volver al pago
+        </button>
+      )}
       {currentStep === "envio" && (
         <button
           type="button"
@@ -548,47 +601,25 @@ function CheckoutStepNav({
           Volver al envío
         </button>
       )}
-      {currentStep === "confirmacion" && (
-        <button
-          type="button"
-          onClick={() => envioOpcion && onGoToPago(envioOpcion)}
-          className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group">
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-          Volver al pago
-        </button>
-      )}
       {currentStep === "carrito" && <div />}
 
       <div className="flex items-center justify-center gap-0 select-none">
-        <StepCircle
-          number={1}
-          label="Carrito"
-          active={currentStep === "carrito"}
-          completed={currentStep !== "carrito"}
-        />
-        <StepLine completed={currentStep !== "carrito"} />
-        <StepCircle
-          number={2}
-          label="Envío"
-          active={currentStep === "envio"}
-          completed={currentStep === "pago" || currentStep === "confirmacion"}
-        />
-        <StepLine
-          completed={currentStep === "pago" || currentStep === "confirmacion"}
-        />
-        <StepCircle
-          number={3}
-          label="Pago"
-          active={currentStep === "pago"}
-          completed={currentStep === "confirmacion"}
-        />
-        <StepLine completed={currentStep === "confirmacion"} />
-        <StepCircle
-          number={4}
-          label="Confirmar"
-          active={currentStep === "confirmacion"}
-          completed={false}
-        />
+        {stepKeys.map((key, idx) => {
+          const cfg = STEP_CONFIG[key];
+          return (
+            <React.Fragment key={key}>
+              <StepCircle
+                number={cfg.number}
+                label={cfg.label}
+                active={currentStep === key}
+                completed={cfg.completed(currentStep)}
+              />
+              {idx < stepKeys.length - 1 && (
+                <StepLine completed={cfg.completed(currentStep)} />
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
   );
@@ -635,6 +666,46 @@ function CheckoutSidebar({
         ? `Traslado a ${envioOpcion.tiendaNombre}`
         : `Recogida en ${envioOpcion.tiendaNombre}`;
 
+  const stepKey = currentStep;
+
+  const SIDEBAR_CONTENT: Record<StepKey, React.ReactNode> = {
+    carrito: (
+      <button
+        type="button"
+        onClick={onGoToEnvio}
+        className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer">
+        Continuar
+      </button>
+    ),
+    envio: envioOpcion ? (
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-1.5 text-xs text-success bg-success/5 rounded-lg py-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-success" />
+          Método de entrega seleccionado
+        </div>
+        <p className="text-white/70 text-xs mt-2">{tipoTexto}</p>
+        <button
+          type="button"
+          onClick={() => onGoToPago(envioOpcion)}
+          className="w-full mt-3 py-3 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer">
+          Ir a pago
+        </button>
+      </div>
+    ) : null,
+    pago: (
+      <SidebarBadge
+        label="Pago configurado"
+        value={`${formatPrice(totalConEnvio)} · ${envioOpcion?.tipo ?? "envío"}`}
+      />
+    ),
+    confirmacion: (
+      <SidebarBadge
+        label="Listo para confirmar"
+        value={formatPrice(totalConEnvio)}
+      />
+    ),
+  };
+
   return (
     <div className="hidden lg:block checkout-summary-in">
       <div className="bg-brand-text rounded-xl overflow-hidden sticky top-24 shadow-xl shadow-brand-text/20">
@@ -653,41 +724,7 @@ function CheckoutSidebar({
         />
 
         <div className="px-5 lg:px-6 pb-6 pt-2">
-          {currentStep === "carrito" && (
-            <button
-              type="button"
-              onClick={onGoToEnvio}
-              className="w-full py-3.5 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer">
-              Continuar
-            </button>
-          )}
-          {currentStep === "envio" && envioOpcion && (
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1.5 text-xs text-success bg-success/5 rounded-lg py-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                Método de entrega seleccionado
-              </div>
-              <p className="text-white/70 text-xs mt-2">{tipoTexto}</p>
-              <button
-                type="button"
-                onClick={() => onGoToPago(envioOpcion)}
-                className="w-full mt-3 py-3 px-4 bg-white text-brand-text text-sm font-medium rounded-xl hover:bg-white/90 transition-all cursor-pointer">
-                Ir a pago
-              </button>
-            </div>
-          )}
-          {currentStep === "pago" && (
-            <SidebarBadge
-              label="Pago configurado"
-              value={`${formatPrice(totalConEnvio)} · ${envioOpcion?.tipo ?? "envío"}`}
-            />
-          )}
-          {currentStep === "confirmacion" && (
-            <SidebarBadge
-              label="Listo para confirmar"
-              value={formatPrice(totalConEnvio)}
-            />
-          )}
+          {SIDEBAR_CONTENT[stepKey]}
         </div>
       </div>
     </div>
@@ -714,6 +751,82 @@ interface CheckoutMainContentProps {
   onIncrement: (id: string) => void;
   onDecrement: (group: ReservaAgrupadaItem) => void;
   onRemove: (group: ReservaAgrupadaItem) => void;
+}
+
+interface StepRenderData {
+  step: Step;
+  cartData: ReservaAgrupadaItem[];
+  mutingBooks: Set<string>;
+  envioOpcion: OpcionEnvio | null;
+  totalConEnvio: number;
+  paymentAllocations: TarjetaPaymentAllocation[];
+}
+
+interface StepRenderActions {
+  confirming: boolean;
+  setConfirming: (v: boolean) => void;
+  setPaymentAllocations: (allocations: TarjetaPaymentAllocation[]) => void;
+  onGoToPago: (opcion: OpcionEnvio) => boolean;
+  onGoToConfirmacion: () => void;
+  onGoToCarrito: () => void;
+  onGoToEnvio: () => void;
+  onIncrement: (id: string) => void;
+  onDecrement: (group: ReservaAgrupadaItem) => void;
+  onRemove: (group: ReservaAgrupadaItem) => void;
+}
+
+function renderStepContent(
+  { step, cartData, mutingBooks, envioOpcion, totalConEnvio, paymentAllocations }: StepRenderData,
+  { confirming, setConfirming, setPaymentAllocations, onGoToPago, onGoToConfirmacion, onGoToCarrito, onGoToEnvio, onIncrement, onDecrement, onRemove }: StepRenderActions,
+) {
+  if (step === "carrito") {
+    return cartData.map((group, index) => (
+      <CartItemCard
+        key={group.id_libro}
+        group={group}
+        isMuting={mutingBooks.has(group.id_libro)}
+        onIncrement={() => onIncrement(group.id_libro)}
+        onDecrement={() => onDecrement(group)}
+        onRemove={() => onRemove(group)}
+        index={index}
+      />
+    ));
+  }
+
+  if (step === "envio") {
+    return (
+      <EnvioStep
+        onConfirm={(opcion) => {
+          onGoToPago(opcion);
+        }}
+        onBack={onGoToCarrito}
+      />
+    );
+  }
+
+  if (step === "pago") {
+    return (
+      <PagoStep
+        totalAmount={totalConEnvio}
+        onConfirm={(allocations) => {
+          setPaymentAllocations(allocations);
+          onGoToConfirmacion();
+        }}
+        onBack={onGoToEnvio}
+      />
+    );
+  }
+
+  return (
+    <ConfirmacionStep
+      envioOpcion={envioOpcion}
+      paymentAllocations={paymentAllocations}
+      totalConEnvio={totalConEnvio}
+      cartData={cartData ?? []}
+      onBack={() => envioOpcion && onGoToPago(envioOpcion)}
+      onConfirm={() => setConfirming(true)}
+    />
+  );
 }
 
 function CheckoutMainContent({
@@ -748,46 +861,30 @@ function CheckoutMainContent({
           onGoToPago={onGoToPago}
         />
 
-        {currentStep === "carrito" ? (
-          <>
-            {cartData.map((group, index) => (
-              <CartItemCard
-                key={group.id_libro}
-                group={group}
-                isMuting={mutingBooks.has(group.id_libro)}
-                onIncrement={() => onIncrement(group.id_libro)}
-                onDecrement={() => onDecrement(group)}
-                onRemove={() => onRemove(group)}
-                index={index}
-              />
-            ))}
-          </>
-        ) : currentStep === "envio" ? (
-          <EnvioStep
-            onConfirm={(opcion) => {
-              onGoToPago(opcion);
-            }}
-            onBack={onGoToCarrito}
-          />
-        ) : currentStep === "pago" ? (
-          <PagoStep
-            totalAmount={totalConEnvio}
-            onConfirm={(allocations) => {
-              setPaymentAllocations(allocations);
-              onGoToConfirmacion();
-            }}
-            onBack={onGoToEnvio}
-          />
-        ) : currentStep === "confirmacion" ? (
-          <ConfirmacionStep
-            envioOpcion={envioOpcion}
-            paymentAllocations={paymentAllocations}
-            totalConEnvio={totalConEnvio}
-            cartData={cartData ?? []}
-            onBack={() => envioOpcion && onGoToPago(envioOpcion)}
-            onConfirm={() => setConfirming(true)}
-          />
-        ) : null}
+        <div className="space-y-4">
+          {renderStepContent(
+            {
+              step: currentStep,
+              cartData,
+              mutingBooks,
+              envioOpcion,
+              totalConEnvio,
+              paymentAllocations,
+            },
+            {
+              confirming,
+              setConfirming,
+              setPaymentAllocations,
+              onGoToPago,
+              onGoToConfirmacion,
+              onGoToCarrito,
+              onGoToEnvio,
+              onIncrement,
+              onDecrement,
+              onRemove,
+            },
+          )}
+        </div>
       </div>
 
       <CheckoutSidebar
@@ -823,6 +920,53 @@ function MobilePeekBar({
   onGoToCarrito: () => void;
   onGoToPago: (opcion: OpcionEnvio) => boolean;
 }) {
+  const PEEK_BUTTONS: Record<StepKey, React.ReactNode> = {
+    carrito: (
+      <>
+        <button
+          type="button"
+          onClick={onOpenSummary}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
+          Ver detalle
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onGoToEnvio}
+          className="px-3.5 py-1.5 bg-white text-brand-text text-xs font-medium rounded-lg hover:bg-white/90 transition-all shrink-0 whitespace-nowrap cursor-pointer">
+          Continuar
+        </button>
+      </>
+    ),
+    envio: (
+      <button
+        type="button"
+        onClick={onGoToCarrito}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Volver
+      </button>
+    ),
+    pago: (
+      <button
+        type="button"
+        onClick={onGoToEnvio}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Volver
+      </button>
+    ),
+    confirmacion: (
+      <button
+        type="button"
+        onClick={() => envioOpcion && onGoToPago(envioOpcion)}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Volver
+      </button>
+    ),
+  };
+
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
       <div className="bg-brand-text border-t border-white/8 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
@@ -850,48 +994,7 @@ function MobilePeekBar({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {currentStep === "carrito" ? (
-              <>
-                <button
-                  type="button"
-                  onClick={onOpenSummary}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
-                  Ver detalle
-                  <ChevronUp className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={onGoToEnvio}
-                  className="px-3.5 py-1.5 bg-white text-brand-text text-xs font-medium rounded-lg hover:bg-white/90 transition-all shrink-0 whitespace-nowrap cursor-pointer">
-                  Continuar
-                </button>
-              </>
-            ) : currentStep === "envio" ? (
-              <button
-                type="button"
-                onClick={onGoToCarrito}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Volver
-              </button>
-            ) : currentStep === "pago" ? (
-              <button
-                type="button"
-                onClick={onGoToEnvio}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Volver
-              </button>
-) : currentStep === "confirmacion" ? (
-              <button
-                type="button"
-                onClick={() => envioOpcion && onGoToPago(envioOpcion)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Volver
-              </button>
-            ) : null}
+            {PEEK_BUTTONS[currentStep]}
           </div>
         </div>
       </div>
