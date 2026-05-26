@@ -8,8 +8,10 @@ import {
   CreditCard,
   CheckCircle2,
   Loader2,
+  BookOpen,
 } from "lucide-react"
 import type { OpcionEnvio, TarjetaPaymentAllocation } from "@/lib/types/checkout"
+import type { ReservaAgrupadaItem } from "@/lib/types/reserva"
 
 const PRICE_FORMATTER = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -25,6 +27,7 @@ interface ConfirmacionStepProps {
   envioOpcion: OpcionEnvio | null
   paymentAllocations: TarjetaPaymentAllocation[]
   totalConEnvio: number
+  cartData: ReservaAgrupadaItem[]
   onBack: () => void
   onConfirm: () => void
 }
@@ -39,6 +42,7 @@ export default function ConfirmacionStep({
   envioOpcion,
   paymentAllocations,
   totalConEnvio,
+  cartData,
   onBack,
   onConfirm,
 }: ConfirmacionStepProps) {
@@ -86,6 +90,8 @@ export default function ConfirmacionStep({
           </div>
         </div>
       </div>
+
+      <BooksSummaryCard cartData={cartData} />
 
       <SectionDividerConfirm label="Método de entrega" />
 
@@ -197,6 +203,40 @@ function EnvioSummaryCard({
             </span>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function BooksSummaryCard({ cartData }: { cartData: ReservaAgrupadaItem[] }) {
+  const totalArticulos = cartData.reduce((s, g) => s + g.copias_reservadas, 0)
+  const librosUnicos = cartData.length
+
+  return (
+    <div className="bg-white rounded-2xl border border-brand-accent/10 p-5 checkout-fade-in">
+      <div className="flex items-center gap-4">
+        <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center shrink-0">
+          <BookOpen className="w-5 h-5 text-brand-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-display text-base font-semibold text-brand-text leading-tight">
+            {librosUnicos} {librosUnicos === 1 ? "título" : "títulos"}
+          </p>
+          <p className="text-xs text-brand-secondary/50 mt-0.5">
+            {totalArticulos} {totalArticulos === 1 ? "copia" : "copias"}
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 space-y-2">
+        {cartData.slice(0, 3).map((item) => (
+          <div key={item.id_libro} className="flex items-center justify-between text-sm">
+            <span className="text-brand-text truncate pr-4">{item.titulo}</span>
+            <span className="text-brand-secondary/60 shrink-0">×{item.copias_reservadas}</span>
+          </div>
+        ))}
+        {cartData.length > 3 && (
+          <p className="text-xs text-brand-secondary/50">+{cartData.length - 3} más</p>
+        )}
       </div>
     </div>
   )

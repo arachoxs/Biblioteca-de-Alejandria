@@ -783,6 +783,7 @@ function CheckoutMainContent({
             envioOpcion={envioOpcion}
             paymentAllocations={paymentAllocations}
             totalConEnvio={totalConEnvio}
+            cartData={cartData ?? []}
             onBack={() => envioOpcion && onGoToPago(envioOpcion)}
             onConfirm={() => setConfirming(true)}
           />
