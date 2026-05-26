@@ -6,6 +6,8 @@
   --color-brand-accent: #a9927d;
   --color-brand-bg: #f2f4f3;
   --color-brand-text: #0a0908;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

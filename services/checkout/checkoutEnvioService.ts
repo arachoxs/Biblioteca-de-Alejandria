@@ -20,6 +20,7 @@ import {
   getActiveReservaForLibroAtTienda,
   getActiveReservaOfLibro,
   deleteReserva,
+  createReserva,
 } from "@/models/reservaModel"
 import type { ResultadoEnvio, OpcionEnvio, SwappedBook } from "@/lib/types/checkout"
 
@@ -87,17 +88,10 @@ async function performSwapIfNeeded(
     return { swapped: false, oldCopiaId: null, newCopiaId: null };
   }
 
-  // Crear la reserva para la nueva copia usando el modelo directamente
-  // (el servicio createReserva hace claim automático, pero ya hicimos el claim manualmente)
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const adminClient = createAdminClient();
-  const { error: reservaError } = await adminClient
-    .from("reserva")
-    .insert({ id_copia: newCopiaId, id_usuario: userId });
-
-  if (reservaError) {
-    console.error("[checkoutEnvioService] Error creando reserva durante swap:", reservaError);
-    // Rollback del claim
+  try {
+    await createReserva({ id_copia: newCopiaId, id_usuario: userId });
+  } catch (error) {
+    console.error("[checkoutEnvioService] Error creando reserva durante swap:", error);
     await updateCopiaEstadoIf(newCopiaId, "reservado", "disponible");
     return { swapped: false, oldCopiaId: null, newCopiaId: null };
   }

@@ -46,3 +46,25 @@ export interface DisponibilidadLibroTienda {
   tiendaId: string
   stockDisponible: number
 }
+
+export interface TarjetaPaymentAllocation {
+  id_tarjeta: number
+  monto: number
+}
+
+export interface TarjetaConSaldo {
+  id: number
+  nombre_titular: string
+  ultimos_cuatro_digitos: string
+  mes_caducidad: number
+  ano_caducidad: number
+  saldo: number
+}
+
+export interface PaymentAllocationValidation {
+  isValid: boolean
+  totalAllocated: number
+  totalRequired: number
+  insufficientCards: { id_tarjeta: number; saldo: number; monto: number }[]
+  errors: Record<string, string>
+}
