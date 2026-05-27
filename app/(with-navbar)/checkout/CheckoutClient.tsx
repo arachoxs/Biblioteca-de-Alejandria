@@ -434,7 +434,7 @@ export default function CheckoutClient() {
   const {
     currentStep,
     envioOpcion,
-    idTiendaOrigen,
+    idTiendaDestino,
     goToEnvio,
     goToCarrito,
     goToPago,
@@ -506,7 +506,7 @@ export default function CheckoutClient() {
         totalConEnvio={totalConEnvio}
         itemCount={itemCount}
         paymentAllocations={paymentAllocations}
-        idTiendaOrigen={idTiendaOrigen}
+        idTiendaDestino={idTiendaDestino}
         setPaymentAllocations={setPaymentAllocations}
         onGoToEnvio={goToEnvio}
         onGoToCarrito={goToCarrito}
@@ -549,7 +549,7 @@ interface CheckoutStepNavProps {
   envioOpcion: OpcionEnvio | null;
   onGoToEnvio: () => void;
   onGoToCarrito: () => void;
-  onGoToPago: (opcion: OpcionEnvio, idTiendaOrigen?: string) => boolean;
+  onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
 }
 
 function CheckoutStepNav({
@@ -563,7 +563,7 @@ function CheckoutStepNav({
   envioOpcion: OpcionEnvio | null;
   onGoToEnvio: () => void;
   onGoToCarrito: () => void;
-  onGoToPago: (opcion: OpcionEnvio, idTiendaOrigen?: string) => boolean;
+  onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
 }) {
   const stepKeys = Object.keys(STEP_CONFIG) as StepKey[];
 
@@ -597,7 +597,7 @@ interface CheckoutSidebarProps {
   totalConEnvio: number;
   itemCount: number;
   onGoToEnvio: () => void;
-  onGoToPago: (opcion: OpcionEnvio, idTiendaOrigen?: string) => boolean;
+  onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
 }
 
 function SidebarBadge({ label, value }: { label: string; value: string }) {
@@ -705,11 +705,11 @@ interface CheckoutMainContentProps {
   totalConEnvio: number;
   itemCount: number;
   paymentAllocations: TarjetaPaymentAllocation[];
-  idTiendaOrigen: string;
+  idTiendaDestino: string;
   setPaymentAllocations: (allocations: TarjetaPaymentAllocation[]) => void;
   onGoToEnvio: () => void;
   onGoToCarrito: () => void;
-  onGoToPago: (opcion: OpcionEnvio, idTiendaOrigen?: string) => boolean;
+  onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
   onGoToConfirmacion: () => void;
   onIncrement: (id: string) => void;
   onDecrement: (group: ReservaAgrupadaItem) => void;
@@ -723,12 +723,12 @@ interface StepRenderData {
   envioOpcion: OpcionEnvio | null;
   totalConEnvio: number;
   paymentAllocations: TarjetaPaymentAllocation[];
-  idTiendaOrigen: string;
+  idTiendaDestino: string;
 }
 
 interface StepRenderActions {
   setPaymentAllocations: (allocations: TarjetaPaymentAllocation[]) => void;
-  onGoToPago: (opcion: OpcionEnvio, idTiendaOrigen?: string) => boolean;
+  onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
   onGoToConfirmacion: () => void;
   onGoToCarrito: () => void;
   onGoToEnvio: () => void;
@@ -738,7 +738,7 @@ interface StepRenderActions {
 }
 
 function renderStepContent(
-  { step, cartData, mutingBooks, envioOpcion, totalConEnvio, paymentAllocations, idTiendaOrigen }: StepRenderData,
+  { step, cartData, mutingBooks, envioOpcion, totalConEnvio, paymentAllocations, idTiendaDestino }: StepRenderData,
   { setPaymentAllocations, onGoToPago, onGoToConfirmacion, onGoToCarrito, onGoToEnvio, onIncrement, onDecrement, onRemove }: StepRenderActions,
 ) {
   if (step === "carrito") {
@@ -758,8 +758,8 @@ function renderStepContent(
   if (step === "envio") {
     return (
       <EnvioStep
-        onConfirm={(opcion, tiendaOrigen) => {
-          onGoToPago(opcion, tiendaOrigen);
+        onConfirm={(opcion, tiendaDestino) => {
+          onGoToPago(opcion, tiendaDestino);
         }}
         onBack={onGoToCarrito}
       />
@@ -785,7 +785,7 @@ function renderStepContent(
       paymentAllocations={paymentAllocations}
       totalConEnvio={totalConEnvio}
       cartData={cartData ?? []}
-      idTiendaOrigen={idTiendaOrigen}
+      idTiendaDestino={idTiendaDestino}
       onBack={() => envioOpcion && onGoToPago(envioOpcion)}
     />
   );
@@ -801,7 +801,7 @@ function CheckoutMainContent({
   totalConEnvio,
   itemCount,
   paymentAllocations,
-  idTiendaOrigen,
+  idTiendaDestino,
   setPaymentAllocations,
   onGoToEnvio,
   onGoToCarrito,
@@ -831,7 +831,7 @@ function CheckoutMainContent({
               envioOpcion,
               totalConEnvio,
               paymentAllocations,
-              idTiendaOrigen,
+              idTiendaDestino,
             },
             {
               setPaymentAllocations,
@@ -878,7 +878,7 @@ function MobilePeekBar({
   onOpenSummary: () => void;
   onGoToEnvio: () => void;
   onGoToCarrito: () => void;
-  onGoToPago: (opcion: OpcionEnvio, idTiendaOrigen?: string) => boolean;
+  onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
 }) {
   const PEEK_BUTTONS: Record<StepKey, React.ReactNode> = {
     carrito: (

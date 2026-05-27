@@ -31,7 +31,7 @@ interface ConfirmacionStepProps {
   paymentAllocations: TarjetaPaymentAllocation[]
   totalConEnvio: number
   cartData: ReservaAgrupadaItem[]
-  idTiendaOrigen: string
+  idTiendaDestino: string
   onBack: () => void
 }
 
@@ -46,7 +46,7 @@ export default function ConfirmacionStep({
   paymentAllocations,
   totalConEnvio,
   cartData,
-  idTiendaOrigen,
+  idTiendaDestino,
   onBack,
 }: ConfirmacionStepProps) {
   const router = useRouter()
@@ -77,7 +77,7 @@ export default function ConfirmacionStep({
       tarjetas: paymentAllocations.map((a) => ({ id_tarjeta: a.id_tarjeta, monto: a.monto })),
       entrega: {
         tipo: envioOpcion.tipo,
-        id_tienda_origen: idTiendaOrigen,
+        id_tienda_destino: idTiendaDestino,
         costo: envioOpcion.costo,
       },
     })

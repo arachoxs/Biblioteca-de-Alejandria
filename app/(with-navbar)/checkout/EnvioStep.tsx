@@ -46,7 +46,7 @@ export default function EnvioStep({
   onConfirm,
   onBack,
 }: {
-  onConfirm: (opcion: OpcionEnvio, idTiendaOrigen: string) => void;
+  onConfirm: (opcion: OpcionEnvio, idTiendaDestino: string) => void;
   onBack: () => void;
 }) {
   const [status, setStatus] = useState<EnvioStepStatus>("loading");
@@ -151,8 +151,8 @@ export default function EnvioStep({
 
   const handleConfirm = useCallback(() => {
     if (selectedOption && resultado?.tiendaMasCercana) {
-      const tiendaOrigen = selectedOption.tiendaId ?? resultado.tiendaMasCercana.id
-      onConfirm(selectedOption, tiendaOrigen);
+      const tiendaDestino = selectedOption.tiendaId ?? resultado.tiendaMasCercana.id
+      onConfirm(selectedOption, tiendaDestino);
     }
   }, [selectedOption, resultado, onConfirm]);
 

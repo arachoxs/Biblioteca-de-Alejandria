@@ -14,6 +14,8 @@ import {
 import { getCurrentUser } from "@/models/authModel"
 import { getUserPlaceId, getUserFullAddress } from "@/models/checkoutModel"
 import { getTarjetasByUserId } from "@/models/tarjetaModel"
+import { getActiveTiendaById } from "@/models/tiendaModel"
+import { getUserProfileById } from "@/models/userModel"
 import type {
   ResultadoEnvio,
   TarjetaPaymentAllocation,
@@ -239,12 +241,44 @@ export interface ConfirmarCompraActionInput {
   tarjetas: { id_tarjeta: number; monto: number }[]
   entrega: {
     tipo: "domicilio" | "recogida" | "traslado"
-    id_tienda_origen: string
+    id_tienda_destino: string
     costo: number
   }
 }
 
 export type ConfirmarCompraResponse = RegistrarCompraResponse
+
+const TIPOS_ENTREGA_VALIDOS = ["domicilio", "recogida", "traslado"] as const
+
+function mapTipoEntrega(tipo: string): "envio" | "recogida" {
+  // "domicilio" → "envio" (entrega a domicilio)
+  // "recogida" y "traslado" → "recogida" (el usuario recoge en tienda;
+  //   el traslado físico de copias se maneja por separado vía transferirCopiasAction)
+  return tipo === "domicilio" ? "envio" : "recogida"
+}
+
+type DireccionDestinoResult =
+  | { ok: true; id_direccion: number }
+  | { ok: false; errors: Record<string, string> }
+
+async function resolveDireccionDestino(
+  user: { id: string },
+  tipoEntrega: "envio" | "recogida",
+  idTiendaDestino: string,
+): Promise<DireccionDestinoResult> {
+  const tienda = await getActiveTiendaById(idTiendaDestino)
+  if (!tienda) return { ok: false, errors: { tienda: "TIENDA_NO_ENCONTRADA" } }
+
+  const userProfile = await getUserProfileById(user.id)
+  if (!userProfile) return { ok: false, errors: { usuario: "USUARIO_NO_ENCONTRADO" } }
+
+  if (tipoEntrega === "envio") {
+    if (!userProfile.id_direccion) return { ok: false, errors: { direccion: "DIRECCION_NO_ENCONTRADA" } }
+    return { ok: true, id_direccion: userProfile.id_direccion }
+  }
+
+  return { ok: true, id_direccion: tienda.id_direccion }
+}
 
 function computeFechaEntregaEstimada(): string {
   const date = new Date()
@@ -257,6 +291,20 @@ function computeFechaEntregaEstimada(): string {
   return date.toISOString()
 }
 
+type InputErrors = Record<string, string> | null
+
+function validateConfirmarInput(input: ConfirmarCompraActionInput): InputErrors {
+  const errors: Record<string, string> = {}
+  if (input.copias.length === 0) errors.copias = "No hay copias seleccionadas."
+  if (input.tarjetas.length === 0) errors.tarjetas = "No hay tarjetas seleccionadas."
+  if (input.total <= 0) errors.total = "Total inválido."
+  if (!TIPOS_ENTREGA_VALIDOS.includes(input.entrega.tipo as typeof TIPOS_ENTREGA_VALIDOS[number])) {
+    errors.tipo = "TIPO_ENTREGA_INVALIDO"
+  }
+  if (!input.entrega.id_tienda_destino) errors.id_tienda_destino = "Tienda de destino no especificada."
+  return Object.keys(errors).length > 0 ? errors : null
+}
+
 export async function confirmarCompraAction(
   input: ConfirmarCompraActionInput,
 ): Promise<ConfirmarCompraResponse> {
@@ -264,12 +312,13 @@ export async function confirmarCompraAction(
     const user = await getCurrentUser()
     if (!user) return { success: false, errors: { general: "No hay sesión activa." } }
 
-    if (input.copias.length === 0) return { success: false, errors: { copias: "No hay copias seleccionadas." } }
-    if (input.tarjetas.length === 0) return { success: false, errors: { tarjetas: "No hay tarjetas seleccionadas." } }
-    if (input.total <= 0) return { success: false, errors: { total: "Total inválido." } }
-    if (!input.entrega.id_tienda_origen) return { success: false, errors: { id_tienda_origen: "Tienda de origen no especificada." } }
+    const inputErrors = validateConfirmarInput(input)
+    if (inputErrors) return { success: false, errors: inputErrors }
 
-    const tipoEntrega = input.entrega.tipo === "domicilio" ? "envio" : "recogida"
+    const tipoEntrega = mapTipoEntrega(input.entrega.tipo)
+
+    const direccionResult = await resolveDireccionDestino(user, tipoEntrega, input.entrega.id_tienda_destino)
+    if (!direccionResult.ok) return { success: false, errors: direccionResult.errors }
 
     const serviceInput: RegistrarCompraInput = {
       id_usuario: user.id,
@@ -280,9 +329,9 @@ export async function confirmarCompraAction(
       tarjetas: input.tarjetas,
       entrega: {
         tipo: tipoEntrega,
-        id_tienda_origen: input.entrega.id_tienda_origen,
         costo: input.entrega.costo,
         fecha_entrega_estimada: computeFechaEntregaEstimada(),
+        id_direccion_destino: direccionResult.id_direccion,
       },
     }
 
