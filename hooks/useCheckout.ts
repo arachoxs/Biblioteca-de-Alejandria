@@ -9,12 +9,14 @@ export type Step = "carrito" | "envio" | "pago" | "confirmacion";
 export function useCheckoutState() {
   const [currentStep, setCurrentStep] = useState<Step>("carrito");
   const [envioOpcion, setEnvioOpcion] = useState<OpcionEnvio | null>(null);
+  const [idTiendaOrigen, setIdTiendaOrigen] = useState<string>("");
 
   const goToEnvio = useCallback(() => setCurrentStep("envio"), []);
   const goToCarrito = useCallback(() => setCurrentStep("carrito"), []);
-  const goToPago = useCallback((opcion: OpcionEnvio): boolean => {
+  const goToPago = useCallback((opcion: OpcionEnvio, tiendaOrigen?: string): boolean => {
     if (!opcion) return false;
     setEnvioOpcion(opcion);
+    if (tiendaOrigen) setIdTiendaOrigen(tiendaOrigen);
     setCurrentStep("pago");
     return true;
   }, []);
@@ -27,6 +29,7 @@ export function useCheckoutState() {
   return {
     currentStep,
     envioOpcion,
+    idTiendaOrigen,
     goToEnvio,
     goToCarrito,
     goToPago,

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Truck,
   Store,
@@ -12,6 +13,8 @@ import {
 } from "lucide-react"
 import type { OpcionEnvio, TarjetaPaymentAllocation } from "@/lib/types/checkout"
 import type { ReservaAgrupadaItem } from "@/lib/types/reserva"
+import { confirmarCompraAction } from "./actions"
+import Alert from "@/components/ui/Alert"
 
 const PRICE_FORMATTER = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -28,8 +31,8 @@ interface ConfirmacionStepProps {
   paymentAllocations: TarjetaPaymentAllocation[]
   totalConEnvio: number
   cartData: ReservaAgrupadaItem[]
+  idTiendaOrigen: string
   onBack: () => void
-  onConfirm: () => void
 }
 
 interface CardDisplay {
@@ -43,10 +46,12 @@ export default function ConfirmacionStep({
   paymentAllocations,
   totalConEnvio,
   cartData,
+  idTiendaOrigen,
   onBack,
-  onConfirm,
 }: ConfirmacionStepProps) {
+  const router = useRouter()
   const [confirming, setConfirming] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const tipoTexto = !envioOpcion
     ? "No seleccionado"
@@ -57,11 +62,33 @@ export default function ConfirmacionStep({
         : `Recogida en ${envioOpcion.tiendaNombre}`
 
   const costoEnvio = envioOpcion?.costo ?? 0
+  const subtotal = cartData.reduce((s, g) => s + g.precio * g.copias_reservadas, 0)
+  const copias = cartData.flatMap((g) => g.reservas.map((r) => ({ id_copia: r.id_copia })))
 
   const handleConfirm = async () => {
-    if (confirming) return
+    if (confirming || !envioOpcion) return
     setConfirming(true)
-    onConfirm()
+    setSubmitError(null)
+
+    const result = await confirmarCompraAction({
+      subtotal,
+      total: totalConEnvio,
+      copias,
+      tarjetas: paymentAllocations.map((a) => ({ id_tarjeta: a.id_tarjeta, monto: a.monto })),
+      entrega: {
+        tipo: envioOpcion.tipo,
+        id_tienda_origen: idTiendaOrigen,
+        costo: envioOpcion.costo,
+      },
+    })
+
+    if (result.success) {
+      router.push("/")
+    } else {
+      const errorMessages = Object.values(result.errors ?? {})
+      setSubmitError(errorMessages.length > 0 ? errorMessages.join(". ") : "Error al procesar la compra.")
+      setConfirming(false)
+    }
   }
 
   const tarjetas: CardDisplay[] = paymentAllocations.map((a) => ({
@@ -124,11 +151,18 @@ export default function ConfirmacionStep({
         ))}
       </div>
 
+      {submitError && (
+        <Alert variant="error" onClose={() => setSubmitError(null)}>
+          {submitError}
+        </Alert>
+      )}
+
       <div className="flex items-center gap-3 pt-1" id="continue-button-container">
         <button
           type="button"
           onClick={onBack}
-          className="px-5 py-3 text-sm font-medium text-brand-secondary hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer">
+          disabled={confirming}
+          className="px-5 py-3 text-sm font-medium text-brand-secondary hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
           Volver
         </button>
         <button

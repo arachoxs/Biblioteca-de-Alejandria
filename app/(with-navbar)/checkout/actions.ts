@@ -6,6 +6,11 @@ import {
   calcularOpcionesEnvio,
   ejecutarTraslados,
 } from "@/services/checkout/checkoutEnvioService"
+import {
+  registrarCompra,
+  type RegistrarCompraInput,
+  type RegistrarCompraResponse,
+} from "@/services/compra/compraService"
 import { getCurrentUser } from "@/models/authModel"
 import { getUserPlaceId, getUserFullAddress } from "@/models/checkoutModel"
 import { getTarjetasByUserId } from "@/models/tarjetaModel"
@@ -222,5 +227,68 @@ export async function validatePaymentAllocationAction(
     totalRequired,
     insufficientCards,
     errors,
+  }
+}
+
+// ─── Final confirmation ─────────────────────────────────────────────
+
+export interface ConfirmarCompraActionInput {
+  subtotal: number
+  total: number
+  copias: { id_copia: string }[]
+  tarjetas: { id_tarjeta: number; monto: number }[]
+  entrega: {
+    tipo: "domicilio" | "recogida" | "traslado"
+    id_tienda_origen: string
+    costo: number
+  }
+}
+
+export type ConfirmarCompraResponse = RegistrarCompraResponse
+
+function computeFechaEntregaEstimada(): string {
+  const date = new Date()
+  let businessDays = 0
+  while (businessDays < 3) {
+    date.setDate(date.getDate() + 1)
+    const day = date.getDay()
+    if (day !== 0 && day !== 6) businessDays++
+  }
+  return date.toISOString()
+}
+
+export async function confirmarCompraAction(
+  input: ConfirmarCompraActionInput,
+): Promise<ConfirmarCompraResponse> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { success: false, errors: { general: "No hay sesión activa." } }
+
+    if (input.copias.length === 0) return { success: false, errors: { copias: "No hay copias seleccionadas." } }
+    if (input.tarjetas.length === 0) return { success: false, errors: { tarjetas: "No hay tarjetas seleccionadas." } }
+    if (input.total <= 0) return { success: false, errors: { total: "Total inválido." } }
+    if (!input.entrega.id_tienda_origen) return { success: false, errors: { id_tienda_origen: "Tienda de origen no especificada." } }
+
+    const tipoEntrega = input.entrega.tipo === "domicilio" ? "envio" : "recogida"
+
+    const serviceInput: RegistrarCompraInput = {
+      id_usuario: user.id,
+      subtotal: input.subtotal,
+      total: input.total,
+      id_promocion: null,
+      copias: input.copias,
+      tarjetas: input.tarjetas,
+      entrega: {
+        tipo: tipoEntrega,
+        id_tienda_origen: input.entrega.id_tienda_origen,
+        costo: input.entrega.costo,
+        fecha_entrega_estimada: computeFechaEntregaEstimada(),
+      },
+    }
+
+    return await registrarCompra(serviceInput)
+  } catch (error) {
+    console.error("[confirmarCompraAction]", error)
+    return { success: false, errors: { general: "Error inesperado al procesar la compra." } }
   }
 }
