@@ -12,23 +12,7 @@ interface UseCartMutationsOptions {
   onCartRefresh: () => Promise<void>
 }
 
-async function executeCartMutation<T>(
-  bookId: string,
-  mutation: () => Promise<{ success: boolean; message?: string }>,
-  onError: (message: string) => void,
-  onCartRefresh: () => Promise<void>,
-): Promise<void> {
-  try {
-    const result = await mutation()
-    if (!result.success) {
-      await onCartRefresh()
-      onError(result.message ?? "Operación fallida.")
-    }
-  } catch {
-    await onCartRefresh()
-    onError("Error inesperado.")
-  }
-}
+
 
 export function useCartMutations({ onError, onCartRefresh }: UseCartMutationsOptions) {
   const [mutingBooks, setMutingBooks] = useState<MutingState>(new Set())
@@ -41,6 +25,8 @@ export function useCartMutations({ onError, onCartRefresh }: UseCartMutationsOpt
         if (!result.success) {
           await onCartRefresh()
           onError(result.message ?? "Operación fallida.")
+        } else {
+          await onCartRefresh()
         }
       } catch {
         await onCartRefresh()

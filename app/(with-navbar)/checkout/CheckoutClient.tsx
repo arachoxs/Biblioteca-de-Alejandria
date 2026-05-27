@@ -9,7 +9,6 @@ import {
   Minus,
   BookOpen,
   ChevronUp,
-  ArrowLeft,
   Check,
 } from "lucide-react";
 import Alert from "@/components/ui/Alert";
@@ -190,7 +189,7 @@ function StepCircle({
       : "text-brand-secondary/40";
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-1.5 relative z-10 w-12 lg:w-16">
       <div
         className={`relative flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium transition-all duration-300 ${circleClass}`}>
         {completed ? (
@@ -203,7 +202,7 @@ function StepCircle({
         )}
       </div>
       <span
-        className={`text-[10px] font-medium uppercase tracking-wider transition-colors duration-300 ${textClass}`}>
+        className={`text-[10px] font-medium uppercase tracking-wider transition-colors duration-300 whitespace-nowrap text-center hidden lg:inline ${textClass}`}>
         {label}
       </span>
     </div>
@@ -212,13 +211,10 @@ function StepCircle({
 
 function StepLine({ completed }: { completed: boolean }) {
   return (
-    <div className="w-10 lg:w-16 relative" style={{ height: "32px" }}>
-      <div className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 overflow-hidden rounded-full">
-        <div className="absolute inset-0 bg-brand-accent/10" />
-        <div
-          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${completed ? "w-full bg-brand-accent/50" : "w-0"}`}
-        />
-      </div>
+    <div className="flex-1 min-w-[1rem] lg:min-w-[4rem] relative lg:-mx-8 z-0 self-start mt-4 h-px bg-brand-accent/10">
+      <div
+        className={`absolute inset-y-0 left-0 h-full rounded-full transition-all duration-500 ${completed ? "w-full bg-brand-accent/50" : "w-0"}`}
+      />
     </div>
   );
 }
@@ -375,7 +371,7 @@ function CartItemCard({
               type="button"
               onClick={onRemove}
               disabled={isMuting}
-              className="shrink-0 p-1.5 rounded-lg text-brand-secondary/25 hover:text-danger hover:bg-danger/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="shrink-0 p-1.5 rounded-lg text-brand-secondary/25 hover:text-danger hover:bg-danger/10 hover:cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Eliminar este libro">
               <X className="w-4 h-4" />
             </button>
@@ -573,36 +569,7 @@ function CheckoutStepNav({
   const stepKeys = Object.keys(STEP_CONFIG) as StepKey[];
 
   return (
-    <div className="flex items-center justify-between mb-7 min-h-[2rem]">
-      {currentStep === "confirmacion" && (
-        <button
-          type="button"
-          onClick={() => envioOpcion && onGoToPago(envioOpcion)}
-          className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group">
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-          Volver al pago
-        </button>
-      )}
-      {currentStep === "envio" && (
-        <button
-          type="button"
-          onClick={onGoToCarrito}
-          className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group">
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-          Volver al carrito
-        </button>
-      )}
-      {currentStep === "pago" && (
-        <button
-          type="button"
-          onClick={onGoToEnvio}
-          className="flex items-center gap-1.5 text-xs text-brand-secondary/50 hover:text-brand-primary transition-colors cursor-pointer group">
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-          Volver al envío
-        </button>
-      )}
-      {currentStep === "carrito" && <div />}
-
+    <div className="flex items-center justify-center mb-7 min-h-[2rem]">
       <div className="flex items-center justify-center gap-0 select-none">
         {stepKeys.map((key, idx) => {
           const cfg = STEP_CONFIG[key];
@@ -614,9 +581,7 @@ function CheckoutStepNav({
                 active={currentStep === key}
                 completed={cfg.completed(currentStep)}
               />
-              {idx < stepKeys.length - 1 && (
-                <StepLine completed={cfg.completed(currentStep)} />
-              )}
+              {idx < stepKeys.length - 1 && <StepLine completed={cfg.completed(currentStep)} />}
             </React.Fragment>
           );
         })}
@@ -941,30 +906,13 @@ function MobilePeekBar({
     envio: (
       <button
         type="button"
-        onClick={onGoToCarrito}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Volver
-      </button>
-    ),
-    pago: (
-      <button
-        type="button"
-        onClick={onGoToEnvio}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Volver
-      </button>
-    ),
-    confirmacion: (
-      <button
-        type="button"
         onClick={() => envioOpcion && onGoToPago(envioOpcion)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-xs font-medium hover:bg-white/20 transition-all cursor-pointer whitespace-nowrap">
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Volver
+        className="px-3.5 py-1.5 bg-white text-brand-text text-xs font-medium rounded-lg hover:bg-white/90 transition-all shrink-0 whitespace-nowrap cursor-pointer">
+        Continuar
       </button>
     ),
+    pago: null,
+    confirmacion: null,
   };
 
   return (

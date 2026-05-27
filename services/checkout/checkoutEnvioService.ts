@@ -239,6 +239,7 @@ interface OpcionesBuildConfig {
   clasificacion: ClasificacionLibros
   tiendasConTodosLosLibros: string[]
   tiendasConDistancia: TiendaConDistancia[]
+  soloTiendaMasCercana: boolean
 }
 
 function buildDomicilioOption(
@@ -344,6 +345,7 @@ function construirOpcionesEnvio(config: OpcionesBuildConfig): OpcionEnvio[] {
 
   for (const tiendaId of tiendasConTodosLosLibros) {
     if (tiendaId === nearestStore.id) continue
+    if (config.soloTiendaMasCercana) continue
     const tiendaData = tiendasConDistancia.find((t) => t.id === tiendaId)
     if (!tiendaData) continue
     opciones.push(buildTiendaOption(tiendaData))
@@ -365,6 +367,7 @@ async function fetchDisponibilidadParaClasificacion(
 
 export async function calcularOpcionesEnvio(
   userPlaceId?: string,
+  soloTiendaMasCercana?: boolean,
 ): Promise<ResultadoEnvio> {
   const user = await getCurrentUser()
   if (!user) return { tiendaMasCercana: null, opciones: [] }
@@ -411,6 +414,7 @@ export async function calcularOpcionesEnvio(
     clasificacion,
     tiendasConTodosLosLibros,
     tiendasConDistancia,
+    soloTiendaMasCercana: soloTiendaMasCercana ?? false,
   })
 
   return { tiendaMasCercana: nearestStore, opciones }

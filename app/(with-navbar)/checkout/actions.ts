@@ -17,9 +17,10 @@ import type {
 
 export async function calcularEnvioAction(
   userPlaceId?: string,
+  soloTiendaMasCercana?: boolean,
 ): Promise<ResultadoEnvio> {
   try {
-    return await calcularOpcionesEnvio(userPlaceId)
+    return await calcularOpcionesEnvio(userPlaceId, soloTiendaMasCercana)
   } catch (error) {
     console.error("[calcularEnvioAction]", error)
     return { tiendaMasCercana: null, opciones: [] }

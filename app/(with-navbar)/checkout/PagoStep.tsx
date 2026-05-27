@@ -120,14 +120,10 @@ export default function PagoStep({
 
   const handleAmountChange = (tarjetaId: number, value: string) => {
     const cleanValue = value.replace(/[^0-9]/g, "");
-    const monto = cleanValue === "" ? 0 : parseInt(cleanValue, 10);
+    const montoUsd = cleanValue === "" ? 0 : parseInt(cleanValue, 10);
     setAllocations((prev) => {
       const next = new Map(prev);
-      if (monto === 0) {
-        next.delete(tarjetaId);
-      } else {
-        next.set(tarjetaId, monto);
-      }
+      next.set(tarjetaId, montoUsd);
       return next;
     });
   };
@@ -301,8 +297,10 @@ export default function PagoStep({
             type="button"
             onClick={() => setModalOpen(true)}
             disabled={availableTarjetasForModal.length === 0}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-5 bg-white border-2 border-dashed border-brand-accent/30 rounded-2xl text-sm font-medium text-brand-secondary/60 hover:border-brand-primary/40 hover:text-brand-primary hover:bg-brand-primary/4 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-            <Plus className="w-4 h-4" />
+            className="w-full flex items-center justify-center gap-3 py-4 px-5 bg-brand-accent/6 hover:bg-brand-accent/12 border border-brand-accent/15 hover:border-brand-primary/25 rounded-2xl text-sm font-medium text-brand-secondary/70 hover:text-brand-text transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+            <span className="w-9 h-9 rounded-xl bg-brand-accent/10 flex items-center justify-center shrink-0">
+              <Plus className="w-4 h-4 text-brand-primary" />
+            </span>
             Añadir tarjeta
           </button>
         </div>
@@ -513,7 +511,7 @@ function EmptyPaymentState({ onAddCard }: { onAddCard: () => void }) {
       <button
         type="button"
         onClick={onAddCard}
-        className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-brand-primary text-white text-sm font-medium rounded-xl hover:bg-brand-primary/90 transition-all cursor-pointer">
+        className="mt-5 flex items-center gap-3 px-5 py-3.5 bg-brand-primary text-white text-sm font-medium rounded-xl hover:bg-brand-primary/90 active:scale-[0.98] transition-all cursor-pointer">
         <Plus className="w-4 h-4" />
         Seleccionar tarjeta
       </button>
@@ -583,7 +581,7 @@ function CheckoutActionsFooterPago({
       <button
         type="button"
         onClick={onBack}
-        className="px-5 py-3 text-sm font-medium text-brand-secondary/50 hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer">
+        className="px-5 py-3 text-sm font-medium text-brand-secondary hover:text-brand-text border border-brand-accent/15 rounded-xl hover:border-brand-accent/30 transition-all cursor-pointer">
         Volver
       </button>
       <button
