@@ -3,7 +3,10 @@ import { insertItemComprasBatch } from "@/models/itemCompraModel";
 import { insertTarjetaComprasBatch } from "@/models/tarjetaCompraModel";
 import { insertEntrega } from "@/models/entregaModel";
 import { getCopiasByIds, updateCopiaEstadoIfBatch } from "@/models/copiaModel";
-import { countReservasActivasByUser } from "@/models/reservaModel";
+import {
+  countReservasActivasByUser,
+  deleteReservasByUserAndCopias,
+} from "@/models/reservaModel";
 import {
   getTarjetaById,
   addBalance as addTarjetaBalance,
@@ -30,6 +33,7 @@ export interface RegistrarCompraResponse {
   success: boolean;
   compraId?: string;
   entregaId?: string;
+  fechaEntregaEstimada?: string;
   errors?: Record<string, string>;
 }
 
@@ -39,6 +43,8 @@ interface CreatedResources {
   tarjetaCompraIds?: number[];
   entregaId?: string;
   deducciones?: { id_tarjeta: number; monto: number }[];
+  copiaIds?: string[];
+  userId?: string;
 }
 
 async function validateCopiasAvailability(
@@ -151,6 +157,9 @@ async function cleanup(created: CreatedResources): Promise<void> {
   try {
     if (created.deducciones?.length)
       await destroyDeducciones(created.deducciones);
+    if (created.copiaIds?.length) {
+      await updateCopiaEstadoIfBatch(created.copiaIds, "vendido", "reservado");
+    }
     await destroyRecursos(created);
   } catch (cleanupError) {
     console.error("[compraService] Error durante cleanup:", cleanupError);
@@ -204,7 +213,11 @@ async function executeWrites(
     created.entregaId = entrega.id;
 
     const copiaIds = input.copias.map((c) => c.id_copia);
+    created.copiaIds = copiaIds;
+    created.userId = input.id_usuario;
+
     await updateCopiaEstadoIfBatch(copiaIds, "reservado", "vendido");
+    await deleteReservasByUserAndCopias(input.id_usuario, copiaIds);
 
     return { compraId: compra.id, entregaId: entrega.id };
   } catch (error) {
@@ -235,7 +248,7 @@ export async function registrarCompra(
 
   try {
     const { compraId, entregaId } = await executeWrites(input);
-    return { success: true, compraId, entregaId };
+    return { success: true, compraId, entregaId, fechaEntregaEstimada: input.entrega.fecha_entrega_estimada };
   } catch (error) {
     console.error("[compraService] Error en registrarCompra:", error);
     return { success: false, errors: { general: getErrorMessage(error) } };

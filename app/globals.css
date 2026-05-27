@@ -126,6 +126,52 @@
   animation: priceUpdate 0.25s ease-out;
 }
 
+/* ── Success confirmation animations ───────────────────────────────── */
+@keyframes successIconIn {
+  from { opacity: 0; transform: scale(0.6) rotate(-8deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes successReveal {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes successGlow {
+  0% { box-shadow: 0 0 0 0 rgba(73, 17, 28, 0.15); }
+  70% { box-shadow: 0 0 0 20px rgba(73, 17, 28, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(73, 17, 28, 0); }
+}
+
+.success-icon-in {
+  animation: successIconIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.success-text-in {
+  animation: successReveal 0.5s 0.15s ease-out both;
+}
+
+.success-detail-in {
+  animation: successReveal 0.5s 0.3s ease-out both;
+}
+
+.success-delay-1 {
+  animation: successReveal 0.5s 0.1s ease-out both;
+}
+.success-delay-2 {
+  animation: successReveal 0.5s 0.2s ease-out both;
+}
+.success-delay-3 {
+  animation: successReveal 0.5s 0.35s ease-out both;
+}
+.success-delay-4 {
+  animation: successReveal 0.5s 0.5s ease-out both;
+}
+
+.success-glow {
+  animation: successGlow 1.5s ease-out 0.6s both;
+}
+
 /* ── Bottom sheet animations ──────────────────────────────────────── */
 @keyframes sheetSlideUp {
   from { transform: translateY(100%); }

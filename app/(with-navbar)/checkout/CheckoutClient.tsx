@@ -435,6 +435,8 @@ export default function CheckoutClient() {
     currentStep,
     envioOpcion,
     idTiendaDestino,
+    purchaseComplete,
+    setPurchaseComplete,
     goToEnvio,
     goToCarrito,
     goToPago,
@@ -507,11 +509,13 @@ export default function CheckoutClient() {
         itemCount={itemCount}
         paymentAllocations={paymentAllocations}
         idTiendaDestino={idTiendaDestino}
+        purchaseComplete={purchaseComplete}
         setPaymentAllocations={setPaymentAllocations}
         onGoToEnvio={goToEnvio}
         onGoToCarrito={goToCarrito}
         onGoToPago={goToPago}
         onGoToConfirmacion={goToConfirmacion}
+        onPurchaseComplete={() => setPurchaseComplete(true)}
         onIncrement={handleIncrement}
         onDecrement={handleDecrement}
         onRemove={handleRemoveBook}
@@ -546,25 +550,13 @@ export default function CheckoutClient() {
 
 interface CheckoutStepNavProps {
   currentStep: Step;
-  envioOpcion: OpcionEnvio | null;
-  onGoToEnvio: () => void;
-  onGoToCarrito: () => void;
-  onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
+  purchaseComplete: boolean;
 }
 
 function CheckoutStepNav({
   currentStep,
-  envioOpcion,
-  onGoToEnvio,
-  onGoToCarrito,
-  onGoToPago,
-}: {
-  currentStep: Step;
-  envioOpcion: OpcionEnvio | null;
-  onGoToEnvio: () => void;
-  onGoToCarrito: () => void;
-  onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
-}) {
+  purchaseComplete,
+}: CheckoutStepNavProps) {
   const stepKeys = Object.keys(STEP_CONFIG) as StepKey[];
 
   return (
@@ -572,15 +564,16 @@ function CheckoutStepNav({
       <div className="flex items-center justify-center gap-0 select-none">
         {stepKeys.map((key, idx) => {
           const cfg = STEP_CONFIG[key];
+          const isCompleted = purchaseComplete ? true : cfg.completed(currentStep);
           return (
             <React.Fragment key={key}>
               <StepCircle
                 number={cfg.number}
                 label={cfg.label}
                 active={currentStep === key}
-                completed={cfg.completed(currentStep)}
+                completed={isCompleted}
               />
-              {idx < stepKeys.length - 1 && <StepLine completed={cfg.completed(currentStep)} />}
+              {idx < stepKeys.length - 1 && <StepLine completed={isCompleted} />}
             </React.Fragment>
           );
         })}
@@ -596,6 +589,7 @@ interface CheckoutSidebarProps {
   costoEnvio: number;
   totalConEnvio: number;
   itemCount: number;
+  purchaseComplete: boolean;
   onGoToEnvio: () => void;
   onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
 }
@@ -619,6 +613,7 @@ function CheckoutSidebar({
   costoEnvio,
   totalConEnvio,
   itemCount,
+  purchaseComplete,
   onGoToEnvio,
   onGoToPago,
 }: CheckoutSidebarProps) {
@@ -688,7 +683,11 @@ function CheckoutSidebar({
         />
 
         <div className="px-5 lg:px-6 pb-6 pt-2">
-          {SIDEBAR_CONTENT[stepKey]}
+          {purchaseComplete ? (
+            <SidebarBadge label="Pagado exitosamente" value={formatPrice(totalConEnvio)} />
+          ) : (
+            SIDEBAR_CONTENT[stepKey]
+          )}
         </div>
       </div>
     </div>
@@ -706,11 +705,13 @@ interface CheckoutMainContentProps {
   itemCount: number;
   paymentAllocations: TarjetaPaymentAllocation[];
   idTiendaDestino: string;
+  purchaseComplete: boolean;
   setPaymentAllocations: (allocations: TarjetaPaymentAllocation[]) => void;
   onGoToEnvio: () => void;
   onGoToCarrito: () => void;
-  onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
+  onGoToPago: (opcion: OpcionEnvio, idTiendaOrigen?: string) => boolean;
   onGoToConfirmacion: () => void;
+  onPurchaseComplete: () => void;
   onIncrement: (id: string) => void;
   onDecrement: (group: ReservaAgrupadaItem) => void;
   onRemove: (group: ReservaAgrupadaItem) => void;
@@ -735,11 +736,12 @@ interface StepRenderActions {
   onIncrement: (id: string) => void;
   onDecrement: (group: ReservaAgrupadaItem) => void;
   onRemove: (group: ReservaAgrupadaItem) => void;
+  onPurchaseComplete: () => void;
 }
 
 function renderStepContent(
   { step, cartData, mutingBooks, envioOpcion, totalConEnvio, paymentAllocations, idTiendaDestino }: StepRenderData,
-  { setPaymentAllocations, onGoToPago, onGoToConfirmacion, onGoToCarrito, onGoToEnvio, onIncrement, onDecrement, onRemove }: StepRenderActions,
+  { setPaymentAllocations, onGoToPago, onGoToConfirmacion, onGoToCarrito, onGoToEnvio, onIncrement, onDecrement, onRemove, onPurchaseComplete }: StepRenderActions,
 ) {
   if (step === "carrito") {
     return cartData.map((group, index) => (
@@ -787,6 +789,7 @@ function renderStepContent(
       cartData={cartData ?? []}
       idTiendaDestino={idTiendaDestino}
       onBack={() => envioOpcion && onGoToPago(envioOpcion)}
+      onPurchaseComplete={onPurchaseComplete}
     />
   );
 }
@@ -802,11 +805,13 @@ function CheckoutMainContent({
   itemCount,
   paymentAllocations,
   idTiendaDestino,
+  purchaseComplete,
   setPaymentAllocations,
   onGoToEnvio,
   onGoToCarrito,
   onGoToPago,
   onGoToConfirmacion,
+  onPurchaseComplete,
   onIncrement,
   onDecrement,
   onRemove,
@@ -816,10 +821,7 @@ function CheckoutMainContent({
       <div className="space-y-4" id="checkout-scroll-container">
         <CheckoutStepNav
           currentStep={currentStep}
-          envioOpcion={envioOpcion}
-          onGoToEnvio={onGoToEnvio}
-          onGoToCarrito={onGoToCarrito}
-          onGoToPago={onGoToPago}
+          purchaseComplete={purchaseComplete}
         />
 
         <div className="space-y-4">
@@ -842,6 +844,7 @@ function CheckoutMainContent({
               onIncrement,
               onDecrement,
               onRemove,
+              onPurchaseComplete,
             },
           )}
         </div>
@@ -854,6 +857,7 @@ function CheckoutMainContent({
         costoEnvio={costoEnvio}
         totalConEnvio={totalConEnvio}
         itemCount={itemCount}
+        purchaseComplete={purchaseComplete}
         onGoToEnvio={onGoToEnvio}
         onGoToPago={onGoToPago}
       />
@@ -868,7 +872,6 @@ function MobilePeekBar({
   envioOpcion,
   onOpenSummary,
   onGoToEnvio,
-  onGoToCarrito,
   onGoToPago,
 }: {
   itemCount: number;
@@ -877,7 +880,6 @@ function MobilePeekBar({
   envioOpcion: OpcionEnvio | null;
   onOpenSummary: () => void;
   onGoToEnvio: () => void;
-  onGoToCarrito: () => void;
   onGoToPago: (opcion: OpcionEnvio, idTiendaDestino?: string) => boolean;
 }) {
   const PEEK_BUTTONS: Record<StepKey, React.ReactNode> = {

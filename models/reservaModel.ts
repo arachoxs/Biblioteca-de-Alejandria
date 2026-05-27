@@ -242,6 +242,29 @@ export async function deleteReservasBatch(ids: string[]): Promise<void> {
   });
 }
 
+/**
+ * Elimina reservas activas por usuario y copias específicas.
+ */
+export async function deleteReservasByUserAndCopias(
+  userId: string,
+  copiaIds: string[],
+): Promise<void> {
+  if (copiaIds.length === 0) return;
+
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("reserva")
+    .delete()
+    .eq("id_usuario", userId)
+    .in("id_copia", copiaIds);
+
+  if (error) {
+    console.error("[reservaModel] Error eliminando reservas por usuario y copias:", error);
+    throw error;
+  }
+}
+
 // ─── Lectura individual ─────────────────────────────────────────────
 
 /**
