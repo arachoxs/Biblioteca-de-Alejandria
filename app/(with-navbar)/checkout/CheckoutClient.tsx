@@ -528,7 +528,6 @@ export default function CheckoutClient() {
         envioOpcion={envioOpcion}
         onOpenSummary={openSummary}
         onGoToEnvio={goToEnvio}
-        onGoToCarrito={goToCarrito}
         onGoToPago={goToPago}
       />
 
