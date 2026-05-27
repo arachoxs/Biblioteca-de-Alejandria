@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { EntregaCreateInput, EntregaRow } from "@/lib/types/entrega";
 
 export async function insertEntrega(
-  input: EntregaCreateInput
+  input: EntregaCreateInput,
 ): Promise<EntregaRow> {
   const adminClient = createAdminClient();
 
@@ -15,7 +15,6 @@ export async function insertEntrega(
       tipo: input.tipo,
       costo: input.costo,
       fecha_entrega_estimada: input.fecha_entrega_estimada,
-      id_direccion_origen: input.id_direccion_origen,
       id_direccion_destino: input.id_direccion_destino,
       estado: input.estado ?? "en preparacion",
     })

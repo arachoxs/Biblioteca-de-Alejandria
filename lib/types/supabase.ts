@@ -242,7 +242,6 @@ export type Database = {
           id: string
           id_compra: string
           id_direccion_destino: number
-          id_direccion_origen: number
           tipo: Database["public"]["Enums"]["tipo_entrega"]
         }
         Insert: {
@@ -253,7 +252,6 @@ export type Database = {
           id?: string
           id_compra: string
           id_direccion_destino: number
-          id_direccion_origen: number
           tipo: Database["public"]["Enums"]["tipo_entrega"]
         }
         Update: {
@@ -264,7 +262,6 @@ export type Database = {
           id?: string
           id_compra?: string
           id_direccion_destino?: number
-          id_direccion_origen?: number
           tipo?: Database["public"]["Enums"]["tipo_entrega"]
         }
         Relationships: [
@@ -278,13 +275,6 @@ export type Database = {
           {
             foreignKeyName: "Entrega_id_direccion_destino_fkey"
             columns: ["id_direccion_destino"]
-            isOneToOne: false
-            referencedRelation: "direccion"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Entrega_id_direccion_origen_fkey"
-            columns: ["id_direccion_origen"]
             isOneToOne: false
             referencedRelation: "direccion"
             referencedColumns: ["id"]

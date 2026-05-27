@@ -7,7 +7,6 @@ export interface EntregaCreateInput {
   tipo: Database["public"]["Enums"]["tipo_entrega"];
   costo: number;
   fecha_entrega_estimada: string;
-  id_direccion_origen: number;
   id_direccion_destino: number;
   estado?: Database["public"]["Enums"]["estado_entrega"];
 }

@@ -187,7 +187,6 @@ async function executeWrites(
     tipo: input.entrega.tipo,
     costo: input.entrega.costo,
     fecha_entrega_estimada: input.entrega.fecha_entrega_estimada,
-    id_direccion_origen: tiendaIdDireccion,
     id_direccion_destino,
   });
   created.entregaId = entrega.id;
