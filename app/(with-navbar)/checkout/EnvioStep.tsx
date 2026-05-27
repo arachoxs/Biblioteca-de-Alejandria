@@ -46,7 +46,7 @@ export default function EnvioStep({
   onConfirm,
   onBack,
 }: {
-  onConfirm: (opcion: OpcionEnvio) => void;
+  onConfirm: (opcion: OpcionEnvio, idTiendaDestino: string) => void;
   onBack: () => void;
 }) {
   const [status, setStatus] = useState<EnvioStepStatus>("loading");
@@ -150,10 +150,11 @@ export default function EnvioStep({
   }, []);
 
   const handleConfirm = useCallback(() => {
-    if (selectedOption) {
-      onConfirm(selectedOption);
+    if (selectedOption && resultado?.tiendaMasCercana) {
+      const tiendaDestino = selectedOption.tiendaId ?? resultado.tiendaMasCercana.id
+      onConfirm(selectedOption, tiendaDestino);
     }
-  }, [selectedOption, onConfirm]);
+  }, [selectedOption, resultado, onConfirm]);
 
   if (status === "loading" || status === "gathering-location") {
     return <LoadingSkeleton status={status} />;
@@ -408,7 +409,7 @@ function CheckoutActionsFooter({
 }: {
   selectedOption: OpcionEnvio | null;
   onBack: () => void;
-  onConfirm: (option: OpcionEnvio) => void;
+  onConfirm: () => void;
 }) {
   return (
     <div
@@ -423,7 +424,7 @@ function CheckoutActionsFooter({
       <button
         type="button"
         onClick={() => {
-          if (selectedOption) onConfirm(selectedOption);
+          if (selectedOption) onConfirm();
         }}
         disabled={!selectedOption}
         className="flex-1 px-5 py-3 bg-brand-primary text-white text-sm font-medium rounded-xl hover:bg-brand-primary/90 active:scale-[0.98] transition-all disabled:bg-brand-accent/30 disabled:text-white/40 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer">
