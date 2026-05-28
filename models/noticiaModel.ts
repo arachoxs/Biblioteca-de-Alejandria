@@ -10,6 +10,8 @@ import type {
   UpdateNoticiaPayload,
   NoticiaRow,
   NoticiaFilters,
+  ReorderItem,
+  NoticiaAdminItem,
 } from "@/lib/types/noticia";
 import { buildSafePagination, normalizePagination } from "@/lib/pagination";
 import { formatILIKE, quotePostgrestFilterValue } from "@/lib/validations/db-utils";
@@ -22,6 +24,7 @@ interface NoticiaBaseRow {
   es_visible: boolean;
   deleted_at: string | null;
   imagenes: string[] | null;
+  orden: number | null;
 }
 
 interface NoticiaConLibroTitulo extends NoticiaBaseRow {
@@ -42,6 +45,7 @@ function mapNoticiaBase(row: NoticiaBaseRow) {
     es_visible: row.es_visible,
     deleted_at: row.deleted_at,
     imagenes: row.imagenes,
+    orden: row.orden ?? 0,
   };
 }
 
@@ -247,6 +251,7 @@ interface VistaNoticiaCompleta {
   paginas: number | null;
   stock_disponible: number | null;
   sipnosis: string | null;
+  orden: number | null;
 }
 
 function mapVistaToNoticiaWithLibroCompleto(row: VistaNoticiaCompleta): NoticiaWithLibroCompleto {
@@ -270,6 +275,7 @@ function mapVistaToNoticiaWithLibroCompleto(row: VistaNoticiaCompleta): NoticiaW
     categoria_nombre: row.categoria_nombre,
     stock_disponible: row.stock_disponible,
     sinopsis: row.sipnosis,
+    orden: row.orden ?? 0,
   };
 }
 
@@ -383,4 +389,102 @@ export async function getNoticiaCompletaById(
   if (!data) return null;
 
   return mapVistaToNoticiaWithLibroCompleto(data as unknown as VistaNoticiaCompleta);
+}
+
+// ─── Funciones para gestión de noticias (admin) ────────────────────
+
+/**
+ * Actualiza el orden de una noticia individual.
+ */
+export async function updateNoticiaOrden(
+  id: NoticiaId,
+  orden: number
+): Promise<void> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("noticias")
+    .update({ orden })
+    .eq("id", id)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[noticiaModel] Error actualizando orden:", error);
+    throw error;
+  }
+}
+
+/**
+ * Actualiza el orden de múltiples noticias en batch.
+ * Usa actualizaciones individuales ya que no existe RPC para esto.
+ */
+export async function bulkUpdateOrden(items: ReorderItem[]): Promise<void> {
+  const adminClient = createAdminClient();
+
+  // Ejecutar actualizaciones en paralelo
+  const updates = items.map((item) =>
+    adminClient
+      .from("noticias")
+      .update({ orden: item.orden })
+      .eq("id", item.id)
+      .is("deleted_at", null)
+  );
+
+  const results = await Promise.all(updates);
+
+  const errors = results.filter((r) => r.error);
+  if (errors.length > 0) {
+    console.error("[noticiaModel] Errores en bulk update de orden:", errors);
+    throw new Error(`Error actualizando orden de ${errors.length} noticias`);
+  }
+}
+
+interface VistaNoticiaAdmin extends VistaNoticiaCompleta {
+  orden: number;
+}
+
+function mapVistaToNoticiaAdminItem(row: VistaNoticiaAdmin): NoticiaAdminItem {
+  return {
+    ...mapVistaToNoticiaWithLibroCompleto(row),
+    orden: row.orden,
+  };
+}
+
+/**
+ * Obtiene todas las noticias para el panel de administración.
+ * Sin filtros de visibilidad ni expiración.
+ * Ordenadas por el campo `orden`.
+ */
+export async function getNoticiasAdmin(
+  page: number = 1,
+  pageSize: number = 20,
+  searchTerm?: SearchTerm
+): Promise<Paginated<NoticiaAdminItem>> {
+  const publicClient = createPublicClient();
+
+  const { safePage, safePageSize, from, to } = buildSafePagination(page, pageSize);
+
+  let query = publicClient
+    .from("vista_noticias_completa")
+    .select("*", { count: "exact" })
+    .is("deleted_at", null)
+    .range(from, to)
+    .order("orden", { ascending: true });
+
+  if (searchTerm?.trim()) {
+    const pattern = formatILIKE(searchTerm);
+    query = query.ilike("titulo", pattern);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("[noticiaModel] Error listando noticias admin:", error);
+    throw error;
+  }
+
+  const normalized: NoticiaAdminItem[] =
+    (data as unknown as VistaNoticiaAdmin[] | null)?.map(mapVistaToNoticiaAdminItem) ?? [];
+
+  return normalizePagination(normalized, count ?? 0, safePage, safePageSize);
 }
