@@ -1,5 +1,5 @@
 import { type ChangeEvent, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import Pagination from "./Pagination";
 
 export interface Column<T> {
   header: string;
@@ -176,63 +176,13 @@ export default function Table<T>({
         </table>
       </div>
 
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-4 border-t border-brand-accent/10 bg-brand-bg/50">
-          <p className="text-xs text-brand-secondary font-medium">
-            Página <span className="text-brand-primary">{pagination.currentPage}</span> de <span className="text-brand-primary">{pagination.totalPages}</span>
-            {pagination.totalItems !== undefined && pagination.totalItems !== null && (
-              <span className="hidden sm:inline"> • <span className="text-brand-primary">{pagination.totalItems}</span> resultados</span>
-            )}
-          </p>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => pagination.onPageChange(Math.max(1, pagination.currentPage - 1))}
-              disabled={pagination.currentPage === 1}
-              className="p-1.5 rounded-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/30 disabled:opacity-40 disabled:hover:text-brand-secondary disabled:cursor-not-allowed transition-all shadow-sm"
-              aria-label="Anterior"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            
-            <div className="hidden sm:flex gap-1">
-              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                // Simple logic to show a window of pages around current or start/end
-                let pageNum = i + 1;
-                if (pagination.totalPages > 5) {
-                    if (pagination.currentPage > 3) {
-                        pageNum = pagination.currentPage - 2 + i;
-                    }
-                    if (pageNum > pagination.totalPages) {
-                        pageNum = pagination.totalPages - 4 + i;
-                    }
-                }
-                return pageNum;
-              }).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => pagination.onPageChange(page)}
-                  className={`min-w-8 h-8 px-2 rounded-lg text-xs font-semibold transition-all ${
-                    pagination.currentPage === page
-                      ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20"
-                      : "bg-transparent text-brand-secondary hover:bg-brand-bg hover:text-brand-text"
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => pagination.onPageChange(Math.min(pagination.totalPages, pagination.currentPage + 1))}
-              disabled={pagination.currentPage === pagination.totalPages}
-              className="p-1.5 rounded-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/30 disabled:opacity-40 disabled:hover:text-brand-secondary disabled:cursor-not-allowed transition-all shadow-sm"
-              aria-label="Siguiente"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+      {pagination && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          onPageChange={pagination.onPageChange}
+        />
       )}
     </div>
   );

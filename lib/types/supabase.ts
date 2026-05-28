@@ -99,7 +99,7 @@ export type Database = {
           fecha: string
           id?: string
           id_promocion?: number | null
-          id_usuario?: string
+          id_usuario: string
           subtotal: number
           total: number
         }
@@ -576,6 +576,7 @@ export type Database = {
           id: string
           id_libro: string
           imagenes: Json | null
+          orden: number | null
         }
         Insert: {
           deleted_at?: string | null
@@ -585,6 +586,7 @@ export type Database = {
           id?: string
           id_libro: string
           imagenes?: Json | null
+          orden?: number | null
         }
         Update: {
           deleted_at?: string | null
@@ -594,6 +596,7 @@ export type Database = {
           id?: string
           id_libro?: string
           imagenes?: Json | null
+          orden?: number | null
         }
         Relationships: [
           {
@@ -826,7 +829,7 @@ export type Database = {
           mes_caducidad: number
           nombre_titular?: string | null
           saldo: number
-          ultimos_cuatro_digitos?: string
+          ultimos_cuatro_digitos: string
         }
         Update: {
           ano_caducidad?: number
@@ -1022,6 +1025,7 @@ export type Database = {
           imagenes: Json | null
           isbn: string | null
           libro_fecha_publicacion: string | null
+          orden: number | null
           paginas: number | null
           precio: number | null
           sipnosis: string | null

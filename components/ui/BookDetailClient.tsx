@@ -7,7 +7,7 @@ import { Rol } from "@/lib/types/auth";
 import { useQuantity, useCartValidation, useBibliographicData } from "./BookDetailClient.hooks";
 import { addToCart } from "@/app/(with-navbar)/noticia/[id]/actions";
 import type { ReservaActionResponse } from "@/lib/types/reserva";
-import BookImage from "./BookImage";
+import ImageCarousel from "./ImageCarousel";
 import BookHeader from "./BookHeader";
 import QuantityControls from "./QuantityControls";
 import ARButton from "./ARButton";
@@ -67,7 +67,7 @@ export default function BookDetailClient({ noticia, userRole }: BookDetailClient
   }, [noticia.id_libro, quantity]);
 
   const formattedPrice = formatPrice(noticia.precio);
-  const coverImage = noticia.imagenes?.[0];
+  const images = (noticia.imagenes as string[]) ?? [];
 
   return (
     <div className="min-h-screen bg-brand-bg pb-24 md:pb-0">
@@ -76,7 +76,7 @@ export default function BookDetailClient({ noticia, userRole }: BookDetailClient
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 [animation-delay:100ms] fill-mode-both">
-            <BookImage coverImage={coverImage} libroTitulo={noticia.libro_titulo} />
+            <ImageCarousel images={images} libroTitulo={noticia.libro_titulo} />
           </div>
 
           <div className="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700 [animation-delay:250ms] fill-mode-both">

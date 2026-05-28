@@ -35,21 +35,7 @@ interface CarouselItem {
   precio: number;
 }
 
-function buildCarouselItems(newsData: Paginated<NoticiaWithLibroCompleto>): CarouselItem[] {
-  const carouselItems = newsData.data
-    .filter((n) => n.imagenes && n.imagenes.length > 0)
-    .slice(0, 5)
-    .map((n) => ({
-      id: n.id,
-      imagenes: n.imagenes,
-      libro_titulo: n.libro_titulo || "",
-      precio: n.precio,
-    }));
-
-  if (carouselItems.length > 0) {
-    return carouselItems;
-  }
-
+function buildCarouselItems(): CarouselItem[] {
   return MOCK_CAROUSEL_IMAGES.map((url, index) => ({
     id: `mock-${index}`,
     imagenes: [url],
@@ -101,7 +87,7 @@ export default async function Home({
     console.error("[Home] Error fetching news:", error);
   }
 
-  const displayItems = buildCarouselItems(newsData);
+  const displayItems = buildCarouselItems();
   const filtersActive = hasActiveFilters(currentSearchParams);
 
   const results = filtersActive

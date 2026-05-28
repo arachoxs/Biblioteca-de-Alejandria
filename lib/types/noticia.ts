@@ -76,3 +76,23 @@ export interface NoticiaFilters {
   precioMax?: number;
   estado?: "nuevo" | "usado";
 }
+
+// ─── Tipos para gestión de noticias (admin) ────────────────────────
+
+/** Noticia con datos completos + orden para el panel de administración. */
+export interface NoticiaAdminItem extends NoticiaWithLibroCompleto {
+  orden: number;
+}
+
+/** Item para reordenamiento drag-and-drop. */
+export interface ReorderItem {
+  id: string;
+  orden: number;
+}
+
+/** Resultado de upload de imagen a Supabase Storage. */
+export interface ImageUploadResult {
+  success: boolean;
+  url?: string;
+  error?: string;
+}
