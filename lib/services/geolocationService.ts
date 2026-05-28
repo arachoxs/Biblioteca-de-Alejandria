@@ -3,6 +3,7 @@ interface GeocodingResponse {
   results?: Array<{
     place_id?: string
     formatted_address?: string
+    types?: string[]
   }>
 }
 
@@ -22,7 +23,7 @@ export async function reverseGeocode(
     throw new Error("Falta la API Key de Google Maps.")
   }
 
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&result_type=street_address|route&key=${apiKey}&language=es`
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=es`
 
   const response = await fetch(url)
 
@@ -36,7 +37,20 @@ export async function reverseGeocode(
     return { placeId: null, direccionFormateada: null }
   }
 
-  const result = data.results[0]
+  const preferredTypes = [
+    "street_address",
+    "premise",
+    "subpremise",
+    "route",
+    "neighborhood",
+    "sublocality",
+    "plus_code",
+  ]
+
+  const result =
+    data.results.find((item) =>
+      preferredTypes.some((type) => item.types?.includes(type)),
+    ) ?? data.results[0]
 
   return {
     placeId: result.place_id ?? null,

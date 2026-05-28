@@ -18,7 +18,11 @@ import type { ResultadoEnvio, OpcionEnvio } from "@/lib/types/checkout";
 
 type EnvioStepStatus = "loading" | "gathering-location" | "ready" | "error";
 
-const GEOLOCATION_OPTIONS = { timeout: 5000, enableHighAccuracy: false, maximumAge: 10 * 60 * 1000 };
+const GEOLOCATION_OPTIONS = {
+  timeout: 15000,
+  enableHighAccuracy: false,
+  maximumAge: 10 * 60 * 1000,
+};
 
 const PRICE_FORMATTER = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -103,12 +107,7 @@ export default function EnvioStep({
       let resolvedPlaceId: string | null = null;
       let didUseFallback = false;
 
-      const geoPromise = getBrowserLocation();
-      const geoTimeout = new Promise<{ lat: number; lng: number } | null>(
-        (resolve) => setTimeout(() => resolve(null), 5000),
-      );
-
-      const geoResult = await Promise.race([geoPromise, geoTimeout]);
+      const geoResult = await getBrowserLocation();
 
       if (geoResult) {
         try {
