@@ -167,7 +167,7 @@ export default function NoticiaImagesModal({
                       type="button"
                       onClick={() => handleDeleteClick(url)}
                       disabled={isDeleting === url}
-                      className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                      className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 cursor-pointer"
                       aria-label="Eliminar imagen"
                     >
                       {isDeleting === url ? (
@@ -242,12 +242,13 @@ export default function NoticiaImagesModal({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex items-center justify-center gap-3">
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={handleCancelDelete}
                   disabled={isDeleting !== null}
+                  className="w-auto"
                 >
                   Cancelar
                 </Button>
@@ -255,7 +256,7 @@ export default function NoticiaImagesModal({
                   type="button"
                   onClick={handleConfirmDelete}
                   disabled={isDeleting !== null}
-                  className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2"
+                  className="w-auto justify-center bg-red-600 hover:bg-red-700 text-white flex items-center gap-2"
                 >
                   {isDeleting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Eliminar

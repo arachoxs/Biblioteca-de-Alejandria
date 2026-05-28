@@ -46,8 +46,12 @@ function SortableRow({ noticia, onEdit, onManageImages }: SortableRowProps) {
 
   const imagenesCount = (noticia.imagenes as string[])?.length ?? 0;
   
-  // Compute expiration warning outside of render
-  const isExpiringSoon = noticia.fecha_expiracion
+  // Compute expiration states
+  const isExpired = noticia.fecha_expiracion
+    ? new Date(noticia.fecha_expiracion).getTime() < new Date().getTime()
+    : false;
+  
+  const isExpiringSoon = !isExpired && noticia.fecha_expiracion
     ? new Date(noticia.fecha_expiracion).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000
     : false;
 
@@ -100,12 +104,17 @@ function SortableRow({ noticia, onEdit, onManageImages }: SortableRowProps) {
       {/* Expiración */}
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
-          <span className={`text-sm ${isExpiringSoon ? "text-amber-600 font-medium" : "text-brand-secondary"}`}>
+          <span className={`text-sm ${isExpired ? "text-red-600 font-medium" : isExpiringSoon ? "text-amber-600 font-medium" : "text-brand-secondary"}`}>
             {noticia.fecha_expiracion
               ? new Date(noticia.fecha_expiracion).toLocaleDateString("es-ES")
               : "Sin fecha"}
           </span>
-          {isExpiringSoon && (
+          {isExpired && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+              Expirada
+            </span>
+          )}
+          {!isExpired && isExpiringSoon && (
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
               Pronto
             </span>
@@ -135,7 +144,7 @@ function SortableRow({ noticia, onEdit, onManageImages }: SortableRowProps) {
           <button
             type="button"
             onClick={() => onManageImages(noticia)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-accent/10 hover:bg-brand-accent/20 text-brand-accent transition-all cursor-pointer ring-1 ring-brand-accent/20 shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary transition-all cursor-pointer ring-1 ring-brand-primary/20 shadow-sm"
           >
             <ImageIcon className="w-4 h-4" />
             Imágenes

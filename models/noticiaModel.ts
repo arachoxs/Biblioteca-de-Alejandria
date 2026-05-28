@@ -216,7 +216,7 @@ function buildNoticiasQuery(
     .eq("es_visible", true)
     .gt("stock_disponible", 0)
     .range(from, to)
-    .order("fecha_publicacion", { ascending: false });
+    .order("orden", { ascending: true });
 
   if (config.applyExpirationFilter) {
     query = query.gt("fecha_expiracion", new Date().toISOString());

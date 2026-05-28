@@ -95,13 +95,13 @@ export default function NoticiaEditModal({
               Visibilidad
             </label>
             <button
-              type="button"
-              onClick={() => setEsVisible(!esVisible)}
-              className={`flex items-center gap-3 w-full p-4 rounded-lg border transition-all ${
-                esVisible
-                  ? "border-brand-primary/30 bg-brand-primary/5"
-                  : "border-brand-accent/20 bg-brand-bg"
-              }`}
+               type="button"
+               onClick={() => setEsVisible(!esVisible)}
+               className={`flex items-center gap-3 w-full p-4 rounded-lg border transition-all cursor-pointer ${
+                 esVisible
+                   ? "border-brand-primary/30 bg-brand-primary/5"
+                   : "border-brand-accent/20 bg-brand-bg"
+               }`}
             >
               {esVisible ? (
                 <Eye className="w-5 h-5 text-brand-primary" />
@@ -162,9 +162,9 @@ export default function NoticiaEditModal({
               Cancelar
             </Button>
             <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex items-center gap-2"
+               type="submit"
+               disabled={isSubmitting}
+               className="w-auto justify-center flex items-center gap-2"
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Guardar cambios
