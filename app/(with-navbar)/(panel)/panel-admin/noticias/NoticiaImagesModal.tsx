@@ -7,6 +7,17 @@ import { Upload, X, Loader2, ImageIcon, AlertTriangle } from "lucide-react";
 import { subirImagenAction, eliminarImagenAction } from "./actions";
 import type { NoticiaAdminItem } from "@/lib/types/noticia";
 
+// ─── Validation ────────────────────────────────────────────────────
+
+function validateImageFile(file: File, currentCount: number): string | null {
+  if (file.size > 5 * 1024 * 1024) return "El archivo excede el tamaño máximo de 5MB";
+  if (!file.type.startsWith("image/")) return "Solo se permiten archivos de imagen";
+  if (currentCount >= 10) return "Máximo 10 imágenes por noticia";
+  return null;
+}
+
+// ─── Images Modal ──────────────────────────────────────────────────
+
 interface NoticiaImagesModalProps {
   isOpen: boolean;
   noticia: NoticiaAdminItem | null;
@@ -40,21 +51,9 @@ export default function NoticiaImagesModal({
     const file = e.target.files?.[0];
     if (!file || !noticia) return;
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError("El archivo excede el tamaño máximo de 5MB");
-      return;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setError("Solo se permiten archivos de imagen");
-      return;
-    }
-
-    // Validate max images
-    if (imagenes.length >= 10) {
-      setError("Máximo 10 imágenes por noticia");
+    const validationError = validateImageFile(file, imagenes.length);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 

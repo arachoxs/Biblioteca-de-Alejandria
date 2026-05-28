@@ -18,7 +18,59 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Eye, EyeOff, ImageIcon, Pencil, Search, Newspaper, Loader2 } from "lucide-react";
+import Pagination from "@/components/ui/Pagination";
 import type { NoticiaAdminItem, ReorderItem } from "@/lib/types/noticia";
+
+// ─── Helpers ───────────────────────────────────────────────────────
+
+function getExpirationStatus(fechaExpiracion: string | null | undefined) {
+  if (!fechaExpiracion) return { isExpired: false, isExpiringSoon: false };
+  const expiry = new Date(fechaExpiracion).getTime();
+  const now = Date.now();
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  const isExpired = expiry < now;
+  const isExpiringSoon = !isExpired && expiry - now < ONE_DAY;
+  return { isExpired, isExpiringSoon };
+}
+
+// ─── Cell Components ───────────────────────────────────────────────
+
+function VisibilityCell({ esVisible }: { esVisible: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      {esVisible ? (
+        <Eye className="w-4 h-4 text-brand-primary" />
+      ) : (
+        <EyeOff className="w-4 h-4 text-brand-secondary/40" />
+      )}
+      <span className={`text-sm ${esVisible ? "text-brand-primary" : "text-brand-secondary/60"}`}>
+        {esVisible ? "Visible" : "Oculta"}
+      </span>
+    </div>
+  );
+}
+
+function ExpirationBadge({ isExpired, isExpiringSoon, fechaExpiracion }: { isExpired: boolean; isExpiringSoon: boolean; fechaExpiracion: string | null | undefined }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`text-sm ${isExpired ? "text-red-600 font-medium" : isExpiringSoon ? "text-amber-600 font-medium" : "text-brand-secondary"}`}>
+        {fechaExpiracion
+          ? new Date(fechaExpiracion).toLocaleDateString("es-ES")
+          : "Sin fecha"}
+      </span>
+      {isExpired && (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+          Expirada
+        </span>
+      )}
+      {!isExpired && isExpiringSoon && (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+          Pronto
+        </span>
+      )}
+    </div>
+  );
+}
 
 // ─── Sortable Row Component ────────────────────────────────────────
 
@@ -45,15 +97,7 @@ function SortableRow({ noticia, onEdit, onManageImages }: SortableRowProps) {
   };
 
   const imagenesCount = (noticia.imagenes as string[])?.length ?? 0;
-  
-  // Compute expiration states
-  const isExpired = noticia.fecha_expiracion
-    ? new Date(noticia.fecha_expiracion).getTime() < new Date().getTime()
-    : false;
-  
-  const isExpiringSoon = !isExpired && noticia.fecha_expiracion
-    ? new Date(noticia.fecha_expiracion).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000
-    : false;
+  const { isExpired, isExpiringSoon } = getExpirationStatus(noticia.fecha_expiracion);
 
   return (
     <tr
@@ -63,7 +107,6 @@ function SortableRow({ noticia, onEdit, onManageImages }: SortableRowProps) {
         isDragging ? "bg-brand-primary/5 shadow-lg" : "hover:bg-brand-bg/40"
       }`}
     >
-      {/* Drag Handle */}
       <td className="px-4 py-4 w-10">
         <button
           {...attributes}
@@ -75,7 +118,6 @@ function SortableRow({ noticia, onEdit, onManageImages }: SortableRowProps) {
         </button>
       </td>
 
-      {/* Título */}
       <td className="px-6 py-4">
         <div className="flex flex-col">
           <span className="font-semibold text-brand-text text-sm leading-tight max-w-[200px] truncate">
@@ -87,42 +129,14 @@ function SortableRow({ noticia, onEdit, onManageImages }: SortableRowProps) {
         </div>
       </td>
 
-      {/* Visibilidad */}
       <td className="px-6 py-4">
-        <div className="flex items-center gap-2">
-          {noticia.es_visible ? (
-            <Eye className="w-4 h-4 text-brand-primary" />
-          ) : (
-            <EyeOff className="w-4 h-4 text-brand-secondary/40" />
-          )}
-          <span className={`text-sm ${noticia.es_visible ? "text-brand-primary" : "text-brand-secondary/60"}`}>
-            {noticia.es_visible ? "Visible" : "Oculta"}
-          </span>
-        </div>
+        <VisibilityCell esVisible={noticia.es_visible} />
       </td>
 
-      {/* Expiración */}
       <td className="px-6 py-4">
-        <div className="flex items-center gap-2">
-          <span className={`text-sm ${isExpired ? "text-red-600 font-medium" : isExpiringSoon ? "text-amber-600 font-medium" : "text-brand-secondary"}`}>
-            {noticia.fecha_expiracion
-              ? new Date(noticia.fecha_expiracion).toLocaleDateString("es-ES")
-              : "Sin fecha"}
-          </span>
-          {isExpired && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-              Expirada
-            </span>
-          )}
-          {!isExpired && isExpiringSoon && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
-              Pronto
-            </span>
-          )}
-        </div>
+        <ExpirationBadge isExpired={isExpired} isExpiringSoon={isExpiringSoon} fechaExpiracion={noticia.fecha_expiracion} />
       </td>
 
-      {/* Imágenes */}
       <td className="px-6 py-4">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-brand-primary/10 text-brand-primary border-brand-primary/20">
           <ImageIcon className="w-3 h-3" />
@@ -130,7 +144,6 @@ function SortableRow({ noticia, onEdit, onManageImages }: SortableRowProps) {
         </span>
       </td>
 
-      {/* Acciones */}
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
           <button
@@ -152,6 +165,104 @@ function SortableRow({ noticia, onEdit, onManageImages }: SortableRowProps) {
         </div>
       </td>
     </tr>
+  );
+}
+
+// ─── State Components ──────────────────────────────────────────────
+
+function NoticiasTableLoading() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 gap-4">
+      <Loader2 className="w-10 h-10 animate-spin text-brand-primary" />
+      <p className="text-brand-secondary">Cargando noticias...</p>
+    </div>
+  );
+}
+
+function NoticiasTableError({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 gap-4 text-red-600">
+      <p className="font-medium">{message}</p>
+    </div>
+  );
+}
+
+function NoticiasTableEmpty({ hasSearch }: { hasSearch: boolean }) {
+  return (
+    <div className="w-full border border-brand-accent/20 rounded-xl bg-white shadow-sm">
+      <div className="flex flex-col items-center justify-center py-12 gap-3 text-brand-secondary/60">
+        <div className="p-3 bg-brand-bg rounded-full">
+          {hasSearch ? <Search className="w-6 h-6" /> : <Newspaper className="w-6 h-6" />}
+        </div>
+        <p className="font-medium">
+          {hasSearch ? "No se encontraron noticias" : "No hay noticias registradas"}
+        </p>
+        <p className="text-xs">
+          {hasSearch
+            ? "Intenta ajustar los filtros de búsqueda"
+            : "Las noticias se crean automáticamente al registrar un libro"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Drag & Drop Hook ─────────────────────────────────────────────
+
+function useTableDragDrop(
+  localData: NoticiaAdminItem[],
+  setLocalData: React.Dispatch<React.SetStateAction<NoticiaAdminItem[]>>,
+  onReorder?: (items: ReorderItem[]) => void
+) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = localData.findIndex((item) => item.id === active.id);
+      const newIndex = localData.findIndex((item) => item.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const newData = [...localData];
+      const [movedItem] = newData.splice(oldIndex, 1);
+      newData.splice(newIndex, 0, movedItem);
+      setLocalData(newData);
+
+      const reorderItems: ReorderItem[] = newData.map((item, index) => ({
+        id: item.id,
+        orden: index + 1,
+      }));
+      onReorder?.(reorderItems);
+    },
+    [localData, onReorder]
+  );
+
+  return { sensors, handleDragEnd };
+}
+
+// ─── Table Header ─────────────────────────────────────────────────
+
+function TableHeader() {
+  return (
+    <thead className="bg-brand-bg border-b border-brand-accent/20">
+      <tr>
+        <th className="px-4 py-4 font-semibold text-brand-primary w-10"></th>
+        <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">Libro</th>
+        <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">Visibilidad</th>
+        <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">Expiración</th>
+        <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">Imágenes</th>
+        <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">Acciones</th>
+      </tr>
+    </thead>
   );
 }
 
@@ -185,100 +296,15 @@ export default function NoticiasTable({
 }: NoticiasTableProps) {
   const [localData, setLocalData] = useState<NoticiaAdminItem[]>(data);
 
-  // Sync local data with props
   useEffect(() => {
     setLocalData(data);
   }, [data]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const { sensors, handleDragEnd } = useTableDragDrop(localData, setLocalData, onReorder);
 
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-
-      if (!over || active.id === over.id) return;
-
-      const oldIndex = localData.findIndex((item) => item.id === active.id);
-      const newIndex = localData.findIndex((item) => item.id === over.id);
-
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const newData = [...localData];
-      const [movedItem] = newData.splice(oldIndex, 1);
-      newData.splice(newIndex, 0, movedItem);
-
-      // Update local state optimistically
-      setLocalData(newData);
-
-      // Create reorder items with new order
-      const reorderItems: ReorderItem[] = newData.map((item, index) => ({
-        id: item.id,
-        orden: index + 1,
-      }));
-
-      // Call reorder handler
-      onReorder?.(reorderItems);
-    },
-    [localData, onReorder]
-  );
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-brand-primary" />
-        <p className="text-brand-secondary">Cargando noticias...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 gap-4 text-red-600">
-        <p className="font-medium">{error}</p>
-      </div>
-    );
-  }
-
-  const renderEmptyState = () => {
-    if (searchTerm) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12 gap-3 text-brand-secondary/60">
-          <div className="p-3 bg-brand-bg rounded-full">
-            <Search className="w-6 h-6" />
-          </div>
-          <p className="font-medium">No se encontraron noticias</p>
-          <p className="text-xs">Intenta ajustar los filtros de búsqueda</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3 text-brand-secondary/60">
-        <div className="p-3 bg-brand-bg rounded-full">
-          <Newspaper className="w-6 h-6" />
-        </div>
-        <p className="font-medium">No hay noticias registradas</p>
-        <p className="text-xs">Las noticias se crean automáticamente al registrar un libro</p>
-      </div>
-    );
-  };
-
-  if (localData.length === 0) {
-    return (
-      <div className="w-full border border-brand-accent/20 rounded-xl bg-white shadow-sm">
-        {renderEmptyState()}
-      </div>
-    );
-  }
+  if (isLoading) return <NoticiasTableLoading />;
+  if (error) return <NoticiasTableError message={error} />;
+  if (localData.length === 0) return <NoticiasTableEmpty hasSearch={!!searchTerm} />;
 
   return (
     <DndContext
@@ -289,26 +315,7 @@ export default function NoticiasTable({
       <div className="w-full border border-brand-accent/20 rounded-xl bg-white shadow-sm flex flex-col">
         <div className="overflow-x-auto rounded-xl overflow-hidden">
           <table className="w-full text-left text-sm">
-            <thead className="bg-brand-bg border-b border-brand-accent/20">
-              <tr>
-                <th className="px-4 py-4 font-semibold text-brand-primary w-10"></th>
-                <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">
-                  Libro
-                </th>
-                <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">
-                  Visibilidad
-                </th>
-                <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">
-                  Expiración
-                </th>
-                <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">
-                  Imágenes
-                </th>
-                <th className="px-6 py-4 font-semibold text-brand-primary tracking-wide">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
+            <TableHeader />
             <tbody className="divide-y divide-brand-accent/10">
               <SortableContext
                 items={localData.map((n) => n.id)}
@@ -327,68 +334,13 @@ export default function NoticiasTable({
           </table>
         </div>
 
-        {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-brand-accent/10 bg-brand-bg/50">
-            <p className="text-xs text-brand-secondary font-medium">
-              Página <span className="text-brand-primary">{pagination.currentPage}</span> de{" "}
-              <span className="text-brand-primary">{pagination.totalPages}</span>
-              {pagination.totalItems !== undefined && pagination.totalItems !== null && (
-                <span className="hidden sm:inline">
-                  {" "}
-                  • <span className="text-brand-primary">{pagination.totalItems}</span> resultados
-                </span>
-              )}
-            </p>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => pagination.onPageChange(Math.max(1, pagination.currentPage - 1))}
-                disabled={pagination.currentPage === 1}
-                className="p-1.5 rounded-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/30 disabled:opacity-40 disabled:hover:text-brand-secondary disabled:cursor-not-allowed transition-all shadow-sm"
-                aria-label="Anterior"
-              >
-                ←
-              </button>
-
-              <div className="hidden sm:flex gap-1">
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  let pageNum = i + 1;
-                  if (pagination.totalPages > 5) {
-                    if (pagination.currentPage > 3) {
-                      pageNum = pagination.currentPage - 2 + i;
-                    }
-                    if (pageNum > pagination.totalPages) {
-                      pageNum = pagination.totalPages - 4 + i;
-                    }
-                  }
-                  return pageNum;
-                }).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => pagination.onPageChange(page)}
-                    className={`min-w-8 h-8 px-2 rounded-lg text-xs font-semibold transition-all ${
-                      pagination.currentPage === page
-                        ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20"
-                        : "bg-transparent text-brand-secondary hover:bg-brand-bg hover:text-brand-text"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                onClick={() =>
-                  pagination.onPageChange(Math.min(pagination.totalPages, pagination.currentPage + 1))
-                }
-                disabled={pagination.currentPage === pagination.totalPages}
-                className="p-1.5 rounded-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/30 disabled:opacity-40 disabled:hover:text-brand-secondary disabled:cursor-not-allowed transition-all shadow-sm"
-                aria-label="Siguiente"
-              >
-                →
-              </button>
-            </div>
-          </div>
+        {pagination && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            onPageChange={pagination.onPageChange}
+          />
         )}
       </div>
     </DndContext>

@@ -12,6 +12,18 @@ import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
 import { getErrorMessage } from "@/lib/services/errors";
 import { uploadNoticiaImage, deleteNoticiaImage } from "@/lib/services/storage";
 
+type NoticiaResult = { success: boolean; error?: string };
+
+async function withNoticiaResult(fn: () => Promise<void>): Promise<NoticiaResult> {
+  try {
+    await fn();
+    return { success: true };
+  } catch (error) {
+    console.error("[noticiaService] Error:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
 export interface BuscarNoticiasParams {
   page?: number;
   pageSize?: number;
@@ -111,14 +123,8 @@ export async function obtenerNoticiasAdmin(
 export async function actualizarNoticia(
   id: NoticiaId,
   data: UpdateNoticiaPayload
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    await updateNoticia(id, data);
-    return { success: true };
-  } catch (error) {
-    console.error("[noticiaService] Error actualizando noticia:", error);
-    return { success: false, error: getErrorMessage(error) };
-  }
+): Promise<NoticiaResult> {
+  return withNoticiaResult(() => updateNoticia(id, data));
 }
 
 /**
@@ -127,14 +133,8 @@ export async function actualizarNoticia(
 export async function toggleVisibilidad(
   id: NoticiaId,
   esVisible: boolean
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    await updateNoticia(id, { es_visible: esVisible });
-    return { success: true };
-  } catch (error) {
-    console.error("[noticiaService] Error toggling visibilidad:", error);
-    return { success: false, error: getErrorMessage(error) };
-  }
+): Promise<NoticiaResult> {
+  return withNoticiaResult(() => updateNoticia(id, { es_visible: esVisible }));
 }
 
 /**
@@ -143,14 +143,8 @@ export async function toggleVisibilidad(
 export async function actualizarFechaExpiracion(
   id: NoticiaId,
   fechaExpiracion: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    await updateNoticia(id, { fecha_expiracion: fechaExpiracion });
-    return { success: true };
-  } catch (error) {
-    console.error("[noticiaService] Error actualizando fecha expiración:", error);
-    return { success: false, error: getErrorMessage(error) };
-  }
+): Promise<NoticiaResult> {
+  return withNoticiaResult(() => updateNoticia(id, { fecha_expiracion: fechaExpiracion }));
 }
 
 /**
@@ -158,14 +152,8 @@ export async function actualizarFechaExpiracion(
  */
 export async function reordenarNoticias(
   items: ReorderItem[]
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    await bulkUpdateOrden(items);
-    return { success: true };
-  } catch (error) {
-    console.error("[noticiaService] Error reordenando noticias:", error);
-    return { success: false, error: getErrorMessage(error) };
-  }
+): Promise<NoticiaResult> {
+  return withNoticiaResult(() => bulkUpdateOrden(items));
 }
 
 /**
