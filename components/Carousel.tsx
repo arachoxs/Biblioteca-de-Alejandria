@@ -29,9 +29,8 @@ function CarouselIndicator({
   return (
     <button
       onClick={onClick}
-      className={`w-2 h-2 rounded-full transition-all ${
-        isActive ? "bg-white w-6" : "bg-white/40 hover:bg-white/60"
-      }`}
+      className={`w-2 h-2 rounded-full transition-all ${isActive ? "bg-white w-6" : "bg-white/40 hover:bg-white/60"
+        }`}
       aria-label={`Ir a imagen ${index + 1}`}
     />
   );
@@ -143,7 +142,7 @@ export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselPro
             src={current.imagenes[0]}
             alt={current.libro_titulo}
             fill
-            className="object-cover transition-opacity duration-500"
+            className="object-contain transition-opacity duration-500"
             priority
           />
         ) : (
@@ -282,9 +281,8 @@ function CarouselControls({
               e.stopPropagation();
               onDotClick(index);
             }}
-            className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
-              index === currentIndex ? "bg-white w-6" : "bg-white/40 hover:bg-white/60"
-            }`}
+            className={`w-2 h-2 rounded-full transition-all cursor-pointer ${index === currentIndex ? "bg-white w-6" : "bg-white/40 hover:bg-white/60"
+              }`}
             aria-label={`Ir a imagen ${index + 1}`}
           />
         ))}

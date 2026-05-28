@@ -1,5 +1,5 @@
+import Image from "next/image";
 import Footer from "@/components/Footer";
-import Carousel from "@/components/Carousel";
 import NewsGrid from "@/components/ui/NewsGrid";
 import PreferenciasLiterariasSection from "@/components/profile/PreferenciasLiterariasSection";
 import SearchSection from "./SearchSection";
@@ -10,39 +10,10 @@ import { Rol } from "@/lib/types/auth";
 import type { NoticiaWithLibroCompleto } from "@/lib/types/noticia";
 import type { Paginated } from "@/lib/types/common";
 
-const MOCK_CAROUSEL_IMAGES = [
-  "https://i.imgur.com/nTxt9Xk.jpeg",
-  "https://i.imgur.com/s7XJRQ9.jpeg",
-  "https://i.imgur.com/QVysiPp.jpeg",
-  "https://i.imgur.com/9sLopgG.jpeg",
-  "https://i.imgur.com/Ozkzjau.jpeg",
-];
-
-const MOCK_CAROUSEL_TITLES = [
-  "Nuevas Lecturas",
-  "Recomendaciones",
-  "Lo Más Vendido",
-  "Próximamente",
-  "Edición Especial",
-];
+const BANNER_URL =
+  "https://aaadijmkflfckmoluiex.supabase.co/storage/v1/object/public/imagenes-noticias/banners/banner.jpg";
 
 type SearchParams = Promise<Record<string, string>>;
-
-interface CarouselItem {
-  id: string;
-  imagenes: string[] | null;
-  libro_titulo: string;
-  precio: number;
-}
-
-function buildCarouselItems(): CarouselItem[] {
-  return MOCK_CAROUSEL_IMAGES.map((url, index) => ({
-    id: `mock-${index}`,
-    imagenes: [url],
-    libro_titulo: MOCK_CAROUSEL_TITLES[index],
-    precio: 0,
-  }));
-}
 
 function hasActiveFilters(searchParams: Record<string, string>): boolean {
   return !!(
@@ -87,7 +58,6 @@ export default async function Home({
     console.error("[Home] Error fetching news:", error);
   }
 
-  const displayItems = buildCarouselItems();
   const filtersActive = hasActiveFilters(currentSearchParams);
 
   const results = filtersActive
@@ -102,7 +72,15 @@ export default async function Home({
         ) : (
           <>
             <section className="max-w-6xl mx-auto px-4 pt-8 pb-12">
-              <Carousel items={displayItems} />
+              <div className="relative w-full aspect-video sm:aspect-[21/9] md:aspect-[3/1] rounded-2xl overflow-hidden">
+                <Image
+                  src={BANNER_URL}
+                  alt="Banner"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
             </section>
 
             <section className="max-w-6xl mx-auto px-4 pb-16">
