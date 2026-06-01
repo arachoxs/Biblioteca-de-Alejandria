@@ -39,6 +39,7 @@ export default function ChatMessage({ role, content, books = [] }: ChatMessagePr
                 categoria={book.categoria}
                 precio={book.precio}
                 copias_disponibles={book.copias_disponibles}
+                noticia_id={book.noticia_id}
               />
             ))}
           </div>

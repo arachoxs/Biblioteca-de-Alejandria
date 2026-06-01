@@ -155,9 +155,15 @@ function extractBooksFromSteps(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   steps: any[],
 ): BookData[] {
-  return steps.flatMap((step) =>
+  const books = steps.flatMap((step) =>
     (step.toolResults ?? []).flatMap(extractBooksFromStepResult),
   );
+  const seen = new Set<string>();
+  return books.filter((book) => {
+    if (seen.has(book.id)) return false;
+    seen.add(book.id);
+    return true;
+  });
 }
 
 /**

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import type { ChatMessage } from "@/lib/types/ai";
+import type { ChatMessage, BookData } from "@/lib/types/ai";
 
 function buildUIMessages(
   previousMessages: ChatMessage[],
@@ -24,7 +24,7 @@ function buildUIMessages(
 async function fetchChatResponse(
   uiMessages: ReturnType<typeof buildUIMessages>,
   signal: AbortSignal,
-): Promise<{ content: string; books: unknown[] }> {
+): Promise<{ content: string; books: BookData[] }> {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: {

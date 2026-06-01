@@ -36,6 +36,7 @@ function normalizeRow(
     copias_disponibles: row.copias_disponibles!,
     copias_reservadas: row.copias_reservadas!,
     copias_vendidas: row.copias_vendidas!,
+    noticia_id: row.noticia_id ?? null,
   };
 }
 

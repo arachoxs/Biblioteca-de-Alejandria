@@ -7,6 +7,7 @@ import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import { useChatModal } from "./useChatModal";
 import { useChatState } from "./useChatState";
+import { ChatModalProvider } from "./ChatModalContext";
 
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -83,20 +84,22 @@ export default function ChatBot() {
             aria-label="Asistente Virtual"
             onAnimationEnd={() => inputRef.current?.focus()}
             className={`fixed bottom-24 right-6 w-[calc(100vw-3rem)] max-w-md h-[70vh] sm:h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-brand-primary/10 ${panelClass}`}>
-            <ChatHeader onClose={handleClose} />
-            <ChatMessageList
-              messages={messages}
-              isLoading={isLoading}
-              error={error}
-              messagesEndRef={messagesEndRef}
-            />
-            <ChatInput
-              input={input}
-              onInputChange={setInput}
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              inputRef={inputRef}
-            />
+            <ChatModalProvider onClose={handleClose}>
+              <ChatHeader onClose={handleClose} />
+              <ChatMessageList
+                messages={messages}
+                isLoading={isLoading}
+                error={error}
+                messagesEndRef={messagesEndRef}
+              />
+              <ChatInput
+                input={input}
+                onInputChange={setInput}
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                inputRef={inputRef}
+              />
+            </ChatModalProvider>
           </div>
         </div>
       )}

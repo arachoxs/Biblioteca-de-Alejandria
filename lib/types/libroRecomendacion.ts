@@ -30,6 +30,7 @@ export interface LibroRecomendacionItem {
   copias_disponibles: number;
   copias_reservadas: number;
   copias_vendidas: number;
+  noticia_id: string | null;
 }
 
 export interface LibroRecomendacionBusqueda {

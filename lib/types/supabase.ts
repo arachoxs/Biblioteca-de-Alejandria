@@ -1073,6 +1073,7 @@ export type Database = {
           idioma: string | null
           isbn: string | null
           libro_id: string | null
+          noticia_id: string | null
           paginas: number | null
           precio: number | null
           sipnosis: string | null

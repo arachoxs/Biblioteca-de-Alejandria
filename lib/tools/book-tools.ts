@@ -64,6 +64,7 @@ export const searchBooks = tool({
         precio: libro.precio,
         copias_disponibles: libro.copias_disponibles,
         idioma: libro.idioma,
+        noticia_id: libro.noticia_id ?? undefined,
       })),
     };
   },
@@ -107,6 +108,7 @@ export const getBookDetail = tool({
         copias_disponibles: libro.copias_disponibles,
         copias_reservadas: libro.copias_reservadas,
         copias_vendidas: libro.copias_vendidas,
+        noticia_id: libro.noticia_id ?? undefined,
       },
     };
   },
@@ -216,6 +218,7 @@ export const getRelatedBooks = tool({
             titulo: l.titulo,
             autor: l.autor_nombre,
             precio: l.precio,
+            noticia_id: l.noticia_id ?? undefined,
           })),
       });
     }
@@ -234,6 +237,7 @@ export const getRelatedBooks = tool({
             titulo: l.titulo,
             categoria: l.categoria_nombre,
             precio: l.precio,
+            noticia_id: l.noticia_id ?? undefined,
           })),
       });
     }
