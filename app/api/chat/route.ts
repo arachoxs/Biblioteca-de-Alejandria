@@ -4,21 +4,22 @@ import type { UIMessage } from "ai";
 
 const CHAT_SOURCE_HEADER = "biblioteca-chatbot";
 
+const VERCEL_PREVIEW_PATTERN =
+  /^biblioteca-de-alejandria-[a-z0-9]+(-arachoxs-projects)?\.vercel\.app$/;
+
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
 
   try {
     const originUrl = new URL(origin);
+    const hostname = originUrl.hostname;
+
+    if (hostname === "localhost") return true;
+
+    if (VERCEL_PREVIEW_PATTERN.test(hostname)) return true;
+
     const allowedUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL!);
-
-    if (originUrl.hostname === allowedUrl.hostname) return true;
-
-    if (
-      process.env.NODE_ENV === "development" &&
-      originUrl.hostname === "localhost"
-    ) {
-      return true;
-    }
+    if (hostname === allowedUrl.hostname) return true;
 
     return false;
   } catch {
