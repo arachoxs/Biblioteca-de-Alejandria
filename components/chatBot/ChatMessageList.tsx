@@ -4,6 +4,7 @@ import ChatMessage from "./ChatMessage";
 interface ChatMessageListProps {
   messages: UIMessage[];
   isLoading: boolean;
+  error?: Error | null;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -22,6 +23,7 @@ function extractTextContent(
 export default function ChatMessageList({
   messages,
   isLoading,
+  error,
   messagesEndRef,
 }: ChatMessageListProps) {
   const filteredMessages = messages.filter(
@@ -64,9 +66,18 @@ export default function ChatMessageList({
           <ChatMessage
             role={message.role as "user" | "assistant"}
             content={extractTextContent(message.parts)}
+            parts={message.parts}
           />
         </div>
       ))}
+
+      {error && (
+        <div className="flex justify-center chat-message-in">
+          <div className="px-4 py-2.5 text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl">
+            Ocurrió un error al conectar con el asistente. Intenta de nuevo.
+          </div>
+        </div>
+      )}
 
       {showLoading && (
         <div className="flex justify-start chat-message-in">

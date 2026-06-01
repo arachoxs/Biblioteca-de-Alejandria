@@ -9,7 +9,12 @@ import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import { useChatModal } from "./useChatModal";
 
-const chatTransport = new DefaultChatTransport({ api: "/api/chat" });
+const chatTransport = new DefaultChatTransport({
+  api: "/api/chat",
+  headers: {
+    "X-Chat-Source": "biblioteca-chatbot",
+  },
+});
 
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,8 +22,11 @@ export default function ChatBot() {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: chatTransport,
+    onError: (err) => {
+      console.error("[ChatBot] Error:", err);
+    },
   });
 
   const isLoading = status !== "ready";
@@ -95,6 +103,7 @@ export default function ChatBot() {
             <ChatMessageList
               messages={messages}
               isLoading={isLoading}
+              error={error}
               messagesEndRef={messagesEndRef}
             />
             <ChatInput
