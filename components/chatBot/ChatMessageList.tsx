@@ -1,23 +1,11 @@
-import type { UIMessage } from "ai";
 import ChatMessage from "./ChatMessage";
+import type { ChatMessage as ChatMessageType } from "@/lib/types/ai";
 
 interface ChatMessageListProps {
-  messages: UIMessage[];
+  messages: ChatMessageType[];
   isLoading: boolean;
   error?: Error | null;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
-}
-
-function extractTextContent(
-  parts: Array<{ type: string; text?: string }>,
-): string {
-  let result = "";
-  for (const part of parts) {
-    if (part.type === "text" && part.text) {
-      result += part.text;
-    }
-  }
-  return result;
 }
 
 export default function ChatMessageList({
@@ -26,10 +14,6 @@ export default function ChatMessageList({
   error,
   messagesEndRef,
 }: ChatMessageListProps) {
-  const filteredMessages = messages.filter(
-    (m) => m.role === "user" || m.role === "assistant",
-  );
-
   const showLoading =
     isLoading && messages[messages.length - 1]?.role !== "assistant";
 
@@ -39,7 +23,7 @@ export default function ChatMessageList({
       aria-live="polite"
       aria-label="Mensajes del chat"
       className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0 bg-gradient-to-b from-brand-bg/30 to-white">
-      {filteredMessages.length === 0 && !showLoading && (
+      {messages.length === 0 && !showLoading && (
         <div className="chat-message-in">
           <div className="flex justify-start">
             <div className="max-w-[85%] px-4 py-3 text-sm leading-relaxed bg-white text-brand-text border border-brand-accent/15 rounded-2xl rounded-bl-md shadow-sm">
@@ -58,15 +42,15 @@ export default function ChatMessageList({
         </div>
       )}
 
-      {filteredMessages.map((message, index) => (
+      {messages.map((message, index) => (
         <div
           key={message.id}
           className="chat-message-in"
           style={{ animationDelay: `${Math.min(index * 30, 150)}ms` }}>
           <ChatMessage
-            role={message.role as "user" | "assistant"}
-            content={extractTextContent(message.parts)}
-            parts={message.parts}
+            role={message.role}
+            content={message.content}
+            books={message.books}
           />
         </div>
       ))}

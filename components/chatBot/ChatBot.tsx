@@ -1,35 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import { MessageSquare } from "lucide-react";
 import ChatHeader from "./ChatHeader";
 import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import { useChatModal } from "./useChatModal";
-
-const chatTransport = new DefaultChatTransport({
-  api: "/api/chat",
-  headers: {
-    "X-Chat-Source": "biblioteca-chatbot",
-  },
-});
+import { useChatState } from "./useChatState";
 
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const { messages, sendMessage, status, error } = useChat({
-    transport: chatTransport,
-    onError: (err) => {
-      console.error("[ChatBot] Error:", err);
-    },
-  });
-
-  const isLoading = status !== "ready";
+  const { messages, isLoading, error, sendMessage, abort } = useChatState();
 
   const handleClose = useCallback(() => {
     setIsClosing(true);
@@ -40,33 +24,33 @@ export default function ChatBot() {
     setIsClosing(false);
   }, []);
 
-  const { panelRef, inputRef, timerRef } = useChatModal({
+  const { panelRef, inputRef } = useChatModal({
     isOpen,
     isClosing,
     onClose: handleClose,
   });
 
-  // Complete close after animation
   useEffect(() => {
-    if (isClosing) {
-      timerRef.current = setTimeout(() => {
-        setIsOpen(false);
-        setIsClosing(false);
-        timerRef.current = null;
-      }, 200);
-    }
-  }, [isClosing, timerRef]);
+    if (!isClosing) return;
+    const timer = setTimeout(() => {
+      setIsOpen(false);
+      setIsClosing(false);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [isClosing]);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
-      const trimmed = input.trim();
-      if (!trimmed || isLoading) return;
-      sendMessage({ text: trimmed });
-      setInput("");
+      const success = await sendMessage(input, messages);
+      if (success) setInput("");
     },
-    [input, isLoading, sendMessage],
+    [input, messages, sendMessage],
   );
+
+  useEffect(() => {
+    return () => abort();
+  }, [abort]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
