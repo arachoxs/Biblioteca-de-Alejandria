@@ -48,6 +48,30 @@ async function fetchChatResponse(
   return { content: data.message.content, books: data.books || [] };
 }
 
+function createUserMessage(input: string): ChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: "user",
+    content: input.trim(),
+  };
+}
+
+function createAssistantMessage(
+  content: string,
+  books: BookData[],
+): ChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: "assistant",
+    content,
+    books,
+  };
+}
+
+function handleSendError(err: unknown): Error {
+  return err instanceof Error ? err : new Error("Error desconocido");
+}
+
 export function useChatState() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,12 +86,7 @@ export function useChatState() {
       abortControllerRef.current?.abort();
       abortControllerRef.current = new AbortController();
 
-      const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: trimmed,
-      };
-
+      const userMessage = createUserMessage(input);
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
       setError(null);
@@ -79,14 +98,11 @@ export function useChatState() {
           abortControllerRef.current.signal,
         );
 
-        setMessages((prev) => [
-          ...prev,
-          { id: crypto.randomUUID(), role: "assistant", content, books },
-        ]);
+        setMessages((prev) => [...prev, createAssistantMessage(content, books)]);
         return true;
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return false;
-        setError(err instanceof Error ? err : new Error("Error desconocido"));
+        setError(handleSendError(err));
         return false;
       } finally {
         setIsLoading(false);

@@ -38,6 +38,40 @@ function validateRequest(req: Request): { error?: NextResponse } {
   return {};
 }
 
+function parseBody(body: unknown): { messages?: UIMessage[]; error?: NextResponse } {
+  const { messages } = body as { messages: UIMessage[] };
+  return { messages };
+}
+
+function validationError(message: string): { error: NextResponse } {
+  return {
+    error: NextResponse.json(
+      { success: false, message },
+      { status: 400 },
+    ),
+  };
+}
+
+function isInvalidMessagesArray(
+  messages: UIMessage[] | undefined,
+): boolean {
+  if (!messages) return true;
+  if (!Array.isArray(messages)) return true;
+  return messages.length === 0;
+}
+
+function validateMessages(
+  messages: UIMessage[] | undefined,
+): { messages: UIMessage[] } | { error: NextResponse } {
+  if (isInvalidMessagesArray(messages)) {
+    return validationError("Se requiere un array de mensajes.");
+  }
+  if (messages!.length > 50) {
+    return validationError("Máximo 50 mensajes por conversación.");
+  }
+  return { messages: messages! };
+}
+
 async function parseAndValidateMessages(req: Request): Promise<
   { messages: UIMessage[] } | { error: NextResponse }
 > {
@@ -45,35 +79,11 @@ async function parseAndValidateMessages(req: Request): Promise<
   try {
     body = await req.json();
   } catch {
-    return {
-      error: NextResponse.json(
-        { success: false, message: "Request body inválido." },
-        { status: 400 },
-      ),
-    };
+    return validationError("Request body inválido.");
   }
 
-  const { messages } = body as { messages: UIMessage[] };
-
-  if (!messages || !Array.isArray(messages) || messages.length === 0) {
-    return {
-      error: NextResponse.json(
-        { success: false, message: "Se requiere un array de mensajes." },
-        { status: 400 },
-      ),
-    };
-  }
-
-  if (messages.length > 50) {
-    return {
-      error: NextResponse.json(
-        { success: false, message: "Máximo 50 mensajes por conversación." },
-        { status: 400 },
-      ),
-    };
-  }
-
-  return { messages };
+  const { messages } = parseBody(body);
+  return validateMessages(messages);
 }
 
 export async function POST(req: Request) {
