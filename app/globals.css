@@ -302,3 +302,60 @@
   animation: chatHeaderShimmer 3s linear infinite;
 }
 
+/* ── Chat Markdown styles ─────────────────────────────────────── */
+.chat-md p { margin: 0.4em 0; }
+.chat-md p:first-child { margin-top: 0; }
+.chat-md p:last-child { margin-bottom: 0; }
+.chat-md strong { font-weight: 600; color: var(--color-brand-primary); }
+.chat-md em { font-style: italic; color: var(--color-brand-secondary); }
+.chat-md del { color: var(--color-brand-secondary); opacity: 0.6; }
+.chat-md ul { list-style: disc; padding-left: 1.25em; margin: 0.4em 0; }
+.chat-md ol { list-style: decimal; padding-left: 1.25em; margin: 0.4em 0; }
+.chat-md li { margin: 0.15em 0; }
+.chat-md li input[type="checkbox"] { margin-right: 0.35em; }
+.chat-md a {
+  color: var(--color-brand-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.15s ease;
+}
+.chat-md a:hover { opacity: 0.8; }
+.chat-md h1, .chat-md h2, .chat-md h3,
+.chat-md h4, .chat-md h5, .chat-md h6 {
+  font-weight: 600;
+  color: var(--color-brand-primary);
+  line-height: 1.3;
+}
+.chat-md h1 { font-size: 1.4em; margin: 0.6em 0 0.3em; }
+.chat-md h2 { font-size: 1.2em; margin: 0.5em 0 0.25em; }
+.chat-md h3 { font-size: 1.05em; margin: 0.4em 0 0.2em; }
+.chat-md img { max-width: 100%; border-radius: 6px; margin: 0.3em 0; }
+.chat-md table { border-collapse: collapse; margin: 0.5em 0; font-size: 0.9em; width: 100%; }
+.chat-md th, .chat-md td { border: 1px solid var(--color-brand-accent); padding: 0.35em 0.6em; text-align: left; }
+.chat-md th { background: var(--color-brand-bg); font-weight: 600; }
+.chat-md hr { border: none; border-top: 1px solid var(--color-brand-accent); margin: 0.75em 0; opacity: 0.4; }
+.chat-md code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-brand-bg);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+}
+.chat-md pre {
+  background: var(--color-brand-bg);
+  padding: 0.75em 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.chat-md pre code {
+  background: none;
+  padding: 0;
+}
+.chat-md blockquote {
+  border-left: 3px solid var(--color-brand-accent);
+  padding-left: 0.75em;
+  margin: 0.4em 0;
+  color: var(--color-brand-secondary);
+}
+

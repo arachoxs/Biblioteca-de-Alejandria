@@ -1,4 +1,8 @@
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import BookRecommendationCard from "./BookRecommendationCard";
+
+const remarkPlugins = [remarkGfm];
 
 interface BookData {
   titulo: string;
@@ -67,7 +71,11 @@ export default function ChatMessage({ role, content, parts = [] }: ChatMessagePr
             ? "bg-brand-primary text-white rounded-2xl rounded-br-md"
             : "bg-white text-brand-text border border-brand-accent/15 rounded-2xl rounded-bl-md"
         }`}>
-        {content && <p>{content}</p>}
+        {content && (
+          <div className="chat-md">
+            <Markdown remarkPlugins={remarkPlugins}>{content}</Markdown>
+          </div>
+        )}
 
         {books.length > 0 && (
           <div className={`${content ? "mt-2" : ""} space-y-2`}>
