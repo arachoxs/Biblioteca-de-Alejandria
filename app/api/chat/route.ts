@@ -5,7 +5,7 @@ import type { UIMessage } from "ai";
 const CHAT_SOURCE_HEADER = "biblioteca-chatbot";
 
 const VERCEL_PREVIEW_PATTERN =
-  /^biblioteca-de-alejandria-[a-z0-9]+(-arachoxs-projects)?\.vercel\.app$/;
+  /^biblioteca-de-alejandria-.+\.vercel\.app$/;
 
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
