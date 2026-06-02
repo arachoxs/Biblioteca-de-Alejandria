@@ -10,6 +10,7 @@ import {
   LogOut,
   LogIn,
   UserPlus,
+  Receipt,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -207,6 +208,17 @@ export default function MobileMenu({
                   {role === Rol.ADMINISTRADOR && !profileComplete
                     ? "Completar perfil"
                     : "Ver perfil"}
+                </Link>
+              )}
+
+              {role === Rol.CLIENTE && (
+                <Link
+                  href="/historial-compras"
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg transition-all group"
+                  onClick={handleClose}
+                >
+                  <Receipt className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
+                  Historial de compras
                 </Link>
               )}
 
