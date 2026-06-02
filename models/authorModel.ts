@@ -5,6 +5,7 @@ import type {
   InsertAuthorPayload,
   UpdateAuthorPayload,
 } from "@/lib/types/author";
+import type { TablesUpdate } from "@/lib/types/supabase";
 import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 import { buildOrILikeFilter, escapeLikePattern } from "@/lib/validations/db-utils";
 
@@ -26,7 +27,7 @@ function buildAutorPayload(data: {
 
 async function executeAutorUpdate(
   id: number,
-  setClause: Record<string, unknown>
+  setClause: TablesUpdate<"autor">
 ): Promise<void> {
   const adminClient = createAdminClient();
 

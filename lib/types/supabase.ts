@@ -169,6 +169,13 @@ export type Database = {
             referencedColumns: ["libro_id"]
           },
           {
+            foreignKeyName: "copia_id_libro_fkey"
+            columns: ["id_libro"]
+            isOneToOne: false
+            referencedRelation: "vista_libros_recomendacion"
+            referencedColumns: ["libro_id"]
+          },
+          {
             foreignKeyName: "copia_id_tienda_fkey"
             columns: ["id_tienda"]
             isOneToOne: false
@@ -382,6 +389,13 @@ export type Database = {
             referencedRelation: "vista_inventario"
             referencedColumns: ["libro_id"]
           },
+          {
+            foreignKeyName: "Historico_id_libro_fkey"
+            columns: ["id_libro"]
+            isOneToOne: false
+            referencedRelation: "vista_libros_recomendacion"
+            referencedColumns: ["libro_id"]
+          },
         ]
       }
       item_compra: {
@@ -520,6 +534,13 @@ export type Database = {
             foreignKeyName: "Libro_id_autor_fkey"
             columns: ["id_autor"]
             isOneToOne: false
+            referencedRelation: "vista_libros_recomendacion"
+            referencedColumns: ["autor_id"]
+          },
+          {
+            foreignKeyName: "Libro_id_autor_fkey"
+            columns: ["id_autor"]
+            isOneToOne: false
             referencedRelation: "vista_noticias_completa"
             referencedColumns: ["autor_id"]
           },
@@ -529,6 +550,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categoria"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Libro_id_categoria_fkey"
+            columns: ["id_categoria"]
+            isOneToOne: false
+            referencedRelation: "vista_libros_recomendacion"
+            referencedColumns: ["categoria_id"]
           },
           {
             foreignKeyName: "Libro_id_categoria_fkey"
@@ -613,6 +641,13 @@ export type Database = {
             referencedRelation: "vista_inventario"
             referencedColumns: ["libro_id"]
           },
+          {
+            foreignKeyName: "Noticias_id_libro_fkey"
+            columns: ["id_libro"]
+            isOneToOne: false
+            referencedRelation: "vista_libros_recomendacion"
+            referencedColumns: ["libro_id"]
+          },
         ]
       }
       preferencia_autor: {
@@ -641,6 +676,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "autor"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "PreferenciaAutor_id_autor_fkey"
+            columns: ["id_autor"]
+            isOneToOne: false
+            referencedRelation: "vista_libros_recomendacion"
+            referencedColumns: ["autor_id"]
           },
           {
             foreignKeyName: "PreferenciaAutor_id_autor_fkey"
@@ -684,6 +726,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categoria"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "PreferenciaCategoria_id_categoria_fkey"
+            columns: ["id_categoria"]
+            isOneToOne: false
+            referencedRelation: "vista_libros_recomendacion"
+            referencedColumns: ["categoria_id"]
           },
           {
             foreignKeyName: "PreferenciaCategoria_id_categoria_fkey"
@@ -1006,6 +1055,32 @@ export type Database = {
           },
         ]
       }
+      vista_libros_recomendacion: {
+        Row: {
+          ano_publicacion: number | null
+          autor_id: number | null
+          autor_nacionalidad: string | null
+          autor_nombre: string | null
+          categoria_descripcion: string | null
+          categoria_id: number | null
+          categoria_nombre: string | null
+          condicion_libro: Database["public"]["Enums"]["condicion_libro"] | null
+          copias_disponibles: number | null
+          copias_reservadas: number | null
+          copias_vendidas: number | null
+          editorial: string | null
+          fecha_publicacion: string | null
+          idioma: string | null
+          isbn: string | null
+          libro_id: string | null
+          noticia_id: string | null
+          paginas: number | null
+          precio: number | null
+          sipnosis: string | null
+          titulo: string | null
+        }
+        Relationships: []
+      }
       vista_noticias_completa: {
         Row: {
           ano_publicacion: number | null
@@ -1172,7 +1247,7 @@ export type Enums<
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DefaultSchema["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
@@ -1189,7 +1264,7 @@ export type CompositeTypes<
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DefaultSchema["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
