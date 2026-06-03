@@ -58,3 +58,28 @@ export interface CompraConItems {
 
 /** Response paginado de compras con items. */
 export type CompraHistorialResponse = Paginated<CompraConItems>;
+
+// ─── Tipos para detalle de compra ──────────────────────────────────
+
+/** Tarjeta usada en una compra (info segura para el cliente). */
+export interface CompraTarjetaInfo {
+  monto: number;
+  ultimos_cuatro_digitos: string;
+  nombre_titular: string | null;
+}
+
+/** Información de entrega de una compra. */
+export interface CompraEntregaInfo {
+  tipo: string;
+  estado: string;
+  costo: number;
+  fecha_entrega_estimada: string;
+  fecha_entregado: string | null;
+  direccion: string;
+}
+
+/** Datos extra de una compra: tarjetas y entrega. */
+export interface CompraDetalleExtra {
+  tarjetas: CompraTarjetaInfo[];
+  entrega: CompraEntregaInfo | null;
+}

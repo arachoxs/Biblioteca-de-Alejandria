@@ -9,6 +9,9 @@ import type {
   CompraConItems,
   CompraItem,
   CompraHistorialResponse,
+  CompraDetalleExtra,
+  CompraTarjetaInfo,
+  CompraEntregaInfo,
 } from "@/lib/types/compra";
 
 function buildQueryOptions(page: number, pageSize: number) {
@@ -201,24 +204,120 @@ export async function getCompraById(
 }
 
 /**
- * Checks if a compra exists by ID. Used for FK validation.
+ * Gets a single compra with its items enriched (book info + cover images).
+ * Returns null if not found.
  */
-export async function checkCompraExistsById(
+export async function getCompraDetalleById(
   id: string
-): Promise<boolean> {
+): Promise<CompraConItems | null> {
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient
     .from("compra")
-    .select("id")
+    .select(
+      `
+      *,
+      items:item_compra(
+        id,
+        id_copia,
+        copia(
+          id_libro,
+          libro(
+            id,
+            titulo,
+            precio,
+            editorial,
+            idioma,
+            noticias(
+              imagenes,
+              deleted_at,
+              es_visible
+            )
+          )
+        )
+      )
+    `
+    )
     .eq("id", id)
-    .limit(1)
     .maybeSingle();
 
   if (error) {
-    console.error("[compraModel] Error al verificar existencia de compra por ID:", error);
+    console.error("[compraModel] Error al obtener detalle de compra:", error);
     throw error;
   }
 
-  return !!data;
+  if (!data) return null;
+
+  const [compra] = transformCompras([data]);
+  return compra ?? null;
+}
+
+type RawTarjetaCompraRow = {
+  monto: number;
+  tarjeta: { ultimos_cuatro_digitos: string; nombre_titular: string | null } | null;
+};
+
+type RawEntregaRow = {
+  tipo: string;
+  estado: string;
+  costo: number;
+  fecha_entrega_estimada: string;
+  fecha_entregado: string | null;
+  direccion: { direccion_formateada: string } | null;
+};
+
+function mapTarjetas(data: RawTarjetaCompraRow[]): CompraTarjetaInfo[] {
+  return data.map((t) => ({
+    monto: t.monto,
+    ultimos_cuatro_digitos: t.tarjeta?.ultimos_cuatro_digitos ?? "****",
+    nombre_titular: t.tarjeta?.nombre_titular ?? null,
+  }));
+}
+
+function mapEntrega(raw: RawEntregaRow): CompraEntregaInfo {
+  return {
+    tipo: raw.tipo,
+    estado: raw.estado,
+    costo: raw.costo,
+    fecha_entrega_estimada: raw.fecha_entrega_estimada,
+    fecha_entregado: raw.fecha_entregado,
+    direccion: raw.direccion?.direccion_formateada ?? "Sin dirección",
+  };
+}
+
+/**
+ * Gets extra detail for a compra: payment cards and delivery info.
+ * Returns null if the compra has no associated records or is not found.
+ */
+export async function getCompraDetalleExtraById(
+  id: string
+): Promise<CompraDetalleExtra> {
+  const adminClient = createAdminClient();
+
+  const [tarjetasResult, entregaResult] = await Promise.all([
+    adminClient
+      .from("tarjeta_compra")
+      .select("monto, tarjeta(ultimos_cuatro_digitos, nombre_titular)")
+      .eq("id_compra", id),
+    adminClient
+      .from("entrega")
+      .select("tipo, estado, costo, fecha_entrega_estimada, fecha_entregado, direccion:direccion(direccion_formateada)")
+      .eq("id_compra", id)
+      .maybeSingle(),
+  ]);
+
+  if (tarjetasResult.error) {
+    console.error("[compraModel] Error al obtener tarjetas de compra:", tarjetasResult.error);
+    throw tarjetasResult.error;
+  }
+
+  if (entregaResult.error) {
+    console.error("[compraModel] Error al obtener entrega de compra:", entregaResult.error);
+    throw entregaResult.error;
+  }
+
+  const tarjetas = mapTarjetas((tarjetasResult.data ?? []) as RawTarjetaCompraRow[]);
+  const entrega = entregaResult.data ? mapEntrega(entregaResult.data as unknown as RawEntregaRow) : null;
+
+  return { tarjetas, entrega };
 }

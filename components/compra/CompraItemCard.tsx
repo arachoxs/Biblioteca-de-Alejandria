@@ -29,8 +29,8 @@ export default function CompraItemCard({ item }: CompraItemCardProps) {
         )}
       </div>
 
-      {/* Info + Botones */}
-      <div className="flex-1 flex flex-col justify-between min-w-0">
+      {/* Info */}
+      <div className="flex-1 min-w-0">
         <div className="space-y-1">
           <h3 className="text-sm font-medium text-brand-text line-clamp-2">
             {libro?.titulo || "Título no disponible"}
@@ -48,17 +48,6 @@ export default function CompraItemCard({ item }: CompraItemCardProps) {
               </span>
             )}
           </div>
-        </div>
-
-        {/* Botón deshabilitado */}
-        <div className="mt-2">
-          <button
-            disabled
-            className="px-3 py-1.5 text-xs font-medium rounded-lg border border-brand-accent/20 bg-white text-brand-secondary/40 cursor-not-allowed"
-            title="Próximamente"
-          >
-            Devolución
-          </button>
         </div>
       </div>
     </div>
