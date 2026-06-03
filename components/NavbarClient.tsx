@@ -15,6 +15,7 @@ import {
   UserPlus,
   Menu,
   ShoppingCart,
+  MessageSquare,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,6 +24,7 @@ import { globalSignOutAction } from "@/app/actions/authActions";
 import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 import MobileMenu from "@/components/MobileMenu";
 import CartDrawer from "@/components/cart/CartDrawer";
+import MensajeriaBadge from "@/components/mensajeria/MensajeriaBadge";
 
 // ── Tipos ───────────────────────────────────────────────────────────
 
@@ -150,6 +152,20 @@ export default function NavbarClient({
           </Link>
         )}
 
+        {role === Rol.CLIENTE && (
+          <Link
+            href="/mensajeria"
+            role="menuitem"
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-brand-secondary hover:text-brand-text hover:bg-brand-bg rounded-lg transition-all text-left cursor-pointer group"
+            onClick={() => setMenuOpen(false)}>
+            <div className="relative flex items-center gap-3">
+              <MessageSquare className="w-5 h-5 text-brand-secondary group-hover:text-brand-text transition-colors" />
+              <span>Mensajería</span>
+              <MensajeriaBadge size="sm" />
+            </div>
+          </Link>
+        )}
+
         <button
           role="menuitem"
           onClick={() => globalSignOutAction()}
@@ -266,12 +282,15 @@ export default function NavbarClient({
               type="button"
               ref={buttonRef}
               onClick={() => setMenuOpen((open) => !open)}
-              className="flex items-center gap-2 p-2 rounded-lg bg-brand-bg/5 hover:bg-brand-bg/10 border border-transparent hover:border-brand-accent/30 transition-all text-brand-accent cursor-pointer"
+              className="relative flex items-center gap-2 p-2 rounded-lg bg-brand-bg/5 hover:bg-brand-bg/10 border border-transparent hover:border-brand-accent/30 transition-all text-brand-accent cursor-pointer"
               aria-label="Menú de usuario"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               aria-controls="user-menu">
               <User className="w-5 h-5" />
+              {role === Rol.CLIENTE && (
+                <MensajeriaBadge size="sm" className="absolute -top-1 -right-1" />
+              )}
               <ChevronDown
                 className={`w-4 h-4 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`}
               />
