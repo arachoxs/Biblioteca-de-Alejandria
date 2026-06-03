@@ -326,6 +326,8 @@ export type Database = {
           id_usuario: string | null
           mensaje: string
           titulo: string
+          ultima_lectura_admin: string | null
+          ultima_lectura_cliente: string | null
         }
         Insert: {
           deleted_at?: string | null
@@ -335,6 +337,8 @@ export type Database = {
           id_usuario?: string | null
           mensaje: string
           titulo: string
+          ultima_lectura_admin?: string | null
+          ultima_lectura_cliente?: string | null
         }
         Update: {
           deleted_at?: string | null
@@ -344,6 +348,8 @@ export type Database = {
           id_usuario?: string | null
           mensaje?: string
           titulo?: string
+          ultima_lectura_admin?: string | null
+          ultima_lectura_cliente?: string | null
         }
         Relationships: [
           {
