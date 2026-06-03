@@ -1,4 +1,5 @@
 import ActionCard from "@/components/ActionCard";
+import MensajeriaActionCard from "@/components/mensajeria/MensajeriaActionCard";
 import {
   Library,
   UsersRound,
@@ -6,7 +7,6 @@ import {
   Store,
   Boxes,
   Newspaper,
-  MessageSquare,
   ShieldCheck,
 } from "lucide-react";
 
@@ -93,14 +93,7 @@ export default function PanelAdminPage() {
               icon={Newspaper}
               delayClass="delay-[500ms]"
             />
-            <ActionCard
-              href="/panel-admin/mensajeria"
-              title="Mensajería"
-              description="Comunícate en tiempo real con clientes y administradores."
-              category="Comunicación"
-              icon={MessageSquare}
-              delayClass="delay-[600ms]"
-            />
+            <MensajeriaActionCard />
           </div>
         </div>
       </main>

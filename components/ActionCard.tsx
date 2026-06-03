@@ -9,6 +9,7 @@ interface ActionCardProps {
   icon: LucideIcon;
   categoryIcon?: LucideIcon;
   delayClass?: string;
+  badge?: React.ReactNode;
 }
 
 export default function ActionCard({
@@ -19,6 +20,7 @@ export default function ActionCard({
   icon: Icon,
   categoryIcon: CategoryIcon,
   delayClass = "delay-150",
+  badge,
 }: ActionCardProps) {
   const CatIcon = CategoryIcon || Icon;
 
@@ -29,8 +31,13 @@ export default function ActionCard({
     >
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-brand-primary origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out" />
 
-      <div className="w-11 h-11 border border-brand-accent/25 rounded-lg flex items-center justify-center bg-brand-bg/60 shrink-0 group-hover:bg-brand-primary/5 transition-colors">
+      <div className="w-11 h-11 border border-brand-accent/25 rounded-lg flex items-center justify-center bg-brand-bg/60 shrink-0 group-hover:bg-brand-primary/5 transition-colors relative">
         <Icon className="w-5 h-5 text-brand-primary" strokeWidth={1.5} />
+        {badge && (
+          <div className="absolute -top-2 -right-2">
+            {badge}
+          </div>
+        )}
       </div>
 
       <div className="flex-1">
