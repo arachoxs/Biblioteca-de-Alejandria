@@ -1,16 +1,19 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/server";
+import { MAX_PAGE_SIZE } from "@/lib/validations/rules";
 import type {
   CompraCreateInput,
   CompraListParams,
   CompraRow,
-  CompraListResponse,
+  CompraConItems,
+  CompraItem,
+  CompraHistorialResponse,
 } from "@/lib/types/compra";
 
 function buildQueryOptions(page: number, pageSize: number) {
   const safePage = Math.max(1, page);
-  const safePageSize = Math.max(1, pageSize);
+  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
   return { safePage, safePageSize, from, to };
@@ -32,6 +35,59 @@ function applyDateFilters<T extends DateFilterQuery<T>>(
     query = query.lte("fecha", filters.fechaHasta);
   }
   return query;
+}
+
+function extractCoverImage(
+  noticias: { imagenes: unknown; deleted_at: string | null; es_visible: boolean }[] | undefined
+): string | null {
+  const activas = (noticias ?? []).filter((n) => !n.deleted_at && n.es_visible);
+  const imagenes = activas[0]?.imagenes;
+  if (!Array.isArray(imagenes) || imagenes.length === 0) return null;
+  return typeof imagenes[0] === "string" ? imagenes[0] : null;
+}
+
+function groupItemsByLibro(
+  rawItems: { copia?: { libro?: { id: string; titulo: string; precio: number; editorial: string; idioma: string; noticias?: { imagenes: unknown; deleted_at: string | null; es_visible: boolean }[] } } }[]
+): CompraItem[] {
+  const grouped = new Map<string, CompraItem>();
+
+  for (const raw of rawItems) {
+    const libro = raw.copia?.libro;
+    if (!libro) continue;
+
+    const existing = grouped.get(libro.id);
+    if (existing) {
+      existing.cantidad++;
+    } else {
+      grouped.set(libro.id, {
+        libro: {
+          id: libro.id,
+          titulo: libro.titulo,
+          precio: libro.precio,
+          editorial: libro.editorial,
+          idioma: libro.idioma,
+        },
+        cantidad: 1,
+        imagen_portada: extractCoverImage(libro.noticias),
+        precio_unitario: libro.precio,
+      });
+    }
+  }
+
+  return Array.from(grouped.values());
+}
+
+function transformCompras(
+  data: { id: string; fecha: string; subtotal: number; total: number; id_promocion: number | null; items?: unknown[] }[] | null
+): CompraConItems[] {
+  return (data ?? []).map((compra) => ({
+    id: compra.id,
+    fecha: compra.fecha,
+    subtotal: compra.subtotal,
+    total: compra.total,
+    id_promocion: compra.id_promocion,
+    items: groupItemsByLibro(compra.items as { copia?: { libro?: { id: string; titulo: string; precio: number; editorial: string; idioma: string; noticias?: { imagenes: unknown; deleted_at: string | null; es_visible: boolean }[] } } }[]),
+  }));
 }
 
 /**
@@ -63,20 +119,43 @@ export async function createCompra(
 }
 
 /**
- * Gets paginated compras for a user with optional date range filters.
+ * Gets paginated compras for a user with items, books and cover images.
  */
 export async function getComprasByUserId(
   userId: string,
   params: CompraListParams
-): Promise<CompraListResponse> {
+): Promise<CompraHistorialResponse> {
   const adminClient = createAdminClient();
-
   const { page, pageSize, filters } = params;
   const { safePage, safePageSize, from, to } = buildQueryOptions(page, pageSize);
 
   let query = adminClient
     .from("compra")
-    .select("*", { count: "exact" })
+    .select(
+      `
+      *,
+      items:item_compra(
+        id,
+        id_copia,
+        copia(
+          id_libro,
+          libro(
+            id,
+            titulo,
+            precio,
+            editorial,
+            idioma,
+            noticias(
+              imagenes,
+              deleted_at,
+              es_visible
+            )
+          )
+        )
+      )
+    `,
+      { count: "exact" }
+    )
     .eq("id_usuario", userId)
     .order("fecha", { ascending: false })
     .range(from, to);
@@ -86,12 +165,12 @@ export async function getComprasByUserId(
   const { data, error, count } = await query;
 
   if (error) {
-    console.error("[compraModel] Error al obtener compras por usuario:", error);
+    console.error("[compraModel] Error al obtener historial de compras:", error);
     throw error;
   }
 
   return {
-    data: (data as CompraRow[]) ?? ([] as CompraRow[]),
+    data: transformCompras(data),
     total: count || 0,
     page: safePage,
     pageSize: safePageSize,

@@ -1,4 +1,4 @@
-import { createCompra } from "@/models/compraModel";
+import { createCompra, getComprasByUserId } from "@/models/compraModel";
 import { insertItemComprasBatch } from "@/models/itemCompraModel";
 import { insertTarjetaComprasBatch } from "@/models/tarjetaCompraModel";
 import { insertEntrega } from "@/models/entregaModel";
@@ -11,8 +11,10 @@ import {
   getTarjetaById,
   addBalance as addTarjetaBalance,
 } from "@/models/tarjetaModel";
+import { getCurrentUser } from "@/models/authModel";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getErrorMessage } from "@/lib/services/errors";
+import type { CompraListParams, CompraHistorialResponse } from "@/lib/types/compra";
 
 export interface RegistrarCompraInput {
   id_usuario: string;
@@ -231,7 +233,10 @@ export async function registrarCompra(
 ): Promise<RegistrarCompraResponse> {
   const copiaIds = input.copias.map((c) => c.id_copia);
 
-  const copiaCheck = await validateCopiasAvailability(copiaIds, input.id_usuario);
+  const copiaCheck = await validateCopiasAvailability(
+    copiaIds,
+    input.id_usuario,
+  );
   if (!copiaCheck.ok) {
     return { success: false, errors: copiaCheck.errors };
   }
@@ -248,9 +253,45 @@ export async function registrarCompra(
 
   try {
     const { compraId, entregaId } = await executeWrites(input);
-    return { success: true, compraId, entregaId, fechaEntregaEstimada: input.entrega.fecha_entrega_estimada };
+    return {
+      success: true,
+      compraId,
+      entregaId,
+      fechaEntregaEstimada: input.entrega.fecha_entrega_estimada,
+    };
   } catch (error) {
     console.error("[compraService] Error en registrarCompra:", error);
     return { success: false, errors: { general: getErrorMessage(error) } };
+  }
+}
+
+// ─── Lectura ───────────────────────────────────────────────────────
+
+/**
+ * Obtiene el historial de compras del usuario autenticado de forma paginada.
+ * Filtra por userId de la sesión activa, con soporte de rango de fechas.
+ */
+export async function obtenerHistorialCompras(
+  params: CompraListParams
+): Promise<CompraHistorialResponse> {
+  const emptyResult: CompraHistorialResponse = {
+    data: [],
+    total: 0,
+    page: params.page,
+    pageSize: params.pageSize,
+    totalPages: 0,
+  };
+
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      console.error("[compraService] No hay sesión activa.");
+      return emptyResult;
+    }
+
+    return await getComprasByUserId(user.id, params);
+  } catch (error) {
+    console.error("[compraService] Error obteniendo historial de compras:", error);
+    return emptyResult;
   }
 }
