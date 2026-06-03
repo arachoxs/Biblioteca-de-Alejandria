@@ -1,4 +1,10 @@
-import { createCompra, getComprasByUserId } from "@/models/compraModel";
+import {
+  createCompra,
+  getComprasByUserId,
+  getCompraById,
+  getCompraDetalleById,
+  getCompraDetalleExtraById,
+} from "@/models/compraModel";
 import { insertItemComprasBatch } from "@/models/itemCompraModel";
 import { insertTarjetaComprasBatch } from "@/models/tarjetaCompraModel";
 import { insertEntrega } from "@/models/entregaModel";
@@ -14,7 +20,12 @@ import {
 import { getCurrentUser } from "@/models/authModel";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getErrorMessage } from "@/lib/services/errors";
-import type { CompraListParams, CompraHistorialResponse } from "@/lib/types/compra";
+import type {
+  CompraListParams,
+  CompraHistorialResponse,
+  CompraConItems,
+  CompraDetalleExtra,
+} from "@/lib/types/compra";
 
 export interface RegistrarCompraInput {
   id_usuario: string;
@@ -267,12 +278,32 @@ export async function registrarCompra(
 
 // ─── Lectura ───────────────────────────────────────────────────────
 
+async function verificarOwnershipCompra(
+  idCompra: string,
+): Promise<{ userId: string } | null> {
+  const user = await getCurrentUser();
+  if (!user) {
+    console.error("[compraService] No hay sesión activa.");
+    return null;
+  }
+
+  const raw = await getCompraById(idCompra);
+  if (!raw || raw.id_usuario !== user.id) {
+    console.error(
+      "[compraService] La compra no pertenece al usuario autenticado.",
+    );
+    return null;
+  }
+
+  return { userId: user.id };
+}
+
 /**
  * Obtiene el historial de compras del usuario autenticado de forma paginada.
  * Filtra por userId de la sesión activa, con soporte de rango de fechas.
  */
 export async function obtenerHistorialCompras(
-  params: CompraListParams
+  params: CompraListParams,
 ): Promise<CompraHistorialResponse> {
   const emptyResult: CompraHistorialResponse = {
     data: [],
@@ -291,7 +322,55 @@ export async function obtenerHistorialCompras(
 
     return await getComprasByUserId(user.id, params);
   } catch (error) {
-    console.error("[compraService] Error obteniendo historial de compras:", error);
+    console.error(
+      "[compraService] Error obteniendo historial de compras:",
+      error,
+    );
     return emptyResult;
   }
+}
+
+async function ejecutarConOwnership<T>(
+  idCompra: string,
+  fn: () => Promise<T>,
+  label: string,
+): Promise<T | null> {
+  try {
+    const ownership = await verificarOwnershipCompra(idCompra);
+    if (!ownership) return null;
+    return await fn();
+  } catch (error) {
+    console.error(`[compraService] Error ${label}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Obtiene el detalle de una compra específica (compra + items enriquecidos).
+ * Verifica que la compra pertenezca al usuario autenticado.
+ * Retorna null si no hay sesión, la compra no existe o no pertenece al usuario.
+ */
+export function obtenerDetalleCompra(
+  idCompra: string,
+): Promise<CompraConItems | null> {
+  return ejecutarConOwnership(
+    idCompra,
+    () => getCompraDetalleById(idCompra),
+    "obteniendo detalle de compra",
+  );
+}
+
+/**
+ * Obtiene los datos extra de una compra: tarjetas de pago y estado de entrega.
+ * Verifica que la compra pertenezca al usuario autenticado.
+ * Retorna null si no hay sesión o la compra no pertenece al usuario.
+ */
+export function obtenerDetalleExtra(
+  idCompra: string,
+): Promise<CompraDetalleExtra | null> {
+  return ejecutarConOwnership(
+    idCompra,
+    () => getCompraDetalleExtraById(idCompra),
+    "obteniendo detalle extra de compra",
+  );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { CompraConItems } from "@/lib/types/compra";
 import CompraCardHeader from "./CompraCardHeader";
 import CompraItemCard from "./CompraItemCard";
@@ -20,13 +21,12 @@ export default function CompraCard({ compra }: CompraCardProps) {
         ))}
       </div>
       <div className="px-5 py-3 border-t border-brand-accent/10">
-        <button
-          disabled
-          className="px-4 py-2 text-xs font-medium rounded-lg border border-brand-accent/20 bg-white text-brand-secondary/40 cursor-not-allowed"
-          title="Próximamente"
+        <Link
+          href={`/historial-compras/${compra.id}`}
+          className="inline-block px-4 py-2 text-xs font-medium rounded-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/30 transition-colors"
         >
           Ver detalle de compra
-        </button>
+        </Link>
       </div>
     </article>
   );
