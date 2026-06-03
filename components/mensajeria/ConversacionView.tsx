@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send, ArrowLeft, Lock, Unlock, User, ShieldCheck } from "lucide-react";
-import type { HiloWithRespuestas } from "@/lib/types/hiloMensajeria";
+import type { HiloWithRespuestas, RespuestaEnHilo } from "@/lib/types/hiloMensajeria";
 
 interface ConversacionViewProps {
   hilo: HiloWithRespuestas;
@@ -15,14 +15,59 @@ interface ConversacionViewProps {
 }
 
 function formatFecha(fecha: string): string {
-  const date = new Date(fecha);
-  return date.toLocaleDateString("es-ES", {
+  return new Date(fecha).toLocaleDateString("es-ES", {
     day: "numeric",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function MensajeBubble({
+  autor,
+  fecha,
+  mensaje,
+  esAdmin,
+  badge,
+}: {
+  autor: string;
+  fecha: string;
+  mensaje: string;
+  esAdmin: boolean;
+  badge?: React.ReactNode;
+}) {
+  return (
+    <div className="flex gap-3">
+      <div
+        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+          esAdmin ? "bg-brand-secondary/10" : "bg-brand-primary/10"
+        }`}
+      >
+        {esAdmin ? (
+          <ShieldCheck className="w-4 h-4 text-brand-secondary" />
+        ) : (
+          <User className="w-4 h-4 text-brand-primary" />
+        )}
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-medium text-brand-text">{autor}</span>
+          {badge}
+          <span className="text-[10px] text-brand-accent/60">{formatFecha(fecha)}</span>
+        </div>
+        <div
+          className={`rounded-xl p-3 border ${
+            esAdmin
+              ? "bg-brand-secondary/5 border-brand-secondary/10 rounded-tr-sm"
+              : "bg-white border-brand-accent/10 rounded-tl-sm"
+          }`}
+        >
+          <p className="text-sm text-brand-secondary whitespace-pre-wrap">{mensaje}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ConversacionView({
@@ -46,12 +91,14 @@ export default function ConversacionView({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!mensaje.trim() || enviando) return;
-
     await onEnviarRespuesta(mensaje.trim());
     setMensaje("");
   }
 
   const estaCerrado = hilo.estado === "cerrado";
+  const autorCliente = hilo.usuario
+    ? `${hilo.usuario.nombres} ${hilo.usuario.apellidos}`
+    : "Usuario";
 
   return (
     <div className="flex flex-col h-full">
@@ -65,12 +112,8 @@ export default function ConversacionView({
         </button>
 
         <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-semibold text-brand-text truncate">
-            {hilo.titulo}
-          </h2>
-          <p className="text-xs text-brand-accent">
-            {estaCerrado ? "Hilo cerrado" : "Hilo abierto"}
-          </p>
+          <h2 className="text-sm font-semibold text-brand-text truncate">{hilo.titulo}</h2>
+          <p className="text-xs text-brand-accent">{estaCerrado ? "Hilo cerrado" : "Hilo abierto"}</p>
         </div>
 
         {esAdmin && (
@@ -80,86 +123,37 @@ export default function ConversacionView({
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border"
           >
             {estaCerrado ? (
-              <>
-                <Unlock className="w-3.5 h-3.5" />
-                Reabrir
-              </>
+              <><Unlock className="w-3.5 h-3.5" /> Reabrir</>
             ) : (
-              <>
-                <Lock className="w-3.5 h-3.5" />
-                Cerrar
-              </>
+              <><Lock className="w-3.5 h-3.5" /> Cerrar</>
             )}
           </button>
         )}
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-brand-bg/30">
-        <div className="flex gap-3">
-          <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
-            <User className="w-4 h-4 text-brand-primary" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-medium text-brand-text">
-                {hilo.usuario
-                  ? `${hilo.usuario.nombres} ${hilo.usuario.apellidos}`
-                  : "Usuario"}
-              </span>
-              <span className="text-[10px] text-brand-accent/60">
-                {formatFecha(hilo.fecha_creacion)}
-              </span>
-            </div>
-            <div className="bg-white rounded-xl rounded-tl-sm p-3 border border-brand-accent/10">
-              <p className="text-sm text-brand-secondary whitespace-pre-wrap">
-                {hilo.mensaje}
-              </p>
-            </div>
-          </div>
-        </div>
+        <MensajeBubble
+          autor={autorCliente}
+          fecha={hilo.fecha_creacion}
+          mensaje={hilo.mensaje}
+          esAdmin={false}
+        />
 
-        {hilo.respuestas.map((respuesta) => (
-          <div key={respuesta.id} className="flex gap-3">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                respuesta.es_admin
-                  ? "bg-brand-secondary/10"
-                  : "bg-brand-primary/10"
-              }`}
-            >
-              {respuesta.es_admin ? (
-                <ShieldCheck className="w-4 h-4 text-brand-secondary" />
-              ) : (
-                <User className="w-4 h-4 text-brand-primary" />
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-brand-text">
-                  {respuesta.autor_nombre}
+        {hilo.respuestas.map((r: RespuestaEnHilo) => (
+          <MensajeBubble
+            key={r.id}
+            autor={r.autor_nombre}
+            fecha={r.fecha_creacion}
+            mensaje={r.mensaje}
+            esAdmin={r.es_admin}
+            badge={
+              r.es_admin ? (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-secondary/10 text-brand-secondary font-medium">
+                  Admin
                 </span>
-                {respuesta.es_admin && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-secondary/10 text-brand-secondary font-medium">
-                    Admin
-                  </span>
-                )}
-                <span className="text-[10px] text-brand-accent/60">
-                  {formatFecha(respuesta.fecha_creacion)}
-                </span>
-              </div>
-              <div
-                className={`rounded-xl p-3 border ${
-                  respuesta.es_admin
-                    ? "bg-brand-secondary/5 border-brand-secondary/10 rounded-tr-sm"
-                    : "bg-white border-brand-accent/10 rounded-tl-sm"
-                }`}
-              >
-                <p className="text-sm text-brand-secondary whitespace-pre-wrap">
-                  {respuesta.mensaje}
-                </p>
-              </div>
-            </div>
-          </div>
+              ) : undefined
+            }
+          />
         ))}
       </div>
 

@@ -65,6 +65,111 @@ function normalizeRespuesta(
   };
 }
 
+interface HiloRow {
+  id: string;
+  titulo: string;
+  mensaje: string;
+  estado: string;
+  fecha_creacion: string;
+  id_usuario: string | null;
+  ultima_lectura_admin: string | null;
+  ultima_lectura_cliente: string | null;
+  usuario: { nombres: string | null; apellidos: string | null } | null;
+}
+
+async function countRespuestasAfter(
+  adminClient: ReturnType<typeof createAdminClient>,
+  hiloId: string,
+  desde: string
+): Promise<number> {
+  const { count } = await adminClient
+    .from("respuesta")
+    .select("id", { count: "exact", head: true })
+    .eq("id_hilo", hiloId)
+    .is("deleted_at", null)
+    .gt("fecha_creacion", desde);
+
+  return count ?? 0;
+}
+
+async function enrichHiloListItem(
+  hilo: HiloRow,
+  adminIds: Set<string>,
+  esAdmin: boolean
+): Promise<HiloListItem> {
+  const adminClient = createAdminClient();
+
+  const { count: totalRespuestas } = await adminClient
+    .from("respuesta")
+    .select("id", { count: "exact", head: true })
+    .eq("id_hilo", hilo.id)
+    .is("deleted_at", null);
+
+  const { data: ultimaResp } = await adminClient
+    .from("respuesta")
+    .select("mensaje, fecha_creacion, id_usuario")
+    .eq("id_hilo", hilo.id)
+    .is("deleted_at", null)
+    .order("fecha_creacion", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const ultimaRespuesta: UltimaRespuestaInfo | null = ultimaResp
+    ? {
+        mensaje: ultimaResp.mensaje,
+        fecha_creacion: ultimaResp.fecha_creacion,
+        es_admin: ultimaResp.id_usuario ? adminIds.has(ultimaResp.id_usuario) : false,
+      }
+    : null;
+
+  const ultimaFecha = ultimaResp
+    ? new Date(ultimaResp.fecha_creacion).getTime()
+    : new Date(hilo.fecha_creacion).getTime();
+
+  const ultimaLectura = esAdmin ? hilo.ultima_lectura_admin : hilo.ultima_lectura_cliente;
+  const tieneNuevoMensaje = ultimaLectura
+    ? ultimaFecha > new Date(ultimaLectura).getTime()
+    : esAdmin;
+
+  return {
+    id: hilo.id,
+    titulo: hilo.titulo,
+    mensaje: hilo.mensaje,
+    estado: hilo.estado as EstadoHilo,
+    fecha_creacion: hilo.fecha_creacion,
+    id_usuario: hilo.id_usuario,
+    total_respuestas: totalRespuestas ?? 0,
+    ultima_respuesta: ultimaRespuesta,
+    tiene_nuevo_mensaje: tieneNuevoMensaje,
+    usuario: normalizeUsuario(hilo.usuario),
+  };
+}
+
+interface HiloUpdateFields {
+  estado?: EstadoHilo;
+  ultima_lectura_admin?: string | null;
+  ultima_lectura_cliente?: string | null;
+  deleted_at?: string;
+}
+
+async function updateHilo(
+  id: string,
+  fields: HiloUpdateFields
+): Promise<void> {
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from("hilo_mensajeria")
+    .update(fields)
+    .eq("id", id)
+    .is("deleted_at", null);
+
+  if (error) {
+    console.error("[hiloMensajeriaModel] Error actualizando hilo:", error);
+    throw error;
+  }
+}
+
 // ─── Escritura ──────────────────────────────────────────────────────
 
 /**
@@ -90,79 +195,23 @@ export async function createHilo(
   return data.id;
 }
 
-/**
- * Actualiza el estado de un hilo (abierto/cerrado).
- */
 export async function updateHiloEstado(
   id: string,
   estado: EstadoHilo
 ): Promise<void> {
-  const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("hilo_mensajeria")
-    .update({ estado })
-    .eq("id", id)
-    .is("deleted_at", null);
-
-  if (error) {
-    console.error("[hiloMensajeriaModel] Error actualizando estado del hilo:", error);
-    throw error;
-  }
+  return updateHilo(id, { estado });
 }
 
-/**
- * Marca la última lectura de un admin en un hilo.
- */
 export async function updateUltimaLecturaAdmin(id: string): Promise<void> {
-  const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("hilo_mensajeria")
-    .update({ ultima_lectura_admin: getNow() })
-    .eq("id", id)
-    .is("deleted_at", null);
-
-  if (error) {
-    console.error("[hiloMensajeriaModel] Error actualizando ultima_lectura_admin:", error);
-    throw error;
-  }
+  return updateHilo(id, { ultima_lectura_admin: getNow() });
 }
 
-/**
- * Marca la última lectura de un cliente en un hilo.
- */
 export async function updateUltimaLecturaCliente(id: string): Promise<void> {
-  const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("hilo_mensajeria")
-    .update({ ultima_lectura_cliente: getNow() })
-    .eq("id", id)
-    .is("deleted_at", null);
-
-  if (error) {
-    console.error("[hiloMensajeriaModel] Error actualizando ultima_lectura_cliente:", error);
-    throw error;
-  }
+  return updateHilo(id, { ultima_lectura_cliente: getNow() });
 }
 
-/**
- * Soft delete de un hilo.
- */
 export async function softDeleteHilo(id: string): Promise<void> {
-  const adminClient = createAdminClient();
-
-  const { error } = await adminClient
-    .from("hilo_mensajeria")
-    .update({ deleted_at: getNow() })
-    .eq("id", id)
-    .is("deleted_at", null);
-
-  if (error) {
-    console.error("[hiloMensajeriaModel] Error eliminando hilo:", error);
-    throw error;
-  }
+  return updateHilo(id, { deleted_at: getNow() });
 }
 
 // ─── Lectura individual ─────────────────────────────────────────────
@@ -254,14 +303,19 @@ export async function getHiloWithRespuestas(
  * Obtiene los hilos de un usuario con paginación y filtro por estado.
  * Incluye conteo de respuestas y última respuesta.
  */
+export interface GetHilosOptions {
+  userId?: string;
+  page?: number;
+  pageSize?: number;
+  filtroEstado?: EstadoHilo;
+  esAdmin?: boolean;
+  adminIds?: Set<string>;
+}
+
 export async function getHilosByUsuario(
-  userId: string,
-  page: number = 1,
-  pageSize: number = 10,
-  filtroEstado?: EstadoHilo,
-  esAdmin: boolean = false,
-  adminIds?: Set<string>
+  options: GetHilosOptions
 ): Promise<Paginated<HiloListItem>> {
+  const { userId, page = 1, pageSize = 10, filtroEstado, esAdmin = false, adminIds } = options;
   const adminClient = createAdminClient();
   const safePage = Math.max(1, page);
   const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
@@ -273,7 +327,7 @@ export async function getHilosByUsuario(
     .select("id, titulo, mensaje, estado, fecha_creacion, id_usuario, ultima_lectura_admin, ultima_lectura_cliente, usuario(nombres, apellidos)", { count: "exact" })
     .is("deleted_at", null);
 
-  if (!esAdmin) {
+  if (!esAdmin && userId) {
     query = query.eq("id_usuario", userId);
   }
 
@@ -297,62 +351,9 @@ export async function getHilosByUsuario(
   const resolvedAdminIds = adminIds ?? new Set<string>();
 
   const items: HiloListItem[] = await Promise.all(
-    (data ?? []).map(async (hilo) => {
-      const { count: totalRespuestas } = await adminClient
-        .from("respuesta")
-        .select("id", { count: "exact", head: true })
-        .eq("id_hilo", hilo.id)
-        .is("deleted_at", null);
-
-      const { data: ultimaResp } = await adminClient
-        .from("respuesta")
-        .select("mensaje, fecha_creacion, id_usuario")
-        .eq("id_hilo", hilo.id)
-        .is("deleted_at", null)
-        .order("fecha_creacion", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const ultimaRespuesta: UltimaRespuestaInfo | null = ultimaResp
-        ? {
-            mensaje: ultimaResp.mensaje,
-            fecha_creacion: ultimaResp.fecha_creacion,
-            es_admin: ultimaResp.id_usuario ? resolvedAdminIds.has(ultimaResp.id_usuario) : false,
-          }
-        : null;
-
-      const usuarioData = hilo.usuario as unknown as HiloUsuarioInfo | null;
-
-      const ultimaFecha = ultimaResp
-        ? new Date(ultimaResp.fecha_creacion).getTime()
-        : new Date(hilo.fecha_creacion).getTime();
-
-      let tieneNuevoMensaje = false;
-      if (esAdmin) {
-        if (hilo.ultima_lectura_admin) {
-          tieneNuevoMensaje = ultimaFecha > new Date(hilo.ultima_lectura_admin).getTime();
-        } else {
-          tieneNuevoMensaje = true;
-        }
-      } else {
-        if (hilo.ultima_lectura_cliente) {
-          tieneNuevoMensaje = ultimaFecha > new Date(hilo.ultima_lectura_cliente).getTime();
-        }
-      }
-
-      return {
-        id: hilo.id,
-        titulo: hilo.titulo,
-        mensaje: hilo.mensaje,
-        estado: hilo.estado as EstadoHilo,
-        fecha_creacion: hilo.fecha_creacion,
-        id_usuario: hilo.id_usuario,
-        total_respuestas: totalRespuestas ?? 0,
-        ultima_respuesta: ultimaRespuesta,
-        tiene_nuevo_mensaje: tieneNuevoMensaje,
-        usuario: normalizeUsuario(usuarioData),
-      };
-    })
+    (data ?? []).map((hilo) =>
+      enrichHiloListItem(hilo as HiloRow, resolvedAdminIds, esAdmin)
+    )
   );
 
   return {
@@ -445,20 +446,7 @@ export async function countHilosNoLeidosAdmin(): Promise<number> {
     const ultimaLectura = hilo.ultima_lectura_admin ?? "1970-01-01";
 
     const hiloCreadoDespues = new Date(hilo.fecha_creacion).getTime() > new Date(ultimaLectura).getTime();
-
-    if (hiloCreadoDespues) {
-      noLeidos++;
-      continue;
-    }
-
-    const { count } = await adminClient
-      .from("respuesta")
-      .select("id", { count: "exact", head: true })
-      .eq("id_hilo", hilo.id)
-      .is("deleted_at", null)
-      .gt("fecha_creacion", ultimaLectura);
-
-    if (count && count > 0) {
+    if (hiloCreadoDespues || (await countRespuestasAfter(adminClient, hilo.id, ultimaLectura)) > 0) {
       noLeidos++;
     }
   }
@@ -494,14 +482,7 @@ export async function countHilosNoLeidosCliente(
   for (const hilo of hilos) {
     const ultimaLectura = hilo.ultima_lectura_cliente ?? "1970-01-01";
 
-    const { count } = await adminClient
-      .from("respuesta")
-      .select("id", { count: "exact", head: true })
-      .eq("id_hilo", hilo.id)
-      .is("deleted_at", null)
-      .gt("fecha_creacion", ultimaLectura);
-
-    if (count && count > 0) {
+    if ((await countRespuestasAfter(adminClient, hilo.id, ultimaLectura)) > 0) {
       noLeidos++;
     }
   }

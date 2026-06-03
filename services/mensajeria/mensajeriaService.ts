@@ -27,6 +27,65 @@ import type {
 import type { Paginated, ActionResponse } from "@/lib/types/common";
 import { Rol } from "@/lib/types/auth";
 
+// ─── Helpers de validación ─────────────────────────────────────────
+
+function errorResponse(message: string): ActionResponse {
+  return { success: false, errors: { form: message }, message };
+}
+
+async function requireUser() {
+  const user = await getCurrentUser();
+  return user ? { user, error: null } : { user: null, error: errorResponse("Debes iniciar sesión.") };
+}
+
+async function getHiloOrError(hiloId: string) {
+  const hilo = await getHiloById(hiloId);
+  return hilo ? { hilo, error: null } : { hilo: null, error: errorResponse("El hilo no existe.") };
+}
+
+function validateMensajeNoVacio(mensaje: string): ActionResponse | null {
+  if (!mensaje.trim()) return errorResponse("El mensaje no puede estar vacío.");
+  return null;
+}
+
+function validateHiloAbierto(hilo: { estado: string }): ActionResponse | null {
+  if (hilo.estado === "cerrado") return errorResponse("Este hilo está cerrado.");
+  return null;
+}
+
+async function enviarRespuesta(
+  hiloId: string,
+  mensaje: string,
+  userId: string,
+  updateLectura: (id: string) => Promise<void>
+): Promise<ActionResponse> {
+  const { hilo, error: hiloError } = await getHiloOrError(hiloId);
+  if (hiloError) return hiloError;
+
+  return enviarRespuestaConHilo({ hiloId, mensaje, userId, updateLectura, hilo });
+}
+
+async function enviarRespuestaConHilo(opts: {
+  hiloId: string;
+  mensaje: string;
+  userId: string;
+  updateLectura: (id: string) => Promise<void>;
+  hilo: { estado: string };
+}): Promise<ActionResponse> {
+  const msgError = validateHiloAbierto(opts.hilo) || validateMensajeNoVacio(opts.mensaje);
+  if (msgError) return msgError;
+
+  await createRespuesta({
+    id_hilo: opts.hiloId,
+    id_usuario: opts.userId,
+    mensaje: opts.mensaje.trim(),
+  });
+
+  await opts.updateLectura(opts.hiloId);
+
+  return { success: true, message: "Respuesta enviada exitosamente." };
+}
+
 // ─── Operaciones de cliente ────────────────────────────────────────
 
 /**
@@ -91,67 +150,20 @@ export async function agregarRespuestaCliente(
   if (!roleCheck.success) return roleCheck;
 
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        success: false,
-        errors: { form: "Debes iniciar sesión para responder." },
-        message: "Sesión requerida.",
-      };
-    }
+    const { user, error: userError } = await requireUser();
+    if (userError) return userError;
 
-    const hilo = await getHiloById(hiloId);
-    if (!hilo) {
-      return {
-        success: false,
-        errors: { form: "El hilo no existe." },
-        message: "Hilo no encontrado.",
-      };
-    }
+    const { hilo, error: hiloError } = await getHiloOrError(hiloId);
+    if (hiloError) return hiloError;
 
     if (hilo.id_usuario !== user.id) {
-      return {
-        success: false,
-        errors: { form: "No tienes permiso para responder a este hilo." },
-        message: "Sin permiso.",
-      };
+      return errorResponse("No tienes permiso para responder a este hilo.");
     }
 
-    if (hilo.estado === "cerrado") {
-      return {
-        success: false,
-        errors: { form: "Este hilo está cerrado. No se pueden agregar más respuestas." },
-        message: "Hilo cerrado.",
-      };
-    }
-
-    if (!mensaje.trim()) {
-      return {
-        success: false,
-        errors: { form: "El mensaje no puede estar vacío." },
-        message: "Mensaje vacío.",
-      };
-    }
-
-    await createRespuesta({
-      id_hilo: hiloId,
-      id_usuario: user.id,
-      mensaje: mensaje.trim(),
-    });
-
-    await updateUltimaLecturaCliente(hiloId);
-
-    return {
-      success: true,
-      message: "Respuesta enviada exitosamente.",
-    };
+    return await enviarRespuestaConHilo({ hiloId, mensaje, userId: user.id, updateLectura: updateUltimaLecturaCliente, hilo });
   } catch (error) {
     console.error("[mensajeriaService] Error al agregar respuesta (cliente):", error);
-    return {
-      success: false,
-      errors: { form: getErrorMessage(error) },
-      message: "No se pudo enviar la respuesta.",
-    };
+    return { success: false, errors: { form: getErrorMessage(error) }, message: "No se pudo enviar la respuesta." };
   }
 }
 
@@ -169,146 +181,48 @@ export async function agregarRespuestaAdmin(
   if (!roleCheck.success) return roleCheck;
 
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        success: false,
-        errors: { form: "Debes iniciar sesión para responder." },
-        message: "Sesión requerida.",
-      };
-    }
+    const { user, error: userError } = await requireUser();
+    if (userError) return userError;
 
-    const hilo = await getHiloById(hiloId);
-    if (!hilo) {
-      return {
-        success: false,
-        errors: { form: "El hilo no existe." },
-        message: "Hilo no encontrado.",
-      };
-    }
-
-    if (hilo.estado === "cerrado") {
-      return {
-        success: false,
-        errors: { form: "Este hilo está cerrado. No se pueden agregar más respuestas." },
-        message: "Hilo cerrado.",
-      };
-    }
-
-    if (!mensaje.trim()) {
-      return {
-        success: false,
-        errors: { form: "El mensaje no puede estar vacío." },
-        message: "Mensaje vacío.",
-      };
-    }
-
-    await createRespuesta({
-      id_hilo: hiloId,
-      id_usuario: user.id,
-      mensaje: mensaje.trim(),
-    });
-
-    await updateUltimaLecturaAdmin(hiloId);
-
-    return {
-      success: true,
-      message: "Respuesta enviada exitosamente.",
-    };
+    return await enviarRespuesta(hiloId, mensaje, user.id, updateUltimaLecturaAdmin);
   } catch (error) {
     console.error("[mensajeriaService] Error al agregar respuesta (admin):", error);
-    return {
-      success: false,
-      errors: { form: getErrorMessage(error) },
-      message: "No se pudo enviar la respuesta.",
-    };
+    return { success: false, errors: { form: getErrorMessage(error) }, message: "No se pudo enviar la respuesta." };
   }
 }
 
-/**
- * Cierra un hilo (admin). Cualquier admin puede cerrar cualquier hilo.
- */
-export async function cerrarHiloAdmin(
-  hiloId: string
+async function cambiarEstadoHilo(
+  hiloId: string,
+  estadoActual: EstadoHilo,
+  nuevoEstado: EstadoHilo,
+  accionVerbo: string
 ): Promise<ActionResponse> {
   const roleCheck = await requireAdminRole();
   if (!roleCheck.success) return roleCheck;
 
   try {
-    const hilo = await getHiloById(hiloId);
-    if (!hilo) {
-      return {
-        success: false,
-        errors: { form: "El hilo no existe." },
-        message: "Hilo no encontrado.",
-      };
+    const { hilo, error: hiloError } = await getHiloOrError(hiloId);
+    if (hiloError) return hiloError;
+
+    if (hilo.estado === nuevoEstado) {
+      return errorResponse(`El hilo ya está ${nuevoEstado === "cerrado" ? "cerrado" : "abierto"}.`);
     }
 
-    if (hilo.estado === "cerrado") {
-      return {
-        success: false,
-        errors: { form: "El hilo ya está cerrado." },
-        message: "Hilo ya cerrado.",
-      };
-    }
+    await updateHiloEstado(hiloId, nuevoEstado);
 
-    await updateHiloEstado(hiloId, "cerrado");
-
-    return {
-      success: true,
-      message: "Hilo cerrado exitosamente.",
-    };
+    return { success: true, message: `Hilo ${accionVerbo} exitosamente.` };
   } catch (error) {
-    console.error("[mensajeriaService] Error al cerrar hilo (admin):", error);
-    return {
-      success: false,
-      errors: { form: getErrorMessage(error) },
-      message: "No se pudo cerrar el hilo.",
-    };
+    console.error(`[mensajeriaService] Error al ${accionVerbo} hilo:`, error);
+    return { success: false, errors: { form: getErrorMessage(error) }, message: `No se pudo ${accionVerbo} el hilo.` };
   }
 }
 
-/**
- * Reabre un hilo (admin). Solo admins pueden reabrir hilos cerrados.
- */
-export async function reabrirHiloAdmin(
-  hiloId: string
-): Promise<ActionResponse> {
-  const roleCheck = await requireAdminRole();
-  if (!roleCheck.success) return roleCheck;
+export async function cerrarHiloAdmin(hiloId: string): Promise<ActionResponse> {
+  return cambiarEstadoHilo(hiloId, "abierto", "cerrado", "cerrado");
+}
 
-  try {
-    const hilo = await getHiloById(hiloId);
-    if (!hilo) {
-      return {
-        success: false,
-        errors: { form: "El hilo no existe." },
-        message: "Hilo no encontrado.",
-      };
-    }
-
-    if (hilo.estado === "abierto") {
-      return {
-        success: false,
-        errors: { form: "El hilo ya está abierto." },
-        message: "Hilo ya abierto.",
-      };
-    }
-
-    await updateHiloEstado(hiloId, "abierto");
-
-    return {
-      success: true,
-      message: "Hilo reabierto exitosamente.",
-    };
-  } catch (error) {
-    console.error("[mensajeriaService] Error al reabrir hilo (admin):", error);
-    return {
-      success: false,
-      errors: { form: getErrorMessage(error) },
-      message: "No se pudo reabrir el hilo.",
-    };
-  }
+export async function reabrirHiloAdmin(hiloId: string): Promise<ActionResponse> {
+  return cambiarEstadoHilo(hiloId, "cerrado", "abierto", "reabierto");
 }
 
 // ─── Consultas ─────────────────────────────────────────────────────
@@ -327,7 +241,7 @@ export async function getMisHilos(
   }
 
   const adminIds = await getAdminIds();
-  return getHilosByUsuario(user.id, page, pageSize, filtroEstado, false, adminIds);
+  return getHilosByUsuario({ userId: user.id, page, pageSize, filtroEstado, adminIds });
 }
 
 /**
@@ -339,7 +253,7 @@ export async function getAllHilosAdmin(
   filtroEstado?: EstadoHilo
 ): Promise<Paginated<HiloListItem>> {
   const adminIds = await getAdminIds();
-  return getHilosByUsuario("", page, pageSize, filtroEstado, true, adminIds);
+  return getHilosByUsuario({ page, pageSize, filtroEstado, esAdmin: true, adminIds });
 }
 
 /**
