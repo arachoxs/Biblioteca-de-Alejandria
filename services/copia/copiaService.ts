@@ -667,13 +667,13 @@ export async function fetchInventarioCopiasByLibro(
         ? undefined
         : copySearchTerm;
 
-    const paginatedCopies = await getCopiasModel(
+    const paginatedCopies = await getCopiasModel({
       page,
       pageSize,
-      copySearchTermForQuery,
-      finalStoreFilterId,
-      libroId,
-    );
+      searchTerm: copySearchTermForQuery,
+      id_tienda: finalStoreFilterId,
+      id_libro: libroId,
+    });
 
     const uniqueStoreIds = Array.from(
       new Set(paginatedCopies.data.map((copy) => copy.id_tienda)),

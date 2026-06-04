@@ -74,7 +74,7 @@ export async function insertNoticia(
   const { error } = await adminClient.from("noticias").insert({
     id_libro: data.id_libro,
     fecha_publicacion: data.fecha_publicacion,
-    fecha_expiracion: data.fecha_expiracion,
+    fecha_expiracion: data.fecha_expiracion ?? data.fecha_publicacion,
     es_visible: data.es_visible,
     imagenes: data.imagenes ?? [],
   });

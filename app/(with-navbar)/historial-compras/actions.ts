@@ -5,12 +5,23 @@ import {
   obtenerDetalleCompra,
   obtenerDetalleExtra,
 } from "@/services/compra/compraService";
+import {
+  obtenerItemsElegiblesParaDevolucion,
+  solicitarDevolucion,
+  obtenerHistorialDevoluciones,
+} from "@/services/devolucion/devolucionService";
 import type {
   CompraListParams,
   CompraHistorialResponse,
   CompraConItems,
   CompraDetalleExtra,
 } from "@/lib/types/compra";
+import type {
+  ItemDevolucionElegible,
+  SolicitarDevolucionResponse,
+  DevolucionConItems,
+  MotivoDevolucion,
+} from "@/lib/types/devolucion";
 
 export async function fetchHistorialComprasAction(
   params: CompraListParams
@@ -48,5 +59,43 @@ export async function fetchCompraDetalleExtraAction(
   } catch (error) {
     console.error("[historialComprasAction] Error fetching compra extra:", error);
     return null;
+  }
+}
+
+export async function fetchItemsElegiblesDevolucionAction(
+  idCompra: string
+): Promise<ItemDevolucionElegible[] | null> {
+  try {
+    return await obtenerItemsElegiblesParaDevolucion(idCompra);
+  } catch (error) {
+    console.error("[historialComprasAction] Error fetching items elegibles:", error);
+    return null;
+  }
+}
+
+export async function solicitarDevolucionAction(
+  idCompra: string,
+  items: {
+    id_copia: string;
+    motivo: MotivoDevolucion;
+    descripcion_motivo?: string;
+  }[]
+): Promise<SolicitarDevolucionResponse> {
+  try {
+    return await solicitarDevolucion(idCompra, items);
+  } catch (error) {
+    console.error("[historialComprasAction] Error en solicitarDevolucion:", error);
+    return { success: false, errors: { general: "Error inesperado" } };
+  }
+}
+
+export async function fetchHistorialDevolucionesAction(): Promise<
+  DevolucionConItems[]
+> {
+  try {
+    return await obtenerHistorialDevoluciones();
+  } catch (error) {
+    console.error("[historialComprasAction] Error fetching historial devoluciones:", error);
+    return [];
   }
 }
