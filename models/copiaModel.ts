@@ -128,37 +128,10 @@ export async function updateCopia(
 }
 
 /**
- * Transición atómica del estado de una copia.
- * Solo actualiza si el estado actual coincide con `fromEstado`.
- * Retorna `true` si la transición se realizó, `false` si no coincidía.
- */
-export async function updateCopiaEstadoIf(
-  id: string,
-  fromEstado: EstadoCopia,
-  toEstado: EstadoCopia,
-): Promise<boolean> {
-  const adminClient = createAdminClient();
-
-  const { data, error } = await buildCopiaFilterQuery(
-    adminClient.from("copia").update({ estado: toEstado }),
-    "copia",
-    { id, estado: fromEstado },
-  ).select("id");
-
-  if (error) {
-    console.error("[copiaModel] Error en transición de estado de copia:", error);
-    throw error;
-  }
-
-  return (data ?? []).length > 0;
-}
-
-/**
- * Transición atómica masiva del estado de múltiples copias.
- * Solo actualiza las que tengan el estado `fromEstado`.
+ * Transición atómica de estado de copias (individual o masiva).
  * Retorna los IDs de las copias que efectivamente cambiaron de estado.
  */
-export async function updateCopiaEstadoIfBatch(
+async function transitionCopiaEstados(
   ids: string[],
   fromEstado: EstadoCopia,
   toEstado: EstadoCopia,
@@ -174,11 +147,62 @@ export async function updateCopiaEstadoIfBatch(
   ).select("id");
 
   if (error) {
-    console.error("[copiaModel] Error en transición masiva de estado:", error);
+    console.error("[copiaModel] Error en transición de estado:", error);
     throw error;
   }
 
   return (data ?? []).map((row: { id: string }) => row.id);
+}
+
+/**
+ * Cuenta copias aplicando filtros flexibles (id_libro y opcionalmente estado).
+ */
+async function countCopiasByFilters(
+  filters: { id_libro: string; estado?: EstadoCopia },
+): Promise<number> {
+  const adminClient = createAdminClient();
+
+  const { count, error } = await buildCopiaFilterQuery(
+    adminClient.from("copia").select("id", { count: "exact", head: true }),
+    "copia",
+    filters,
+  );
+
+  if (error) {
+    console.error("[copiaModel] Error contando copias:", error);
+    throw error;
+  }
+
+  return count ?? 0;
+}
+
+// ─── Escritura ─────────────────────────────────────────────────────
+
+/**
+ * Transición atómica del estado de una copia.
+ * Solo actualiza si el estado actual coincide con `fromEstado`.
+ * Retorna `true` si la transición se realizó, `false` si no coincidía.
+ */
+export async function updateCopiaEstadoIf(
+  id: string,
+  fromEstado: EstadoCopia,
+  toEstado: EstadoCopia,
+): Promise<boolean> {
+  const changed = await transitionCopiaEstados([id], fromEstado, toEstado);
+  return changed.length > 0;
+}
+
+/**
+ * Transición atómica masiva del estado de múltiples copias.
+ * Solo actualiza las que tengan el estado `fromEstado`.
+ * Retorna los IDs de las copias que efectivamente cambiaron de estado.
+ */
+export async function updateCopiaEstadoIfBatch(
+  ids: string[],
+  fromEstado: EstadoCopia,
+  toEstado: EstadoCopia,
+): Promise<string[]> {
+  return transitionCopiaEstados(ids, fromEstado, toEstado);
 }
 
 export async function transferCopias(
@@ -472,13 +496,18 @@ function applyCopiasFilters(
   return query;
 }
 
+export interface GetCopiasParams {
+  page?: number;
+  pageSize?: number;
+  searchTerm?: string;
+  id_tienda?: string;
+  id_libro?: string;
+}
+
 export async function getCopias(
-  page: number = 1,
-  pageSize: number = 10,
-  searchTerm?: string,
-  id_tienda?: string,
-  id_libro?: string,
+  params: GetCopiasParams = {},
 ): Promise<Paginated<CopiaRow>> {
+  const { page = 1, pageSize = 10, searchTerm, id_tienda, id_libro } = params;
   const adminClient = createAdminClient();
 
   const { safePage, safePageSize, from, to } = buildPaginationBounds(page, pageSize);
@@ -513,20 +542,7 @@ export async function getCopias(
 }
 
 export async function countCopiasByLibro(id_libro: string): Promise<number> {
-  const adminClient = createAdminClient();
-
-  const { count, error } = await buildCopiaFilterQuery(
-    adminClient.from("copia").select("id", { count: "exact", head: true }),
-    "copia",
-    { id_libro },
-  );
-
-  if (error) {
-    console.error("[copiaModel] Error contando copias por libro:", error);
-    throw error;
-  }
-
-  return count ?? 0;
+  return countCopiasByFilters({ id_libro });
 }
 
 export async function getCopiaIdsByLibro(
@@ -601,21 +617,84 @@ async function queryDisponibilidad(options: {
 export async function countAvailableCopiasByLibro(
   id_libro: string,
 ): Promise<number> {
+  return countCopiasByFilters({ id_libro, estado: "disponible" });
+}
+
+// ─── Copia con info de libro ─────────────────────────────────────
+
+export interface CopiaConLibro {
+  id_copia: string;
+  libro: {
+    id: string;
+    titulo: string;
+    editorial: string;
+  } | null;
+  imagen_portada: string | null;
+}
+
+function extractCoverImage(
+  noticias: { imagenes: unknown; deleted_at: string | null; es_visible: boolean }[] | undefined
+): string | null {
+  const activas = (noticias ?? []).filter((n) => !n.deleted_at && n.es_visible);
+  const imagenes = activas[0]?.imagenes;
+  if (!Array.isArray(imagenes) || imagenes.length === 0) return null;
+  return typeof imagenes[0] === "string" ? imagenes[0] : null;
+}
+
+/**
+ * Obtiene copias con su información de libro e imagen de portada.
+ * Útil para enriquecer items de devolución con datos legibles.
+ */
+export async function getCopiasWithLibroByIds(
+  copiaIds: string[],
+): Promise<Map<string, CopiaConLibro>> {
+  if (copiaIds.length === 0) return new Map();
+
   const adminClient = createAdminClient();
 
-  const { count, error } = await buildCopiaFilterQuery(
-    adminClient.from("copia").select("id", { count: "exact", head: true }),
-    "copia",
-    { id_libro, estado: "disponible" },
-  );
+  const { data, error } = await adminClient
+    .from("copia")
+    .select(`
+      id,
+      libro(
+        id,
+        titulo,
+        editorial,
+        noticias(
+          imagenes,
+          deleted_at,
+          es_visible
+        )
+      )
+    `)
+    .in("id", copiaIds);
 
   if (error) {
-    console.error(
-      "[copiaModel] Error contando copias disponibles por libro:",
-      error,
-    );
+    console.error("[copiaModel] Error obteniendo copias con libro:", error);
     throw error;
   }
 
-  return count ?? 0;
+  const result = new Map<string, CopiaConLibro>();
+
+  for (const row of data ?? []) {
+    const raw = row as unknown as {
+      id: string;
+      libro?: {
+        id: string;
+        titulo: string;
+        editorial: string;
+        noticias?: { imagenes: unknown; deleted_at: string | null; es_visible: boolean }[];
+      } | null;
+    };
+    const libro = raw.libro;
+    result.set(raw.id, {
+      id_copia: raw.id,
+      libro: libro
+        ? { id: libro.id, titulo: libro.titulo, editorial: libro.editorial }
+        : null,
+      imagen_portada: libro ? extractCoverImage(libro.noticias) : null,
+    });
+  }
+
+  return result;
 }

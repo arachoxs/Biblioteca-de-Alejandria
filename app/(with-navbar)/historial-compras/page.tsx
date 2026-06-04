@@ -1,5 +1,6 @@
 import { fetchHistorialComprasAction } from "./actions";
 import HistorialComprasClient from "@/components/compra/HistorialComprasClient";
+import HistorialDevoluciones from "@/components/devolucion/HistorialDevoluciones";
 
 export const metadata = {
   title: "Historial de Compras — Biblioteca de Alejandría",
@@ -20,6 +21,13 @@ export default async function HistorialComprasPage() {
           Historial de Compras
         </h1>
         <HistorialComprasClient initialData={initialData} />
+
+        <div className="mt-12 pt-8 border-t border-brand-accent/10">
+          <h2 className="text-xl font-semibold text-brand-text mb-6">
+            Tus devoluciones
+          </h2>
+          <HistorialDevoluciones />
+        </div>
       </main>
     </div>
   );

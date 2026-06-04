@@ -9,7 +9,7 @@ interface CompraCardProps {
 
 export default function CompraCard({ compra }: CompraCardProps) {
   return (
-    <article className="bg-white rounded-xl border border-brand-accent/15 shadow-sm overflow-hidden">
+    <article className="bg-white rounded-xl border border-brand-accent/15 shadow-sm overflow-hidden transition-shadow hover:shadow-md">
       <CompraCardHeader
         fecha={compra.fecha}
         total={compra.total}
@@ -23,7 +23,7 @@ export default function CompraCard({ compra }: CompraCardProps) {
       <div className="px-5 py-3 border-t border-brand-accent/10">
         <Link
           href={`/historial-compras/${compra.id}`}
-          className="inline-block px-4 py-2 text-xs font-medium rounded-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/30 transition-colors"
+          className="inline-block px-4 py-2 text-xs font-medium rounded-lg border border-brand-accent/20 bg-white text-brand-secondary hover:text-brand-primary hover:border-brand-primary/30 hover:bg-brand-primary/5 cursor-pointer transition-colors"
         >
           Ver detalle de compra
         </Link>
