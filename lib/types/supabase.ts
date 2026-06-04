@@ -621,7 +621,7 @@ export type Database = {
         Insert: {
           deleted_at?: string | null
           es_visible: boolean
-          fecha_expiracion: string
+          fecha_expiracion?: string
           fecha_publicacion: string
           id?: string
           id_libro: string
