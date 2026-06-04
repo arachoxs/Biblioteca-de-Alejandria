@@ -150,7 +150,14 @@ export default function PagoStep({
 
     const allocationArray: TarjetaPaymentAllocation[] = Array.from(
       allocations.entries(),
-    ).map(([id_tarjeta, monto]) => ({ id_tarjeta, monto }));
+    ).map(([id_tarjeta, monto]) => {
+      const tarjeta = allTarjetas.find((t) => t.id === id_tarjeta);
+      return {
+        id_tarjeta,
+        monto,
+        ultimos_cuatro_digitos: tarjeta?.ultimos_cuatro_digitos ?? "****",
+      };
+    });
 
     setSubmitting(true);
     const validation = await validatePaymentAllocationAction(

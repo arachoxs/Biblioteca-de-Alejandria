@@ -99,7 +99,7 @@ export type Database = {
           fecha: string
           id?: string
           id_promocion?: number | null
-          id_usuario: string
+          id_usuario?: string
           subtotal: number
           total: number
         }
@@ -197,14 +197,14 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_devolucion"]
           fecha: string
           id?: number
-          id_usuario: string
+          id_usuario?: string | null
         }
         Update: {
           deleted_at?: string | null
           estado?: Database["public"]["Enums"]["estado_devolucion"]
           fecha?: string
           id?: number
-          id_usuario?: string
+          id_usuario?: string | null
         }
         Relationships: [
           {
@@ -409,16 +409,19 @@ export type Database = {
           id: number
           id_compra: string
           id_copia: string
+          monto: number
         }
         Insert: {
           id?: number
           id_compra: string
           id_copia: string
+          monto?: number
         }
         Update: {
           id?: number
           id_compra?: string
           id_copia?: string
+          monto?: number
         }
         Relationships: [
           {
@@ -884,7 +887,7 @@ export type Database = {
           mes_caducidad: number
           nombre_titular?: string | null
           saldo: number
-          ultimos_cuatro_digitos: string
+          ultimos_cuatro_digitos?: string
         }
         Update: {
           ano_caducidad?: number
