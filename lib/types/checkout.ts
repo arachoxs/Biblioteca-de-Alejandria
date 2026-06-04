@@ -50,6 +50,7 @@ export interface DisponibilidadLibroTienda {
 export interface TarjetaPaymentAllocation {
   id_tarjeta: number
   monto: number
+  ultimos_cuatro_digitos: string
 }
 
 export interface TarjetaConSaldo {

@@ -32,7 +32,7 @@ export interface RegistrarCompraInput {
   subtotal: number;
   total: number;
   id_promocion?: number | null;
-  copias: { id_copia: string }[];
+  copias: { id_copia: string; monto: number }[];
   tarjetas: { id_tarjeta: number; monto: number }[];
   entrega: {
     tipo: "envio" | "recogida";
@@ -128,6 +128,17 @@ function validateMontoTotal(
   return { ok: true };
 }
 
+function validateSubtotal(
+  copias: { id_copia: string; monto: number }[],
+  subtotal: number,
+): { ok: true } | { ok: false; errors: Record<string, string> } {
+  const sumCopias = copias.reduce((sum, c) => sum + c.monto, 0);
+  if (sumCopias !== subtotal) {
+    return { ok: false, errors: { subtotal: "SUBTOTAL_MISMATCH" } };
+  }
+  return { ok: true };
+}
+
 async function restoreDeducciones(
   deducciones: { id_tarjeta: number; monto: number }[],
 ): Promise<void> {
@@ -195,7 +206,7 @@ async function executeWrites(
     created.compraId = compra.id;
 
     const items = await insertItemComprasBatch(
-      input.copias.map((c) => ({ id_compra: compra.id, id_copia: c.id_copia })),
+      input.copias.map((c) => ({ id_compra: compra.id, id_copia: c.id_copia, monto: c.monto })),
     );
     created.itemCompraIds = items.map((i) => i.id);
 
@@ -260,6 +271,11 @@ export async function registrarCompra(
   const montoCheck = validateMontoTotal(input.tarjetas, input.total);
   if (!montoCheck.ok) {
     return { success: false, errors: montoCheck.errors };
+  }
+
+  const subtotalCheck = validateSubtotal(input.copias, input.subtotal);
+  if (!subtotalCheck.ok) {
+    return { success: false, errors: subtotalCheck.errors };
   }
 
   try {

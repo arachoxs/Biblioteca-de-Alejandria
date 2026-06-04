@@ -237,7 +237,7 @@ export async function validatePaymentAllocationAction(
 export interface ConfirmarCompraActionInput {
   subtotal: number
   total: number
-  copias: { id_copia: string }[]
+  copias: { id_copia: string; monto: number }[]
   tarjetas: { id_tarjeta: number; monto: number }[]
   entrega: {
     tipo: "domicilio" | "recogida" | "traslado"

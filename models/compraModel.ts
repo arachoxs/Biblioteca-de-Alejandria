@@ -50,7 +50,7 @@ function extractCoverImage(
 }
 
 function groupItemsByLibro(
-  rawItems: { copia?: { libro?: { id: string; titulo: string; precio: number; editorial: string; idioma: string; noticias?: { imagenes: unknown; deleted_at: string | null; es_visible: boolean }[] } } }[]
+  rawItems: { monto: number; copia?: { libro?: { id: string; titulo: string; precio: number; editorial: string; idioma: string; noticias?: { imagenes: unknown; deleted_at: string | null; es_visible: boolean }[] } } }[]
 ): CompraItem[] {
   const grouped = new Map<string, CompraItem>();
 
@@ -58,11 +58,12 @@ function groupItemsByLibro(
     const libro = raw.copia?.libro;
     if (!libro) continue;
 
-    const existing = grouped.get(libro.id);
+    const key = `${libro.id}__${raw.monto}`;
+    const existing = grouped.get(key);
     if (existing) {
       existing.cantidad++;
     } else {
-      grouped.set(libro.id, {
+      grouped.set(key, {
         libro: {
           id: libro.id,
           titulo: libro.titulo,
@@ -72,7 +73,7 @@ function groupItemsByLibro(
         },
         cantidad: 1,
         imagen_portada: extractCoverImage(libro.noticias),
-        precio_unitario: libro.precio,
+        precio_unitario: raw.monto,
       });
     }
   }
@@ -89,7 +90,7 @@ function transformCompras(
     subtotal: compra.subtotal,
     total: compra.total,
     id_promocion: compra.id_promocion,
-    items: groupItemsByLibro(compra.items as { copia?: { libro?: { id: string; titulo: string; precio: number; editorial: string; idioma: string; noticias?: { imagenes: unknown; deleted_at: string | null; es_visible: boolean }[] } } }[]),
+    items: groupItemsByLibro(compra.items as { monto: number; copia?: { libro?: { id: string; titulo: string; precio: number; editorial: string; idioma: string; noticias?: { imagenes: unknown; deleted_at: string | null; es_visible: boolean }[] } } }[]),
   }));
 }
 
@@ -140,6 +141,7 @@ export async function getComprasByUserId(
       items:item_compra(
         id,
         id_copia,
+        monto,
         copia(
           id_libro,
           libro(
@@ -220,6 +222,7 @@ export async function getCompraDetalleById(
       items:item_compra(
         id,
         id_copia,
+        monto,
         copia(
           id_libro,
           libro(

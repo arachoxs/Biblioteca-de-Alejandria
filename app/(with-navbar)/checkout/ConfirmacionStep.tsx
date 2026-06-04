@@ -59,7 +59,7 @@ function getTipoTexto(envioOpcion: OpcionEnvio | null): string {
 function getCartSummary(cartData: ReservaAgrupadaItem[]) {
   const subtotal = cartData.reduce((s, g) => s + g.precio * g.copias_reservadas, 0)
   const totalArticulos = cartData.reduce((s, g) => s + g.copias_reservadas, 0)
-  const copias = cartData.flatMap((g) => g.reservas.map((r) => ({ id_copia: r.id_copia })))
+  const copias = cartData.flatMap((g) => g.reservas.map((r) => ({ id_copia: r.id_copia, monto: g.precio })))
 
   return { subtotal, totalArticulos, copias }
 }
@@ -69,7 +69,7 @@ function buildTarjetas(
 ): CardDisplay[] {
   return paymentAllocations.map((a) => ({
     id_tarjeta: a.id_tarjeta,
-    ultimos_cuatro_digitos: String(a.id_tarjeta).padStart(4, "0").slice(-4),
+    ultimos_cuatro_digitos: a.ultimos_cuatro_digitos,
     monto: a.monto,
   }))
 }
@@ -84,7 +84,7 @@ function buildConfirmPayload({
 }: {
   subtotal: number
   totalConEnvio: number
-  copias: { id_copia: string }[]
+  copias: { id_copia: string; monto: number }[]
   paymentAllocations: TarjetaPaymentAllocation[]
   envioOpcion: OpcionEnvio
   idTiendaDestino: string
@@ -130,7 +130,7 @@ function useConfirmacionAction({
   envioOpcion: OpcionEnvio | null
   subtotal: number
   totalConEnvio: number
-  copias: { id_copia: string }[]
+  copias: { id_copia: string; monto: number }[]
   paymentAllocations: TarjetaPaymentAllocation[]
   idTiendaDestino: string
   onPurchaseComplete: () => void
