@@ -11,6 +11,11 @@ import {
   type RegistrarCompraInput,
   type RegistrarCompraResponse,
 } from "@/services/compra/compraService"
+import {
+  aplicarPromocion,
+  revertirPromocion,
+  getPromocionActiva,
+} from "@/services/promocion/promocionService"
 import { getCurrentUser } from "@/models/authModel"
 import { getUserPlaceId, getUserFullAddress } from "@/models/checkoutModel"
 import { getTarjetasByUserId } from "@/models/tarjetaModel"
@@ -232,6 +237,26 @@ export async function validatePaymentAllocationAction(
   }
 }
 
+// ─── Promoción activa ──────────────────────────────────────────────
+
+export interface PromocionInfo {
+  id: number
+  porcentaje: number
+  nombre: string
+}
+
+export async function getPromocionActivaAction(): Promise<PromocionInfo | null> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return null
+    const promo = await getPromocionActiva(user.id)
+    if (!promo) return null
+    return { id: promo.id, porcentaje: promo.porcentaje_descuento, nombre: promo.nombre }
+  } catch {
+    return null
+  }
+}
+
 // ─── Final confirmation ─────────────────────────────────────────────
 
 export interface ConfirmarCompraActionInput {
@@ -251,9 +276,6 @@ export type ConfirmarCompraResponse = RegistrarCompraResponse
 const TIPOS_ENTREGA_VALIDOS = ["domicilio", "recogida", "traslado"] as const
 
 function mapTipoEntrega(tipo: string): "envio" | "recogida" {
-  // "domicilio" → "envio" (entrega a domicilio)
-  // "recogida" y "traslado" → "recogida" (el usuario recoge en tienda;
-  //   el traslado físico de copias se maneja por separado vía transferirCopiasAction)
   return tipo === "domicilio" ? "envio" : "recogida"
 }
 
@@ -305,6 +327,48 @@ function validateConfirmarInput(input: ConfirmarCompraActionInput): InputErrors 
   return Object.keys(errors).length > 0 ? errors : null
 }
 
+interface PromocionResuelta {
+  promocionId: number | null
+  totalFinal: number
+}
+
+async function resolverPromocion(
+  userId: string,
+  subtotal: number,
+  costoEnvio: number,
+  totalOriginal: number,
+): Promise<PromocionResuelta> {
+  const { promocionId, porcentaje } = await aplicarPromocion(userId)
+  if (!promocionId || porcentaje <= 0) {
+    return { promocionId: null, totalFinal: totalOriginal }
+  }
+  const descuento = Math.round(subtotal * (porcentaje / 100))
+  return { promocionId, totalFinal: subtotal - descuento + costoEnvio }
+}
+
+function buildServiceInput(
+  userId: string,
+  input: ConfirmarCompraActionInput,
+  tipoEntrega: "envio" | "recogida",
+  direccionId: number,
+  promo: PromocionResuelta,
+): RegistrarCompraInput {
+  return {
+    id_usuario: userId,
+    subtotal: input.subtotal,
+    total: promo.totalFinal,
+    id_promocion: promo.promocionId,
+    copias: input.copias,
+    tarjetas: input.tarjetas,
+    entrega: {
+      tipo: tipoEntrega,
+      costo: input.entrega.costo,
+      fecha_entrega_estimada: computeFechaEntregaEstimada(),
+      id_direccion_destino: direccionId,
+    },
+  }
+}
+
 export async function confirmarCompraAction(
   input: ConfirmarCompraActionInput,
 ): Promise<ConfirmarCompraResponse> {
@@ -320,22 +384,16 @@ export async function confirmarCompraAction(
     const direccionResult = await resolveDireccionDestino(user, tipoEntrega, input.entrega.id_tienda_destino)
     if (!direccionResult.ok) return { success: false, errors: direccionResult.errors }
 
-    const serviceInput: RegistrarCompraInput = {
-      id_usuario: user.id,
-      subtotal: input.subtotal,
-      total: input.total,
-      id_promocion: null,
-      copias: input.copias,
-      tarjetas: input.tarjetas,
-      entrega: {
-        tipo: tipoEntrega,
-        costo: input.entrega.costo,
-        fecha_entrega_estimada: computeFechaEntregaEstimada(),
-        id_direccion_destino: direccionResult.id_direccion,
-      },
+    const promo = await resolverPromocion(user.id, input.subtotal, input.entrega.costo, input.total)
+    const serviceInput = buildServiceInput(user.id, input, tipoEntrega, direccionResult.id_direccion, promo)
+
+    const result = await registrarCompra(serviceInput)
+
+    if (!result.success && promo.promocionId) {
+      await revertirPromocion(promo.promocionId)
     }
 
-    return await registrarCompra(serviceInput)
+    return result
   } catch (error) {
     console.error("[confirmarCompraAction]", error)
     return { success: false, errors: { general: "Error inesperado al procesar la compra." } }
