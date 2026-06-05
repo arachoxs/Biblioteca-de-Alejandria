@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/cron/expirar-reservas", "schedule": "0 2 * * *" },
+    {
+      "path": "/api/cron/generar-promociones-cumpleanos",
+      "schedule": "5 0 * * *"
+    },
+    {
+      "path": "/api/cron/limpiar-promociones-expiradas",
+      "schedule": "59 23 * * *"
+    }
+  ]
+}

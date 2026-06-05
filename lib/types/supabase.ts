@@ -128,6 +128,27 @@ export type Database = {
           },
         ]
       }
+      configuracion: {
+        Row: {
+          clave: string
+          descripcion: string | null
+          updated_at: string
+          valor: Json
+        }
+        Insert: {
+          clave: string
+          descripcion?: string | null
+          updated_at?: string
+          valor: Json
+        }
+        Update: {
+          clave?: string
+          descripcion?: string | null
+          updated_at?: string
+          valor?: Json
+        }
+        Relationships: []
+      }
       copia: {
         Row: {
           codigo_seq: string | null
@@ -765,26 +786,43 @@ export type Database = {
       promocion: {
         Row: {
           deleted_at: string | null
+          fecha_expiracion: string
           id: number
+          id_usuario: string
           nombre: string
           porcentaje_descuento: number
           tipo: string
+          usada: boolean
         }
         Insert: {
           deleted_at?: string | null
+          fecha_expiracion: string
           id?: number
+          id_usuario: string
           nombre: string
           porcentaje_descuento: number
           tipo: string
+          usada?: boolean
         }
         Update: {
           deleted_at?: string | null
+          fecha_expiracion?: string
           id?: number
+          id_usuario?: string
           nombre?: string
           porcentaje_descuento?: number
           tipo?: string
+          usada?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "promocion_id_usuario_fkey"
+            columns: ["id_usuario"]
+            isOneToOne: false
+            referencedRelation: "usuario"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reserva: {
         Row: {
