@@ -3,7 +3,7 @@ import { requireAdminRole } from "@/lib/validations/server-auth";
 import {
   checkLibroDuplicateInfo,
   createLibro,
-  getLibrosWithCopies,
+  getLibros,
   rollbackLibro,
   softDeleteLibroById,
   updateLibroById,
@@ -19,6 +19,7 @@ import { countCopiasByLibro } from "@/models/copiaModel";
 import { createCopias } from "@/services/copia/copiaService";
 import { logAdminAction } from "@/services/admin/auditService";
 import { AccionAdministrador } from "@/lib/types/audit";
+import { createDefaultModeloRA } from "@/models/modeloRAModel";
 import type {
   InsertLibroPayload,
   UpdateLibroPayload,
@@ -32,75 +33,111 @@ import type {
 import { getCurrentUser } from "@/models/authModel";
 
 // ─── Utilidades ────────────────────────────────────────────────────
-// ─── Escritura ─────────────────────────────────────────────────────
 
-/**
- * Orquesta la creación de un libro sin inventario.
- */
-export async function createBook(
-  data: InsertLibroPayload
-): Promise<LibroActionResponse> {
+async function validateAndCheckDuplicate(
+  data: InsertLibroPayload,
+  excludeId?: string,
+): Promise<{ ok: true } | { ok: false; response: LibroActionResponse }> {
   const roleCheck = await requireAdminRole();
-  if (!roleCheck.success) return roleCheck;
+  if (!roleCheck.success) return { ok: false, response: roleCheck };
 
   let isDuplicate: boolean;
   try {
     isDuplicate = await checkLibroDuplicateInfo(
       data.titulo,
       data.isbn,
-      data.estado
+      data.estado,
+      excludeId,
     );
   } catch (error) {
     return {
-      success: false,
-      message: `Error al verificar la existencia del libro: ${getErrorMessage(error)}`,
+      ok: false,
+      response: {
+        success: false,
+        message: `Error al verificar la existencia del libro: ${getErrorMessage(error)}`,
+      },
     };
   }
+
   if (isDuplicate) {
     return {
-      success: false,
-      errors: { form: "Ya existe un libro con este título, ISBN y estado." },
-      message: "El libro ya está registrado.",
+      ok: false,
+      response: {
+        success: false,
+        errors: { form: excludeId
+          ? "Ya existe otro libro con este título, ISBN y estado."
+          : "Ya existe un libro con este título, ISBN y estado." },
+        message: "El libro ya está registrado.",
+      },
     };
   }
+
+  return { ok: true };
+}
+
+async function logBookAudit(
+  libroId: string,
+  titulo: string,
+  action: AccionAdministrador,
+  description: string,
+): Promise<void> {
+  const actor = await getCurrentUser();
+  if (actor) {
+    await logAdminAction({
+      actorId: actor.id,
+      action,
+      description,
+      entity: { id: libroId, entity_type: "libro", display_name: titulo },
+    });
+  }
+}
+
+async function insertBookSideEffects(libroId: string): Promise<void> {
+  const now = new Date();
+  const expiracion = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
+
+  await insertNoticia({
+    id_libro: libroId,
+    fecha_publicacion: now.toISOString(),
+    fecha_expiracion: expiracion.toISOString(),
+    es_visible: true,
+  });
+
+  await insertHistorico({
+    id_libro: libroId,
+    estado: "agotado",
+    fecha: now.toISOString(),
+  });
+}
+// ─── Escritura ─────────────────────────────────────────────────────
+
+/**
+ * Orquesta la creación de un libro sin inventario.
+ * Crea automáticamente un modelo RA con dimensiones por defecto.
+ */
+export async function createBook(
+  data: InsertLibroPayload
+): Promise<LibroActionResponse> {
+  const validation = await validateAndCheckDuplicate(data);
+  if (!validation.ok) return validation.response;
 
   let libroId: string;
   try {
+    const modeloRAId = await createDefaultModeloRA(data.paginas);
+    data.id_modeloRA = modeloRAId;
     libroId = await createLibro(data);
   } catch (error) {
-    return {
-      success: false,
-      message: getErrorMessage(error),
-    };
+    return { success: false, message: getErrorMessage(error) };
   }
 
   try {
-    const now = new Date();
-    const expiracion = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
-
-    await insertNoticia({
-      id_libro: libroId,
-      fecha_publicacion: now.toISOString(),
-      fecha_expiracion: expiracion.toISOString(),
-      es_visible: true,
-    });
-
-    await insertHistorico({
-      id_libro: libroId,
-      estado: "agotado",
-      fecha: now.toISOString(),
-    });
-
-    const actor = await getCurrentUser();
-    if (actor) {
-      await logAdminAction({
-        actorId: actor.id,
-        action: AccionAdministrador.CREAR,
-        description: `Se creó el libro "${data.titulo}" (sin inventario).`,
-        entity: { id: libroId, entity_type: "libro", display_name: data.titulo },
-      });
-    }
-
+    await insertBookSideEffects(libroId);
+    await logBookAudit(
+      libroId,
+      data.titulo,
+      AccionAdministrador.CREAR,
+      `Se creó el libro "${data.titulo}" (sin inventario).`,
+    );
     return { success: true, message: "Libro creado exitosamente." };
   } catch (err) {
     console.error("[libroService] Error en la creación de dependencias, haciendo rollback:", err);
@@ -112,46 +149,21 @@ export async function createBook(
   }
 }
 
-/**
- * Orquesta la creación de un libro con inventario inicial.
- */
 export async function createBookWithInventory(
   data: InsertLibroPayload,
   id_tienda: string,
   cantidad: number
 ): Promise<LibroActionResponse> {
-  const roleCheck = await requireAdminRole();
-  if (!roleCheck.success) return roleCheck;
-
-  let isDuplicate: boolean;
-  try {
-    isDuplicate = await checkLibroDuplicateInfo(
-      data.titulo,
-      data.isbn,
-      data.estado
-    );
-  } catch (error) {
-    return {
-      success: false,
-      message: `Error al verificar la existencia del libro: ${getErrorMessage(error)}`,
-    };
-  }
-  if (isDuplicate) {
-    return {
-      success: false,
-      errors: { form: "Ya existe un libro con este título, ISBN y estado." },
-      message: "El libro ya está registrado.",
-    };
-  }
+  const validation = await validateAndCheckDuplicate(data);
+  if (!validation.ok) return validation.response;
 
   let libroId: string;
   try {
+    const modeloRAId = await createDefaultModeloRA(data.paginas);
+    data.id_modeloRA = modeloRAId;
     libroId = await createLibro(data);
   } catch (error) {
-    return {
-      success: false,
-      message: getErrorMessage(error),
-    };
+    return { success: false, message: getErrorMessage(error) };
   }
 
   try {
@@ -163,26 +175,13 @@ export async function createBookWithInventory(
     });
     if (!copiasResult.success) throw new Error(copiasResult.message || "Error insertando copias");
 
-    const now = new Date();
-    const expiracion = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
-
-    await insertNoticia({
-      id_libro: libroId,
-      fecha_publicacion: now.toISOString(),
-      fecha_expiracion: expiracion.toISOString(),
-      es_visible: true,
-    });
-
-    const actor = await getCurrentUser();
-    if (actor) {
-      await logAdminAction({
-        actorId: actor.id,
-        action: AccionAdministrador.CREAR,
-        description: `Se creó el libro "${data.titulo}" con ${cantidad} copias de inventario.`,
-        entity: { id: libroId, entity_type: "libro", display_name: data.titulo },
-      });
-    }
-
+    await insertBookSideEffects(libroId);
+    await logBookAudit(
+      libroId,
+      data.titulo,
+      AccionAdministrador.CREAR,
+      `Se creó el libro "${data.titulo}" con ${cantidad} copias de inventario.`,
+    );
     return { success: true, message: "Libro con inventario creado exitosamente." };
   } catch (err) {
     console.error("[libroService] Error en la creación de dependencias, haciendo rollback:", err);
@@ -201,9 +200,6 @@ export async function editBook(
   id: string,
   data: UpdateLibroPayload
 ): Promise<LibroActionResponse> {
-  const roleCheck = await requireAdminRole();
-  if (!roleCheck.success) return roleCheck;
-
   try {
     const existingBook = await getActiveLibroById(id);
     if (!existingBook) {
@@ -214,19 +210,11 @@ export async function editBook(
     const isbnToCheck = data.isbn ?? existingBook.isbn;
     const estadoToCheck = data.estado ?? existingBook.estado;
 
-    const isDuplicate = await checkLibroDuplicateInfo(
-      tituloToCheck,
-      isbnToCheck,
-      estadoToCheck,
-      id
+    const validation = await validateAndCheckDuplicate(
+      { ...data, titulo: tituloToCheck, isbn: isbnToCheck, estado: estadoToCheck, idioma: "", sinopsis: "", paginas: 0, precio: 0, id_autor: 0, id_categoria: 0, fecha_publicacion: "", editorial: "" } as InsertLibroPayload,
+      id,
     );
-    if (isDuplicate) {
-      return {
-        success: false,
-        errors: { form: "Ya existe otro libro con este título, ISBN y estado." },
-        message: "El libro ya está registrado.",
-      };
-    }
+    if (!validation.ok) return validation.response;
   } catch (error) {
     return {
       success: false,
@@ -237,21 +225,15 @@ export async function editBook(
   try {
     await updateLibroById(id, data);
   } catch (error) {
-    return {
-      success: false,
-      message: getErrorMessage(error),
-    };
+    return { success: false, message: getErrorMessage(error) };
   }
 
-  const actor = await getCurrentUser();
-  if (actor) {
-    await logAdminAction({
-      actorId: actor.id,
-      action: AccionAdministrador.MODIFICAR,
-      description: `Se actualizó el libro ID ${id}.`,
-      entity: { id: id, entity_type: "libro", display_name: data.titulo || "Desconocido" },
-    });
-  }
+  await logBookAudit(
+    id,
+    data.titulo || "Desconocido",
+    AccionAdministrador.MODIFICAR,
+    `Se actualizó el libro ID ${id}.`,
+  );
 
   return { success: true, message: "Libro actualizado exitosamente." };
 }
@@ -284,29 +266,43 @@ export async function removeBook(
   try {
     await softDeleteLibroById(id);
   } catch (error) {
-    return {
-      success: false,
-      message: getErrorMessage(error),
-    };
+    return { success: false, message: getErrorMessage(error) };
   }
 
   await softDeleteNoticiaByLibroId(id);
   await deleteHistoricoByLibroId(id);
-
-  const actor = await getCurrentUser();
-  if (actor) {
-    await logAdminAction({
-      actorId: actor.id,
-      action: AccionAdministrador.ELIMINAR,
-      description: `Se eliminó (borrado lógico) el libro "${titulo}".`,
-      entity: { id: id, entity_type: "libro", display_name: titulo },
-    });
-  }
+  await logBookAudit(
+    id,
+    titulo,
+    AccionAdministrador.ELIMINAR,
+    `Se eliminó (borrado lógico) el libro "${titulo}".`,
+  );
 
   return { success: true, message: "Libro eliminado exitosamente." };
 }
 
 // ─── Lectura ───────────────────────────────────────────────────────
+
+function tryMergeSegment(
+  segments: HistoricoTimelineData["segments"],
+  estado: string,
+  segmentStart: Date,
+  segmentEnd: Date,
+): boolean {
+  const lastSegment = segments[segments.length - 1];
+  if (
+    lastSegment &&
+    lastSegment.estado === estado &&
+    new Date(lastSegment.end_at) >= segmentStart
+  ) {
+    const mergedEndAt = segmentEnd.toISOString();
+    lastSegment.end_at = mergedEndAt;
+    lastSegment.duration_ms =
+      new Date(mergedEndAt).getTime() - new Date(lastSegment.start_at).getTime();
+    return true;
+  }
+  return false;
+}
 
 function buildHistoricoTimelineData(
   libroId: string,
@@ -328,25 +324,14 @@ function buildHistoricoTimelineData(
 
     if (segmentEnd < segmentStart) continue;
 
-    const lastSegment = segments[segments.length - 1];
-    if (
-      lastSegment &&
-      lastSegment.estado === current.estado &&
-      new Date(lastSegment.end_at) >= segmentStart
-    ) {
-      const mergedEndAt = segmentEnd.toISOString();
-      lastSegment.end_at = mergedEndAt;
-      lastSegment.duration_ms =
-        new Date(mergedEndAt).getTime() - new Date(lastSegment.start_at).getTime();
-      continue;
+    if (!tryMergeSegment(segments, current.estado, segmentStart, segmentEnd)) {
+      segments.push({
+        estado: current.estado,
+        start_at: segmentStart.toISOString(),
+        end_at: segmentEnd.toISOString(),
+        duration_ms: segmentEnd.getTime() - segmentStart.getTime(),
+      });
     }
-
-    segments.push({
-      estado: current.estado,
-      start_at: segmentStart.toISOString(),
-      end_at: segmentEnd.toISOString(),
-      duration_ms: segmentEnd.getTime() - segmentStart.getTime(),
-    });
   }
 
   return {
@@ -418,7 +403,7 @@ export async function fetchBooks(
       message: roleCheck.message || "No autorizado.",
     };
 
-    const data = await getLibrosWithCopies(page, pageSize, searchTerm);
+    const data = await getLibros(page, pageSize, searchTerm, true);
 
     return { success: true, data };
   } catch (error: unknown) {

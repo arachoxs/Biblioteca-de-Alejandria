@@ -99,7 +99,7 @@ export default function BookDetailClient({ noticia, userRole }: BookDetailClient
               isAdding={isAdding}
             />
 
-            <ARButton />
+            <ARButton libroId={noticia.id_libro} />
 
             <BookSynopsis sinopsis={noticia.sinopsis} />
 
