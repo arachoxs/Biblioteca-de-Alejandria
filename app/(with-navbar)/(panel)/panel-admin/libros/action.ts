@@ -19,15 +19,21 @@ import {
   sanitizeText,
   toSafePositiveInt,
 } from "@/lib/validations/rules";
+import {
+  getModeloRAByLibroId,
+  updateModeloRA,
+  uploadAndUpdateTexturas,
+} from "@/services/modelo-ra/modeloRAService";
 import type {
   InsertLibroPayload,
-  UpdateLibroPayload,
   LibrosListResponse,
   LibroActionResponse,
   CondicionLibro,
 } from "@/lib/types/libro";
 import type { ActionResponse } from "@/lib/types/common";
 import type { HistoricoTimelineResponse } from "@/lib/types/historico";
+import type { ModeloRADataResponse } from "@/lib/types/modelo_ra";
+import type { TexturaTipo } from "@/lib/services/ra-storage";
 
 // ─── Lectura ───────────────────────────────────────────────────────
 
@@ -42,48 +48,39 @@ export async function getLibrosAction(
   return await fetchBooks(safePage, safePageSize, cleanTerm || undefined);
 }
 
-/**
- * Carga autores paginados para selector (pageSize=100).
- */
-export async function getAuthorOptionsAction(
-  searchTerm?: string,
-): Promise<ActionResponse & { data?: { value: string; label: string }[] }> {
-  const cleanTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
-  const result = await fetchAuthors(1, 100, cleanTerm || undefined);
+type OptionsResult = Promise<ActionResponse & { data?: { value: string; label: string }[] }>;
+
+async function fetchOptionsAction(
+  fetcher: () => Promise<{ success: boolean; data?: { data: { id: number; nombre: string }[] }; message?: string }>,
+  errorMessage: string,
+): OptionsResult {
+  const result = await fetcher();
 
   if (!result.success || !result.data) {
-    return { success: false, message: result.message || "Error cargando autores." };
+    return { success: false, message: result.message || errorMessage };
   }
 
   return {
     success: true,
-    data: result.data.data.map((a) => ({
-      value: String(a.id),
-      label: a.nombre || "Sin nombre",
+    data: result.data.data.map((item) => ({
+      value: String(item.id),
+      label: item.nombre || "Sin nombre",
     })),
   };
 }
 
-/**
- * Carga categorías paginadas para selector (pageSize=100).
- */
-export async function getCategoryOptionsAction(
-  searchTerm?: string,
-): Promise<ActionResponse & { data?: { value: string; label: string }[] }> {
-  const cleanTerm = searchTerm ? sanitizeText(searchTerm) : undefined;
-  const result = await fetchCategories({ page: 1, pageSize: 100, searchTerm: cleanTerm || undefined });
+export async function getAuthorOptionsAction(): OptionsResult {
+  return fetchOptionsAction(
+    () => fetchAuthors(1, 100, undefined),
+    "Error cargando autores.",
+  );
+}
 
-  if (!result.success || !result.data) {
-    return { success: false, message: result.message || "Error cargando categorías." };
-  }
-
-  return {
-    success: true,
-    data: result.data.data.map((c) => ({
-      value: String(c.id),
-      label: c.nombre || "Sin nombre",
-    })),
-  };
+export async function getCategoryOptionsAction(): OptionsResult {
+  return fetchOptionsAction(
+    () => fetchCategories({ page: 1, pageSize: 100, searchTerm: undefined }),
+    "Error cargando categorías.",
+  );
 }
 
 /**
@@ -102,21 +99,76 @@ export async function getLibroByIdAction(id: string) {
   return await getActiveLibroById(cleanId);
 }
 
+async function validateUUIDAndFetch<T>(
+  rawId: string,
+  fetcher: (cleanId: string) => Promise<T>,
+  errorMessage: string,
+): Promise<{ success: false; errors: Record<string, string> } | { success: true; data: T }> {
+  const cleanId = sanitizeText(rawId);
+  if (!cleanId || !isValidUUID(cleanId)) {
+    return { success: false, errors: { form: errorMessage } };
+  }
+  const data = await fetcher(cleanId);
+  return { success: true, data };
+}
+
 export async function getLibroHistoricoTimelineAction(
   libroId: string,
 ): Promise<HistoricoTimelineResponse> {
-  const cleanLibroId = sanitizeText(libroId);
-  if (!isValidUUID(cleanLibroId)) {
-    return {
-      success: false,
-      errors: { libro_id: "El identificador del libro no es válido." },
-    };
-  }
+  const result = await validateUUIDAndFetch(
+    libroId,
+    fetchBookHistoricoTimeline,
+    "El identificador del libro no es válido.",
+  );
+  if (!result.success) return result;
+  return result.data;
+}
 
-  return await fetchBookHistoricoTimeline(cleanLibroId);
+export async function getModeloRAByLibroAction(
+  libroId: string,
+): Promise<ModeloRADataResponse> {
+  const result = await validateUUIDAndFetch(
+    libroId,
+    getModeloRAByLibroId,
+    "El identificador del libro no es válido.",
+  );
+  if (!result.success) return result;
+  return result.data;
 }
 
 // ─── Mutaciones ────────────────────────────────────────────────────
+
+function sanitizeLibroFormData(formData: Record<string, string>) {
+  return {
+    titulo: sanitizeText(formData.titulo),
+    isbn: sanitizeText(formData.isbn),
+    idioma: sanitizeText(formData.idioma),
+    sinopsis: sanitizeText(formData.sinopsis),
+    paginas: formData.paginas?.trim() ?? "",
+    precio: formData.precio?.trim() ?? "",
+    estado: formData.estado?.trim() ?? "",
+    id_autor: formData.id_autor?.trim() ?? "",
+    id_categoria: formData.id_categoria?.trim() ?? "",
+    fecha_publicacion: formData.fecha_publicacion?.trim() ?? "",
+    editorial: sanitizeText(formData.editorial),
+  };
+}
+
+function buildLibroPayload(cleaned: ReturnType<typeof sanitizeLibroFormData>): InsertLibroPayload {
+  return {
+    titulo: cleaned.titulo,
+    isbn: cleaned.isbn,
+    idioma: cleaned.idioma,
+    sinopsis: cleaned.sinopsis,
+    paginas: Number(cleaned.paginas),
+    precio: Number(cleaned.precio),
+    estado: cleaned.estado as CondicionLibro,
+    id_autor: Number(cleaned.id_autor),
+    id_categoria: Number(cleaned.id_categoria),
+    fecha_publicacion: cleaned.fecha_publicacion,
+    editorial: cleaned.editorial,
+  };
+}
 
 async function resolveBodegaYValidarCantidad(
   cantidad: number,
@@ -140,42 +192,14 @@ export async function crearLibroAction(
   formData: Record<string, string>,
   cantidadInventario?: number,
 ): Promise<LibroActionResponse> {
-  // Sanitizar
-  const cleaned = {
-    titulo: sanitizeText(formData.titulo),
-    isbn: sanitizeText(formData.isbn),
-    idioma: sanitizeText(formData.idioma),
-    sinopsis: sanitizeText(formData.sinopsis),
-    paginas: formData.paginas?.trim() ?? "",
-    precio: formData.precio?.trim() ?? "",
-    estado: formData.estado?.trim() ?? "",
-    id_autor: formData.id_autor?.trim() ?? "",
-    id_categoria: formData.id_categoria?.trim() ?? "",
-    fecha_publicacion: formData.fecha_publicacion?.trim() ?? "",
-    editorial: sanitizeText(formData.editorial),
-  };
-
-  // Validar
+  const cleaned = sanitizeLibroFormData(formData);
   const errors = validateLibro(cleaned);
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
 
-  const payload: InsertLibroPayload = {
-    titulo: cleaned.titulo,
-    isbn: cleaned.isbn,
-    idioma: cleaned.idioma,
-    sinopsis: cleaned.sinopsis,
-    paginas: Number(cleaned.paginas),
-    precio: Number(cleaned.precio),
-    estado: cleaned.estado as CondicionLibro,
-    id_autor: Number(cleaned.id_autor),
-    id_categoria: Number(cleaned.id_categoria),
-    fecha_publicacion: cleaned.fecha_publicacion,
-    editorial: cleaned.editorial,
-  };
+  const payload = buildLibroPayload(cleaned);
 
-  // Inventario obligatorio → bodega principal
   if (cantidadInventario !== undefined && cantidadInventario > 0) {
     const result = await resolveBodegaYValidarCantidad(cantidadInventario);
     if (result.error) {
@@ -196,46 +220,19 @@ export async function editarLibroAction(
     return { success: false, message: "ID de libro no válido." };
   }
 
-  const cleaned = {
-    titulo: sanitizeText(formData.titulo),
-    isbn: sanitizeText(formData.isbn),
-    idioma: sanitizeText(formData.idioma),
-    sinopsis: sanitizeText(formData.sinopsis),
-    paginas: formData.paginas?.trim() ?? "",
-    precio: formData.precio?.trim() ?? "",
-    estado: formData.estado?.trim() ?? "",
-    id_autor: formData.id_autor?.trim() ?? "",
-    id_categoria: formData.id_categoria?.trim() ?? "",
-    fecha_publicacion: formData.fecha_publicacion?.trim() ?? "",
-    editorial: sanitizeText(formData.editorial),
-  };
-
+  const cleaned = sanitizeLibroFormData(formData);
   const errors = validateLibro(cleaned);
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
 
-  const payload: UpdateLibroPayload = {
-    titulo: cleaned.titulo,
-    isbn: cleaned.isbn,
-    idioma: cleaned.idioma,
-    sinopsis: cleaned.sinopsis,
-    paginas: Number(cleaned.paginas),
-    precio: Number(cleaned.precio),
-    estado: cleaned.estado as CondicionLibro,
-    id_autor: Number(cleaned.id_autor),
-    id_categoria: Number(cleaned.id_categoria),
-    fecha_publicacion: cleaned.fecha_publicacion,
-    editorial: cleaned.editorial,
-  };
-
+  const payload = buildLibroPayload(cleaned);
   return await editBook(cleanId, payload);
 }
 
 export async function eliminarLibroAction(
   id: string,
   titulo: string,
-  estado: string,
 ): Promise<LibroActionResponse> {
   const cleanId = sanitizeText(id);
   if (!cleanId) {
@@ -243,4 +240,66 @@ export async function eliminarLibroAction(
   }
 
   return await removeBook(cleanId, sanitizeText(titulo));
+}
+
+function areValidDimensions(...values: number[]): boolean {
+  return values.every((v) => Number.isFinite(v));
+}
+
+function extractRAFilesFromFormData(formData: FormData): Partial<Record<TexturaTipo, File>> {
+  const files: Partial<Record<TexturaTipo, File>> = {};
+  const tipos: TexturaTipo[] = ["portada", "contraportada", "lomo"];
+
+  for (const tipo of tipos) {
+    const entry = formData.get(`ra_${tipo}`);
+    if (entry instanceof File && entry.size > 0) {
+      files[tipo] = entry;
+    }
+  }
+
+  return files;
+}
+
+// ─── Modelo RA ─────────────────────────────────────────────────────
+
+/**
+ * Actualiza las dimensiones del modelo RA de un libro.
+ */
+export async function actualizarDimensionesRAAction(
+  modeloRAId: number,
+  formData: Record<string, string>,
+): Promise<ActionResponse> {
+  const ancho = Number(formData.ra_ancho);
+  const alto = Number(formData.ra_alto);
+  const profundidad = Number(formData.ra_profundidad);
+
+  if (!areValidDimensions(ancho, alto, profundidad)) {
+    return { success: false, errors: { form: "Las dimensiones deben ser números válidos." } };
+  }
+
+  return await updateModeloRA(modeloRAId, {
+    dimensiones: { ancho, alto, profundidad },
+  });
+}
+
+/**
+ * Sube texturas (portada, contraportada, lomo) y actualiza el modelo RA.
+ */
+export async function subirTexturasRAAction(
+  modeloRAId: number,
+  libroId: string,
+  formData: FormData,
+): Promise<ActionResponse> {
+  const cleanId = sanitizeText(libroId);
+  if (!cleanId || !isValidUUID(cleanId)) {
+    return { success: false, errors: { form: "El identificador del libro no es válido." } };
+  }
+
+  const files = extractRAFilesFromFormData(formData);
+
+  if (Object.keys(files).length === 0) {
+    return { success: true, message: "No se proporcionaron nuevas texturas." };
+  }
+
+  return await uploadAndUpdateTexturas(modeloRAId, cleanId, files);
 }

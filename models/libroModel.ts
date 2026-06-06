@@ -20,20 +20,10 @@ type LibroUpdateRow = Database["public"]["Tables"]["libro"]["Update"];
 function buildLibroUpdatePayload(
   input: UpdateLibroPayload,
 ): Partial<LibroUpdateRow> {
-  const payload: Partial<LibroUpdateRow> = {};
-  if (input.titulo !== undefined) payload.titulo = input.titulo;
-  if (input.isbn !== undefined) payload.isbn = input.isbn;
-  if (input.idioma !== undefined) payload.idioma = input.idioma;
-  if (input.sinopsis !== undefined) payload.sipnosis = input.sinopsis;
-  if (input.paginas !== undefined) payload.paginas = input.paginas;
-  if (input.precio !== undefined) payload.precio = input.precio;
-  if (input.estado !== undefined) payload.estado = input.estado;
-  if (input.id_autor !== undefined) payload.id_autor = input.id_autor;
-  if (input.id_categoria !== undefined) payload.id_categoria = input.id_categoria;
-  if (input.fecha_publicacion !== undefined)
-    payload.fecha_publicacion = input.fecha_publicacion;
-  if (input.editorial !== undefined) payload.editorial = input.editorial;
-  if (input.id_modeloRA !== undefined) payload.id_modeloRA = input.id_modeloRA;
+  const { sinopsis, ...rest } = input;
+  const entries = Object.entries(rest).filter(([, v]) => v !== undefined);
+  const payload = Object.fromEntries(entries) as Partial<LibroUpdateRow>;
+  if (sinopsis !== undefined) payload.sipnosis = sinopsis;
   return payload;
 }
 
@@ -65,34 +55,94 @@ function normalizeLibroWithRelations(
   };
 }
 
-async function getMatchingAuthorIds(searchTerm: string): Promise<number[]> {
-  const adminClient = createAdminClient();
-  const pattern = formatILIKE(searchTerm);
+function extractCopiasCount(row: Record<string, unknown>): number {
+  const rowCopia = row.copia as { count: number } | { count: number }[] | undefined;
+  const count = Array.isArray(rowCopia) ? rowCopia[0]?.count : rowCopia?.count;
+  return Number(count) || 0;
+}
 
-  const { data, error } = await adminClient
-    .from("autor")
-    .select("id")
-    .ilike("nombre", pattern);
+interface LibrosQueryParams<T> {
+  page: number;
+  pageSize: number;
+  searchTerm?: string;
+  selectClause: string;
+  normalize: (row: Record<string, unknown>) => T;
+}
+
+async function queryLibrosBase<T>(params: LibrosQueryParams<T>): Promise<Paginated<T>> {
+  const { page, pageSize, searchTerm, selectClause, normalize } = params;
+  const adminClient = createAdminClient();
+
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  let query = adminClient
+    .from("libro")
+    .select(selectClause, { count: "exact" })
+    .is("deleted_at", null)
+    .range(from, to)
+    .order("id", { ascending: false });
+
+  const normalizedSearch = searchTerm?.trim();
+
+  if (normalizedSearch) {
+    const [authorIds, categoryIds] = await Promise.all([
+      getMatchingIds("autor", normalizedSearch),
+      getMatchingIds("categoria", normalizedSearch),
+    ]);
+
+    let orFilter = buildOrILikeFilter(
+      ["titulo", "isbn", "idioma", "editorial"],
+      normalizedSearch,
+    );
+
+    if (authorIds.length > 0) {
+      orFilter += `,id_autor.in.(${authorIds.join(",")})`;
+    }
+
+    if (categoryIds.length > 0) {
+      orFilter += `,id_categoria.in.(${categoryIds.join(",")})`;
+    }
+
+    query = query.or(orFilter);
+  }
+
+  const { data, error, count } = await query;
 
   if (error) {
-    console.error("[libroModel] Error al buscar autores por termino:", error);
+    console.error("[libroModel] Error al obtener libros:", error);
     throw error;
   }
 
-  return (data ?? []).map((row) => row.id);
+  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  const normalized = rows.map((row) => normalize(row));
+  const totalCount = count ?? 0;
+
+  return {
+    data: normalized,
+    total: totalCount,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.ceil(totalCount / safePageSize),
+  };
 }
 
-async function getMatchingCategoryIds(searchTerm: string): Promise<number[]> {
+async function getMatchingIds(
+  table: "autor" | "categoria",
+  searchTerm: string,
+): Promise<number[]> {
   const adminClient = createAdminClient();
   const pattern = formatILIKE(searchTerm);
 
   const { data, error } = await adminClient
-    .from("categoria")
+    .from(table)
     .select("id")
     .ilike("nombre", pattern);
 
   if (error) {
-    console.error("[libroModel] Error al buscar categorias por termino:", error);
+    console.error(`[libroModel] Error al buscar ${table} por termino:`, error);
     throw error;
   }
 
@@ -142,138 +192,22 @@ export async function getLibros(
   page: number = 1,
   pageSize: number = 10,
   searchTerm?: string,
+  withCopies: boolean = false,
 ): Promise<Paginated<LibroWithRelations>> {
-  const adminClient = createAdminClient();
+  const selectClause = withCopies
+    ? "*, autor(nombre), categoria(nombre), copia!left(count)"
+    : "*, autor(nombre), categoria(nombre)";
 
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
-
-  let query = adminClient
-    .from("libro")
-    .select("*, autor(nombre), categoria(nombre)", { count: "exact" })
-    .is("deleted_at", null)
-    .range(from, to)
-    .order("id", { ascending: false });
-
-  const normalizedSearch = searchTerm?.trim();
-
-  if (normalizedSearch) {
-    const [authorIds, categoryIds] = await Promise.all([
-      getMatchingAuthorIds(normalizedSearch),
-      getMatchingCategoryIds(normalizedSearch),
-    ]);
-
-    let orFilter = buildOrILikeFilter(
-      ["titulo", "isbn", "idioma", "editorial"],
-      normalizedSearch,
-    );
-
-    if (authorIds.length > 0) {
-      orFilter += `,id_autor.in.(${authorIds.join(",")})`;
-    }
-
-    if (categoryIds.length > 0) {
-      orFilter += `,id_categoria.in.(${categoryIds.join(",")})`;
-    }
-
-    query = query.or(orFilter);
-  }
-
-  const { data, error, count } = await query;
-
-  if (error) {
-    console.error("[libroModel] Error al obtener libros:", error);
-    throw error;
-  }
-
-  const normalized = (data ?? []).map((row) =>
-    normalizeLibroWithRelations(row as LibroRow & Record<string, unknown>),
-  );
-  const totalCount = count ?? 0;
-
-  return {
-    data: normalized,
-    total: totalCount,
-    page: safePage,
-    pageSize: safePageSize,
-    totalPages: Math.ceil(totalCount / safePageSize),
-  };
-}
-
-/**
- * Obtiene libros activos paginados, incluyendo el recuento de copias.
- */
-export async function getLibrosWithCopies(
-  page: number = 1,
-  pageSize: number = 10,
-  searchTerm?: string,
-): Promise<Paginated<LibroWithRelations>> {
-  const adminClient = createAdminClient();
-
-  const safePage = Math.max(1, page);
-  const safePageSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
-
-  let query = adminClient
-    .from("libro")
-    .select("*, autor(nombre), categoria(nombre), copia!left(count)", { count: "exact" })
-    .is("deleted_at", null)
-    .is("copia.deleted_at", null)
-    .range(from, to)
-    .order("id", { ascending: false });
-
-  const normalizedSearch = searchTerm?.trim();
-
-  if (normalizedSearch) {
-    const [authorIds, categoryIds] = await Promise.all([
-      getMatchingAuthorIds(normalizedSearch),
-      getMatchingCategoryIds(normalizedSearch),
-    ]);
-
-    let orFilter = buildOrILikeFilter(
-      ["titulo", "isbn", "idioma", "editorial"],
-      normalizedSearch,
-    );
-
-    if (authorIds.length > 0) {
-      orFilter += `,id_autor.in.(${authorIds.join(",")})`;
-    }
-
-    if (categoryIds.length > 0) {
-      orFilter += `,id_categoria.in.(${categoryIds.join(",")})`;
-    }
-
-    query = query.or(orFilter);
-  }
-
-  const { data, error, count } = await query;
-
-  if (error) {
-    console.error("[libroModel] Error al obtener libros con copias:", error);
-    throw error;
-  }
-
-  const normalized = (data ?? []).map((row) => {
-    const rowRecord = row as Record<string, unknown>;
-    const rowCopia = rowRecord.copia as { count: number } | { count: number }[] | undefined;
-    const copiasCount = Array.isArray(rowCopia) ? rowCopia[0]?.count : rowCopia?.count;
-    return {
-      ...normalizeLibroWithRelations(row as LibroRow & Record<string, unknown>),
-      copias_count: Number(copiasCount) || 0,
-    };
+  return queryLibrosBase({
+    page,
+    pageSize,
+    searchTerm,
+    selectClause,
+    normalize: (row) => {
+      const base = normalizeLibroWithRelations(row as LibroRow & Record<string, unknown>);
+      return withCopies ? { ...base, copias_count: extractCopiasCount(row) } : base;
+    },
   });
-  const totalCount = count ?? 0;
-
-  return {
-    data: normalized,
-    total: totalCount,
-    page: safePage,
-    pageSize: safePageSize,
-    totalPages: Math.ceil(totalCount / safePageSize),
-  };
 }
 
 /**
@@ -425,34 +359,36 @@ export async function checkLibroDuplicateInfo(
 
 /**
  * Rollback (Hard Delete) de un libro y sus dependencias creadas en transacciones fallidas.
- * Se eliminan primero copias, historico, noticias y finalmente el libro debido a NO ACTION FK.
+ * Se eliminan primero copias, historico, noticias, luego el libro y finalmente el modelo RA.
  */
+async function deleteByLibroId(
+  table: "copia" | "historico" | "noticias",
+  id_libro: string,
+): Promise<void> {
+  const adminClient = createAdminClient();
+  const { error } = await adminClient
+    .from(table)
+    .delete()
+    .eq("id_libro", id_libro);
+  if (error) {
+    console.error(`[libroModel] Error eliminando ${table} en rollback:`, error);
+  }
+}
+
 export async function rollbackLibro(id_libro: string): Promise<void> {
+  await deleteByLibroId("copia", id_libro);
+  await deleteByLibroId("historico", id_libro);
+  await deleteByLibroId("noticias", id_libro);
+
   const adminClient = createAdminClient();
 
-  const { error: copiaErr } = await adminClient
-    .from("copia")
-    .delete()
-    .eq("id_libro", id_libro);
-  if (copiaErr) {
-    console.error("[libroModel] Error eliminando copias en rollback:", copiaErr);
-  }
+  const { data: libroData } = await adminClient
+    .from("libro")
+    .select("id_modeloRA")
+    .eq("id", id_libro)
+    .maybeSingle();
 
-  const { error: histErr } = await adminClient
-    .from("historico")
-    .delete()
-    .eq("id_libro", id_libro);
-  if (histErr) {
-    console.error("[libroModel] Error eliminando historico en rollback:", histErr);
-  }
-
-  const { error: noticErr } = await adminClient
-    .from("noticias")
-    .delete()
-    .eq("id_libro", id_libro);
-  if (noticErr) {
-    console.error("[libroModel] Error eliminando noticias en rollback:", noticErr);
-  }
+  const modeloRAId = (libroData as Record<string, unknown> | null)?.id_modeloRA as number | null;
 
   const { error: libroErr } = await adminClient
     .from("libro")
@@ -462,5 +398,15 @@ export async function rollbackLibro(id_libro: string): Promise<void> {
   if (libroErr) {
     console.error("[libroModel] Error eliminando libro principal en rollback:", libroErr);
     throw libroErr;
+  }
+
+  if (modeloRAId) {
+    const { error: modeloErr } = await adminClient
+      .from("modelo_ra")
+      .delete()
+      .eq("id", modeloRAId);
+    if (modeloErr) {
+      console.error("[libroModel] Error eliminando modelo_ra en rollback:", modeloErr);
+    }
   }
 }

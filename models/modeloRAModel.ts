@@ -1,15 +1,22 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/types/supabase";
 import type {
   InsertModeloRAPayload,
   ModeloRARow,
   UpdateModeloRAPayload,
 } from "@/lib/types/modelo_ra";
+import {
+  createDefaultDimensiones,
+  createDefaultTexturas,
+} from "@/lib/types/modelo_ra";
+
+type ModeloRAUpdateRow = Database["public"]["Tables"]["modelo_ra"]["Update"];
 
 /**
  * Inserta un nuevo modelo RA en la tabla `modelo_ra`.
  */
 export async function createModeloRA(
-  input: InsertModeloRAPayload
+  input: InsertModeloRAPayload,
 ): Promise<number> {
   const adminClient = createAdminClient();
 
@@ -31,12 +38,21 @@ export async function createModeloRA(
 }
 
 /**
+ * Crea un modelo RA con dimensiones y texturas por defecto para un libro nuevo.
+ * @param paginas Número de páginas del libro (para calcular profundidad)
+ * @returns ID del modelo RA creado
+ */
+export async function createDefaultModeloRA(paginas: number): Promise<number> {
+  const dimensiones = createDefaultDimensiones(paginas);
+  const texturas = createDefaultTexturas();
+  return createModeloRA({ dimensiones, texturas });
+}
+
+/**
  * Obtiene un modelo RA activo por ID.
- * Helper para validaciones y lectura en el contexto de libro.
- * Usado por servicios de libro para enriquecer datos de RA.
  */
 export async function getActiveModeloRAById(
-  modeloRAId: number
+  modeloRAId: number,
 ): Promise<ModeloRARow | null> {
   const adminClient = createAdminClient();
 
@@ -55,10 +71,38 @@ export async function getActiveModeloRAById(
   return data;
 }
 
+/**
+ * Obtiene el modelo RA asociado a un libro activo.
+ */
+export async function getModeloRAByLibroId(
+  libroId: string,
+): Promise<ModeloRARow | null> {
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .from("libro")
+    .select("modelo_ra(*)")
+    .eq("id", libroId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[modeloRAModel] Error al obtener modelo RA por libro:", error);
+    throw error;
+  }
+
+  if (!data) return null;
+
+  const modeloRA = (data as Record<string, unknown>).modelo_ra;
+  if (!modeloRA || typeof modeloRA !== "object") return null;
+
+  return modeloRA as ModeloRARow;
+}
+
 function buildModeloRAUpdatePayload(
   input: UpdateModeloRAPayload,
-): Partial<UpdateModeloRAPayload> {
-  const payload: Partial<UpdateModeloRAPayload> = {};
+): Partial<ModeloRAUpdateRow> {
+  const payload: Partial<ModeloRAUpdateRow> = {};
   if (input.dimensiones !== undefined) payload.dimensiones = input.dimensiones;
   if (input.texturas !== undefined) payload.texturas = input.texturas;
   return payload;
@@ -73,7 +117,7 @@ export async function updateModeloRAById(
 ): Promise<void> {
   const adminClient = createAdminClient();
 
-  const payload: UpdateModeloRAPayload = buildModeloRAUpdatePayload(input);
+  const payload = buildModeloRAUpdatePayload(input);
 
   if (Object.keys(payload).length === 0) {
     throw new Error("Debes enviar al menos un campo para actualizar.");
@@ -98,10 +142,10 @@ export async function updateModeloRAById(
 }
 
 /**
- * Realiza eliminacion logica de un modelo RA activo por su ID.
+ * Realiza eliminación lógica de un modelo RA activo por su ID.
  */
 export async function softDeleteModeloRAById(
-  modeloRAId: number
+  modeloRAId: number,
 ): Promise<void> {
   const adminClient = createAdminClient();
 

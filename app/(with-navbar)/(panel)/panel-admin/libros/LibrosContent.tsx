@@ -101,7 +101,6 @@ export default function LibrosContent() {
       const response = await eliminarLibroAction(
         libroId,
         libro.titulo || "Desconocido",
-        libro.estado || "",
       );
       setActionResponse(response);
 

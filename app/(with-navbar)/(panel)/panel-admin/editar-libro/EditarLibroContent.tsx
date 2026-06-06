@@ -1,47 +1,39 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
 import Alert from "@/components/ui/Alert";
 import BackLink from "@/components/ui/BackLink";
-import SearchableSelect from "@/components/ui/SearchableSelect";
-import type { SearchableSelectOption } from "@/components/ui/SearchableSelect";
 import AuthorFormModal from "../autores/AuthorFormModal";
 import CategoryFormModal from "../categorias/CategoryFormModal";
 import { useValidation } from "@/hooks/useValidation";
 import { validateLibro } from "@/lib/validations/libro";
+import { DEFAULT_ANCHO, DEFAULT_ALTO } from "@/lib/types/modelo_ra";
+import type { ModeloRADimensiones, ModeloRATexturasLibro } from "@/lib/types/modelo_ra";
 import {
   Save,
   Loader2,
-  Plus,
 } from "lucide-react";
 import {
   editarLibroAction,
   getAuthorOptionsAction,
   getCategoryOptionsAction,
   getLibroByIdAction,
+  getModeloRAByLibroAction,
+  actualizarDimensionesRAAction,
+  subirTexturasRAAction,
 } from "../libros/action";
 import { createCategoryAction } from "../categorias/action";
 import type { LibroActionResponse } from "@/lib/types/libro";
-
-// ─── Form values ───────────────────────────────────────────────────
-
-interface LibroFormValues extends Record<string, unknown> {
-  titulo: string;
-  isbn: string;
-  idioma: string;
-  sinopsis: string;
-  paginas: string;
-  precio: string;
-  estado: string;
-  id_autor: string;
-  id_categoria: string;
-  fecha_publicacion: string;
-  editorial: string;
-}
+import type { SearchableSelectOption } from "@/components/ui/SearchableSelect";
+import {
+  LibroBasicInfoSection,
+  LibroDetailsSection,
+  LibroClassificationSection,
+  LibroRASection,
+} from "@/components/libros/LibroFormSections";
+import type { LibroFormValues } from "@/components/libros/LibroFormSections";
 
 const INITIAL_VALUES: LibroFormValues = {
   titulo: "",
@@ -73,22 +65,73 @@ function validateForm(values: LibroFormValues): Record<string, string> {
   });
 }
 
-const ESTADO_OPTIONS = [
-  { value: "nuevo", label: "Nuevo" },
-  { value: "usado", label: "Usado" },
-];
+// ─── Module-level helpers ───────────────────────────────────────────
 
-const IDIOMA_OPTIONS = [
-  { value: "Español", label: "Español" },
-  { value: "Inglés", label: "Inglés" },
-  { value: "Francés", label: "Francés" },
-  { value: "Alemán", label: "Alemán" },
-  { value: "Portugués", label: "Portugués" },
-  { value: "Italiano", label: "Italiano" },
-  { value: "Otro", label: "Otro" },
-];
+type OptionsSetter = (opts: SearchableSelectOption[]) => void;
 
+async function loadOptionsAction(
+  fetcher: () => Promise<{ success: boolean; data?: SearchableSelectOption[] }>,
+  setter: OptionsSetter,
+  errorLabel: string,
+) {
+  try {
+    const res = await fetcher();
+    if (res.success && res.data) setter(res.data);
+  } catch (err) {
+    console.error(`Error cargando ${errorLabel}:`, err);
+  }
+}
 
+async function loadRADataAction(
+  libroId: string,
+  setModeloRAId: (id: number | null) => void,
+  setRaDimensiones: (d: { ancho: string; alto: string }) => void,
+  setExistingTexturas: (t: { portada: string | null; contraportada: string | null; lomo: string | null }) => void,
+) {
+  try {
+    const raResult = await getModeloRAByLibroAction(libroId);
+    if (!raResult?.success || !raResult.data) return;
+
+    const raData = raResult.data;
+    setModeloRAId(raData.id);
+    const dim = raData.dimensiones as unknown as ModeloRADimensiones;
+    if (dim) {
+      setRaDimensiones({
+        ancho: String(dim.ancho ?? DEFAULT_ANCHO),
+        alto: String(dim.alto ?? DEFAULT_ALTO),
+      });
+    }
+    const tex = raData.texturas as unknown as ModeloRATexturasLibro;
+    if (tex) {
+      setExistingTexturas({
+        portada: tex.portada ?? null,
+        contraportada: tex.contraportada ?? null,
+        lomo: tex.lomo ?? null,
+      });
+    }
+  } catch {
+    // RA load failure shouldn't block libro loading
+  }
+}
+
+function populateLibroForm(
+  libro: NonNullable<Awaited<ReturnType<typeof getLibroByIdAction>>>,
+  setValues: (v: LibroFormValues) => void,
+) {
+  setValues({
+    titulo: libro.titulo || "",
+    isbn: libro.isbn || "",
+    idioma: libro.idioma || "",
+    sinopsis: libro.sipnosis || "",
+    paginas: String(libro.paginas ?? ""),
+    precio: String(libro.precio ?? ""),
+    estado: libro.estado || "",
+    id_autor: String(libro.id_autor ?? ""),
+    id_categoria: String(libro.id_categoria ?? ""),
+    fecha_publicacion: libro.fecha_publicacion || "",
+    editorial: libro.editorial || "",
+  });
+}
 
 // ─── Componente ────────────────────────────────────────────────────
 
@@ -108,30 +151,22 @@ export default function EditarLibroContent() {
   const [isAuthorModalOpen, setIsAuthorModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
+  const [modeloRAId, setModeloRAId] = useState<number | null>(null);
+  const [raDimensiones, setRaDimensiones] = useState({
+    ancho: String(DEFAULT_ANCHO),
+    alto: String(DEFAULT_ALTO),
+  });
+  const [existingTexturas, setExistingTexturas] = useState<{
+    portada: string | null;
+    contraportada: string | null;
+    lomo: string | null;
+  }>({ portada: null, contraportada: null, lomo: null });
+  const raTexturasRef = useRef<Partial<Record<"portada" | "contraportada" | "lomo", File>>>({});
+
   const { values, errors, handleChange, handleBlur, setValues, setErrors } =
     useValidation<LibroFormValues>(INITIAL_VALUES, validateForm, {
       onFieldChange: () => setAlertState(null),
     });
-
-  // ─── Carga datos ───────────────────────────────────────────────
-
-  const loadAuthorOptions = useCallback(async () => {
-    try {
-      const res = await getAuthorOptionsAction();
-      if (res.success && res.data) setAuthorOptions(res.data);
-    } catch (err) {
-      console.error("Error cargando autores:", err);
-    }
-  }, []);
-
-  const loadCategoryOptions = useCallback(async () => {
-    try {
-      const res = await getCategoryOptionsAction();
-      if (res.success && res.data) setCategoryOptions(res.data);
-    } catch (err) {
-      console.error("Error cargando categorías:", err);
-    }
-  }, []);
 
   useEffect(() => {
     if (!libroId) {
@@ -145,8 +180,8 @@ export default function EditarLibroContent() {
       try {
         const [libro] = await Promise.all([
           getLibroByIdAction(libroId),
-          loadAuthorOptions(),
-          loadCategoryOptions(),
+          loadOptionsAction(getAuthorOptionsAction, setAuthorOptions, "autores"),
+          loadOptionsAction(getCategoryOptionsAction, setCategoryOptions, "categorías"),
         ]);
 
         if (!libro) {
@@ -154,19 +189,8 @@ export default function EditarLibroContent() {
           return;
         }
 
-        setValues({
-          titulo: libro.titulo || "",
-          isbn: libro.isbn || "",
-          idioma: libro.idioma || "",
-          sinopsis: libro.sipnosis || "",
-          paginas: String(libro.paginas ?? ""),
-          precio: String(libro.precio ?? ""),
-          estado: libro.estado || "",
-          id_autor: String(libro.id_autor ?? ""),
-          id_categoria: String(libro.id_categoria ?? ""),
-          fecha_publicacion: libro.fecha_publicacion || "",
-          editorial: libro.editorial || "",
-        });
+        populateLibroForm(libro, setValues);
+        await loadRADataAction(libroId, setModeloRAId, setRaDimensiones, setExistingTexturas);
       } catch (err) {
         console.error("Error cargando libro:", err);
         setNotFound(true);
@@ -176,9 +200,32 @@ export default function EditarLibroContent() {
     };
 
     void loadAll();
-  }, [libroId, loadAuthorOptions, loadCategoryOptions, setValues]);
+  }, [libroId, setValues]);
 
   // ─── Submit ────────────────────────────────────────────────────
+
+  const updateModeloRAData = useCallback(async (libroId: string, paginas: string) => {
+    if (!modeloRAId) return;
+
+    const dimFormData: Record<string, string> = {
+      ra_ancho: raDimensiones.ancho,
+      ra_alto: raDimensiones.alto,
+      ra_profundidad: String(Math.round((Number(paginas) || 0) * 0.007 * 100) / 100),
+    };
+    await actualizarDimensionesRAAction(modeloRAId, dimFormData).catch(
+      (err) => console.error("Error actualizando dimensiones RA:", err),
+    );
+
+    if (Object.keys(raTexturasRef.current).length > 0) {
+      const texFormData = new FormData();
+      for (const [tipo, file] of Object.entries(raTexturasRef.current)) {
+        if (file) texFormData.append(`ra_${tipo}`, file);
+      }
+      await subirTexturasRAAction(modeloRAId, libroId, texFormData).catch(
+        (err) => console.error("Error subiendo texturas RA:", err),
+      );
+    }
+  }, [modeloRAId, raDimensiones]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,6 +258,7 @@ export default function EditarLibroContent() {
       setAlertState(response);
 
       if (response.success) {
+        await updateModeloRAData(libroId, values.paginas);
         setTimeout(() => router.push("/panel-admin/libros"), 1500);
       } else if (response.errors) {
         setErrors((prev) => ({ ...prev, ...response.errors }));
@@ -228,18 +276,28 @@ export default function EditarLibroContent() {
   // ─── Callbacks modals ──────────────────────────────────────────
 
   const handleAuthorCreated = async (id?: number | string) => {
-    await loadAuthorOptions();
-    if (id) {
-      handleChange("id_autor", String(id));
-    }
+    await loadOptionsAction(getAuthorOptionsAction, setAuthorOptions, "autores");
+    if (id) handleChange("id_autor", String(id));
   };
 
   const handleCategoryCreated = async (id?: number | string) => {
-    await loadCategoryOptions();
-    if (id) {
-      handleChange("id_categoria", String(id));
-    }
+    await loadOptionsAction(getCategoryOptionsAction, setCategoryOptions, "categorías");
+    if (id) handleChange("id_categoria", String(id));
   };
+
+  const handleRaDimensionesChange = useCallback(
+    (field: "ancho" | "alto", value: string) => {
+      setRaDimensiones((prev) => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
+
+  const handleRaTexturasChange = useCallback(
+    (files: Partial<Record<"portada" | "contraportada" | "lomo", File>>) => {
+      raTexturasRef.current = files;
+    },
+    [],
+  );
 
   const canSubmit =
     values.titulo.trim() !== "" &&
@@ -302,213 +360,37 @@ export default function EditarLibroContent() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 fill-mode-both">
-        {/* Información básica */}
-        <section className="bg-white rounded-xl border border-brand-accent/10 shadow-sm p-6 space-y-5">
-          <h2 className="text-lg font-bold text-brand-primary font-display tracking-tight border-b border-brand-accent/10 pb-3">
-            Información Básica
-          </h2>
+        <LibroBasicInfoSection
+          values={values} errors={errors}
+          handleChange={handleChange} handleBlur={handleBlur}
+          isSubmitting={isSubmitting} idPrefix="edit-"
+        />
 
-          <Input
-            id="edit-libro-titulo"
-            label="Título"
-            placeholder="Ej: Cien años de soledad"
-            value={values.titulo}
-            onChange={(e) => handleChange("titulo", e.target.value)}
-            onBlur={() => handleBlur("titulo")}
-            error={errors.titulo}
-            required
-            disabled={isSubmitting}
-          />
+        <LibroDetailsSection
+          values={values} errors={errors}
+          handleChange={handleChange} handleBlur={handleBlur}
+          isSubmitting={isSubmitting} idPrefix="edit-"
+        />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              id="edit-libro-isbn"
-              label="ISBN"
-              placeholder="Ej: 9780060883287"
-              value={values.isbn}
-              onChange={(e) => handleChange("isbn", e.target.value)}
-              onBlur={() => handleBlur("isbn")}
-              error={errors.isbn}
-              required
-              disabled={isSubmitting}
-            />
+        <LibroClassificationSection
+          values={values} errors={errors}
+          handleChange={handleChange} handleBlur={handleBlur}
+          isSubmitting={isSubmitting} idPrefix="edit-"
+          authorOptions={authorOptions}
+          categoryOptions={categoryOptions}
+          onOpenAuthorModal={() => setIsAuthorModalOpen(true)}
+          onOpenCategoryModal={() => setIsCategoryModalOpen(true)}
+        />
 
-            <Select
-              id="edit-libro-idioma"
-              label="Idioma"
-              options={IDIOMA_OPTIONS}
-              value={values.idioma}
-              onChange={(e) => handleChange("idioma", e.target.value)}
-              onBlur={() => handleBlur("idioma")}
-              error={errors.idioma}
-              required
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="edit-libro-sinopsis"
-              className="text-sm font-semibold text-brand-primary tracking-wide flex items-center gap-1 mb-1.5">
-              Sinopsis
-              {!isSubmitting && <span className="text-brand-primary ml-1">*</span>}
-            </label>
-            <textarea
-              id="edit-libro-sinopsis"
-              rows={4}
-              placeholder="Describe brevemente el contenido del libro..."
-              value={values.sinopsis}
-              onChange={(e) => handleChange("sinopsis", e.target.value)}
-              onBlur={() => handleBlur("sinopsis")}
-              disabled={isSubmitting}
-              className={`w-full px-4 py-2.5 rounded-lg border transition-all duration-300 shadow-sm
-                bg-brand-bg text-brand-text resize-none
-                placeholder:text-brand-accent
-                focus:outline-none focus:ring-2
-                ${
-                  errors.sinopsis
-                    ? "border-red-500 focus:ring-red-400/60 focus:border-red-500"
-                    : "border-brand-secondary focus:ring-brand-accent/60 focus:border-brand-primary"
-                }`}
-            />
-            {errors.sinopsis && (
-              <p className="text-xs text-red-500 mt-0.5">{errors.sinopsis}</p>
-            )}
-          </div>
-        </section>
-
-        {/* Detalles */}
-        <section className="bg-white rounded-xl border border-brand-accent/10 shadow-sm p-6 space-y-5">
-          <h2 className="text-lg font-bold text-brand-primary font-display tracking-tight border-b border-brand-accent/10 pb-3">
-            Detalles de Publicación
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              id="edit-libro-paginas"
-              label="Páginas"
-              type="number"
-              min={1}
-              placeholder="Ej: 417"
-              value={values.paginas}
-              onChange={(e) => handleChange("paginas", e.target.value)}
-              onBlur={() => handleBlur("paginas")}
-              error={errors.paginas}
-              required
-              disabled={isSubmitting}
-            />
-
-            <Input
-              id="edit-libro-precio"
-              label="Precio"
-              type="number"
-              min={0}
-              step="1"
-              placeholder="Ej: 45000"
-              value={values.precio}
-              onChange={(e) => handleChange("precio", e.target.value)}
-              onBlur={() => handleBlur("precio")}
-              error={errors.precio}
-              required
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select
-              id="edit-libro-estado"
-              label="Condición"
-              options={ESTADO_OPTIONS}
-              value={values.estado}
-              onChange={(e) => handleChange("estado", e.target.value)}
-              onBlur={() => handleBlur("estado")}
-              error={errors.estado}
-              required
-              disabled={isSubmitting}
-            />
-
-            <Input
-              id="edit-libro-fecha-publicacion"
-              label="Fecha de publicación"
-              type="date"
-              value={values.fecha_publicacion}
-              onChange={(e) => handleChange("fecha_publicacion", e.target.value)}
-              onBlur={() => handleBlur("fecha_publicacion")}
-              error={errors.fecha_publicacion}
-              required
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <Input
-            id="edit-libro-editorial"
-            label="Editorial"
-            placeholder="Ej: Editorial Sudamericana"
-            value={values.editorial}
-            onChange={(e) => handleChange("editorial", e.target.value)}
-            onBlur={() => handleBlur("editorial")}
-            error={errors.editorial}
-            required
-            disabled={isSubmitting}
-          />
-        </section>
-
-        {/* Clasificación */}
-        <section className="bg-white rounded-xl border border-brand-accent/10 shadow-sm p-6 space-y-5">
-          <h2 className="text-lg font-bold text-brand-primary font-display tracking-tight border-b border-brand-accent/10 pb-3">
-            Clasificación
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <SearchableSelect
-                id="edit-libro-autor"
-                label="Autor"
-                value={values.id_autor}
-                options={authorOptions}
-                onChange={(val) => handleChange("id_autor", val)}
-                onBlur={() => handleBlur("id_autor")}
-                error={errors.id_autor}
-                required
-                disabled={isSubmitting}
-                placeholder="Buscar autor..."
-                noOptionsText="No se encontraron autores."
-              />
-              <button
-                type="button"
-                onClick={() => setIsAuthorModalOpen(true)}
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 py-2 mt-2 text-sm font-bold text-brand-bg bg-brand-primary hover:bg-brand-secondary rounded-lg transition-all shadow-md cursor-pointer">
-                <Plus className="w-4 h-4" />
-                Añadir nuevo autor
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <SearchableSelect
-                id="edit-libro-categoria"
-                label="Categoría"
-                value={values.id_categoria}
-                options={categoryOptions}
-                onChange={(val) => handleChange("id_categoria", val)}
-                onBlur={() => handleBlur("id_categoria")}
-                error={errors.id_categoria}
-                required
-                disabled={isSubmitting}
-                placeholder="Buscar categoría..."
-                noOptionsText="No se encontraron categorías."
-              />
-              <button
-                type="button"
-                onClick={() => setIsCategoryModalOpen(true)}
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 py-2 mt-2 text-sm font-bold text-brand-bg bg-brand-primary hover:bg-brand-secondary rounded-lg transition-all shadow-md cursor-pointer">
-                <Plus className="w-4 h-4" />
-                Añadir nueva categoría
-              </button>
-            </div>
-          </div>
-        </section>
+        <LibroRASection
+          paginas={Number(values.paginas) || 0}
+          disabled={isSubmitting}
+          errors={{}}
+          dimensiones={raDimensiones}
+          onDimensionesChange={handleRaDimensionesChange}
+          existingTexturas={existingTexturas}
+          onTexturasChange={handleRaTexturasChange}
+        />
 
         {/* Acciones */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2 pb-8">
